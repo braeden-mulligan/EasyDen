@@ -1,13 +1,14 @@
-# Byte-compiled / optimized / DLL files
-__pycache__/
-*.py[cod]
-*$py.class
-
-
 # Virtual Environment
 venv/
 activate/
 
 # Project Files
 status_files/
+*.swp
+*.log
+*.txt
 
+# Byte-compiled / optimized / DLL files
+__pycache__/
+*.py[cod]
+*$py.class

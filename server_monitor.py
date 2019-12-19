@@ -36,8 +36,21 @@ def check_external_ip(logger):
 			return False
 	return True
 
+def check_system_uptime(logger):
+	uptime = -1
+	try:
+		with open("/proc/uptime", "r") as procfs:
+			line = procfs.readline()
+			uptime = int(float(line.split(" ")[0]))
+	except Exception as e:
+		logger.add_log("ERROR: Failed to read system uptime, " + str(e))
+
+	return uptime
+
 if __name__ == "__main__":
 	status_log = common.Logger(config.BASE_DIR + config.LOG_FILE)
+
+	previous_uptime = 0
 	while True:
 		ip_check = check_external_ip(status_log)
 		if config.DEBUG:
@@ -47,10 +60,25 @@ if __name__ == "__main__":
 			else:
 				print("FAILURE: Could not update address.")
 
+		uptime = check_system_uptime(status_log)
+		if config.DEBUG:
+			print("\nChecking system uptime...")
+		if uptime < 0:
+			if config.DEBUG:
+				print("FAILURE: Could not check uptime.")
+			pass
+		elif uptime < previous_uptime:
+			status_log.add_log("System reboot detected " + str(uptime) + " seconds ago.")
+			if config.DEBUG:
+				print("NOTICE: System reboot detected.")
+		else:
+			previous_uptime = uptime
+			if config.DEBUG:
+				print("SUCCESS: Current uptime updated.")
+
 		#TODO: More functionality here.
-			# Check system uptime.
-			# Check running server processes
-			# IPC from other server components
+		# Check running server component processes 
+		# IPC from other server components
 
 		recorded = status_log.record_events()
 		if config.DEBUG:

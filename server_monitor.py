@@ -48,7 +48,7 @@ def check_system_uptime(logger):
 	return uptime
 
 if __name__ == "__main__":
-	status_log = common.Logger(config.BASE_DIR + config.LOG_FILE)
+	status_log = common.Logger(config.BASE_DIR + config.MONITOR_LOG_FILE)
 
 	previous_uptime = 0
 	while True:

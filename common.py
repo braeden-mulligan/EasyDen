@@ -7,7 +7,11 @@ import email.message, smtplib
 def write_guard(f, mode, content):
 	return
 
-# Logger #
+def timestamp():
+	dt = datetime.datetime.now()
+	return dt.strftime("%Y-%m-%d-%H:%M:%S")
+
+### Logger ###
 # Intended to be a reliable and robust tool for debugging, recording errors,
 #   and monitoring server componenets for the SmartHome project.
 #
@@ -20,6 +24,7 @@ def write_guard(f, mode, content):
 #   the <record_events()> method.
 # Avoid giving multiple instances of the class the same file name <dest>. There
 #   is no synchronization or thread safety in the design.
+### ------ ###
 class Logger:
 
 	max_email_reports = 16
@@ -31,10 +36,9 @@ class Logger:
 		# reports contains tuples of messages with priority (<string>, <bool>).
 		# Priority indicates whether to log if email fails.
 		self.reports = []
-
+	
 	def build_event(self, event):
-		dt = datetime.datetime.now()
-		prefix = dt.strftime("%Y-%m-%d-%H:%M, ")
+		prefix = timestamp()[:-3] + ", "
 		return prefix + event
 
 	# If event will be both logged and reported, leave priority False. Otherwise

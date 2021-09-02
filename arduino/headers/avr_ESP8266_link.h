@@ -10,7 +10,8 @@
 #define ESP8266_RECV_TIMEOUT 4
 #define ESP8266_RECV_SERVERTIMEOUT 5
 #define ESP8266_MODULE_NOTIFICATION 6
-#define ESP8266_MESSAGE_NONE 7
+#define ESP8266_MODULE_BUSY 7
+#define ESP8266_MESSAGE_NONE 8
 #define ESP8266_CMD_SUCCESS 10
 #define ESP8266_CMD_FAILURE 11
 #define ESP8266_CMD_CONTINUE 12
@@ -21,6 +22,7 @@
 
 struct ESP8266_network_parameters {
 	int8_t module_ready;
+	int8_t command_echo;
 	int8_t multiplexing;
 	int8_t wifi_mode; // 1 => station, 2 => softAP, 3 => softAP+station
 	int8_t lan_connection;
@@ -28,13 +30,17 @@ struct ESP8266_network_parameters {
 	int8_t tcp_connection;
 };
 
-// Pass a buffer for server messages and the buffer size.
-void ESP8266_link_init(struct ESP8266_network_parameters*, char*, uint8_t);
+// Pass a buffer for server messages, the buffer size, and allotted time for a tcp message.
+void ESP8266_link_init(struct ESP8266_network_parameters*, char*, uint8_t, uint8_t);
 
-uint8_t ESP8266_recv(void);
+//uint8_t ESP8266_recv(void);
+
+uint8_t ESP8266_poll(struct ESP8266_network_parameters*, uint16_t timeout_ms);
 
 uint8_t ESP8266_ping(struct ESP8266_network_parameters*, uint16_t timeout_ms);
 
-uint8_t ESP8266_echo_disable(struct ESP8266_network_parameters*, int16_t timeout_ms);
+uint8_t ESP8266_echo_disable(struct ESP8266_network_parameters*, uint16_t timeout_ms);
+
+uint8_t ESP8266_status(struct ESP8266_network_parameters* np, uint16_t timeout_ms);
 
 #endif

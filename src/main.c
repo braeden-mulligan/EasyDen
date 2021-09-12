@@ -1,13 +1,16 @@
 #include "avr_ESP8266_link.h"
 #include "avr_timer_util.h"
 #include "avr_utilities.h"
-#include "util/delay.h"
+
+#include <stdio.h>
+#include <string.h>
+#include <util/delay.h>
 
 //TODO: define in project library
 #define ever ;;
 #define SERVER_BUF_SIZE 32
-#define WIFI_STARTUP_TIMEOUT 10
-#define CMD_TIMEOUT_DEFAULT 500
+#define WIFI_STARTUP_TIMEOUT 5
+#define CMD_TIMEOUT_DEFAULT 5000
 
 #ifndef WIFI_SSID 
 	#error No wifi ssid defined.
@@ -32,7 +35,7 @@ struct ESP8266_network_parameters esp_params;
 char* wifi_ssid = WIFI_SSID;
 char* wifi_pass = WIFI_PASS;
 
-uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_parameters*, uint16_t), uint16_t timeout_ms, uint8_t retries) {
+uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_parameters*, uint32_t), uint32_t timeout_ms, uint8_t retries) {
 	uint8_t result = ESP8266_CMD_FAILURE; 
 
 	for (uint8_t i = 0; i < retries; ++i) {
@@ -41,8 +44,6 @@ uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_parameters*,
 
 	return result;
 }
-
-
 
 uint8_t module_check(void) {
 	if (esp_params.command_echo) try_command(ESP8266_echo_disable, CMD_TIMEOUT_DEFAULT, 3); 
@@ -69,27 +70,44 @@ void module_startup_procedure(void) {
 
 // In case the ESP8266 sent "ready" before the arduino could catch it.
 	if (!esp_params.module_ready) {
-		if (try_command(ESP8266_ping, CMD_TIMEOUT_DEFAULT, 3) == ESP8266_CMD_SUCCESS) esp_params.module_ready = 1;
+		if (try_command(ESP8266_ping, CMD_TIMEOUT_DEFAULT, 3) == ESP8266_CMD_SUCCESS) {
+			esp_params.module_ready = 1;
+			blink_led(4, 300);
+		}
 	}
 }
-
-
 
 int main(void) {
 	ESP8266_link_init(&esp_params, server_buf, 32, 3);
 
 	module_startup_procedure();
 
+	uint16_t debug_count = 0;
+	char debug_msg[32];
+
+	timer16_init(10);
+	timer16_start();
+
 	for (ever) {
-		ESP8266_poll(&esp_params, 100);
+		if (ESP8266_poll(&esp_params, 100) == ESP8266_RECV_SERVER) blink_led(5, 250);
+	
+		if (timer16_flag) {
+			module_check();
 
-		if (esp_params.lan_connection == 1) {
-			blink_led(5, 250);
-		} else {
-			ESP8266_status(&esp_params, 500);
+			if (!esp_params.lan_connection) {
+				ESP8266_lan_connect(&esp_params, 15000, WIFI_SSID, WIFI_PASS);
+			} else if (!esp_params.ip_obtained) {
+				// disconnect from AP to try reconnect?
+			} else if (!esp_params.tcp_connection) {
+				ESP8266_socket_connect(&esp_params, 8000, SOCKET_ADDR, SOCKET_PORT);
+			} else {
+				sprintf(debug_msg, "Sameple message #%d\r\n", debug_count);
+				ESP8266_socket_send(&esp_params, 3000, debug_msg, strlen(debug_msg));
+				++debug_count;
+			}
+
+			timer16_reset();
 		}
-
-		_delay_ms(1000);
 	}
 
 	return 0;

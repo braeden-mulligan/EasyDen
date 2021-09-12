@@ -16,7 +16,13 @@
 #define ESP8266_CMD_FAILURE 11
 #define ESP8266_CMD_CONTINUE 12
 #define ESP8266_CMD_UNKNOWN 13
+#define ESP8266_STATUS_UPDATE 20
 #define ESP8266_UNKNOWN_ERROR 69
+#define ESP8266_NULL 255
+
+#define ESP8266_MODE_STATION 1
+#define ESP8266_MODE_SOFTAP 2
+#define ESP8266_MODE_BOTH 3
 
 #define ESP8266_LINE_MAX_SIZE 127
 
@@ -35,12 +41,21 @@ void ESP8266_link_init(struct ESP8266_network_parameters*, char*, uint8_t, uint8
 
 //uint8_t ESP8266_recv(void);
 
-uint8_t ESP8266_poll(struct ESP8266_network_parameters*, uint16_t timeout_ms);
+// All following functions require timeout for second parameter.
+uint8_t ESP8266_poll(struct ESP8266_network_parameters*, uint16_t);
 
-uint8_t ESP8266_ping(struct ESP8266_network_parameters*, uint16_t timeout_ms);
+uint8_t ESP8266_ping(struct ESP8266_network_parameters*, uint16_t);
 
-uint8_t ESP8266_echo_disable(struct ESP8266_network_parameters*, uint16_t timeout_ms);
+uint8_t ESP8266_echo_disable(struct ESP8266_network_parameters*, uint16_t);
 
-uint8_t ESP8266_status(struct ESP8266_network_parameters* np, uint16_t timeout_ms);
+uint8_t ESP8266_status(struct ESP8266_network_parameters*, uint16_t);
+
+uint8_t ESP8266_wifi_mode_get(struct ESP8266_network_parameters*, uint16_t);
+
+uint8_t ESP8266_wifi_mode_set(struct ESP8266_network_parameters*, uint16_t);
+
+uint8_t ESP8266_socket_connect(struct ESP8266_network_parameters*, uint16_t, char* socket_addr, char* socket_port);
+
+uint8_t ESP8266_socket_send(struct ESP8266_network_parameters*, uint16_t, char* message_buffer, uint8_t bytes);
 
 #endif

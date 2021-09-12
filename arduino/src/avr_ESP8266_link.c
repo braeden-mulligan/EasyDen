@@ -15,6 +15,33 @@ static char* server_message_buffer;
 static uint8_t server_message_size;
 static uint8_t server_message_timeout;
 
+void ESP8266_link_init(struct ESP8266_network_parameters* np, char* server_msg_buf, uint8_t n_msg_buf, uint8_t msg_timeout) {
+	uart_init(57600);
+
+	line_ptr = 0;
+	memset(ESP8266_line_incoming, '\0', ESP8266_LINE_MAX_SIZE + 1);
+
+	if (np != NULL) {
+		np->module_ready = 0;
+		np->command_echo = 1;
+		np->multiplexing = -1;
+		np->wifi_mode = 0; 
+		np->lan_connection = 0;
+		np->ip_obtained = 0;
+		np->tcp_connection = 0;
+	}
+
+	server_message_buffer = server_msg_buf;
+	server_message_size = n_msg_buf;
+	server_message_timeout = msg_timeout;
+}
+
+void ESP8266_reset_serial(void) {
+	_delay_ms(500);
+	uart_flush();
+}
+
+
 uint8_t ESP8266_recv(void) {
 	char c;
 
@@ -164,6 +191,7 @@ static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*),
 
 //TODO: Check if ERROR should be handled by command proc
 			if (check_module_notification(np) == ESP8266_MODULE_NOTIFICATION) continue;
+			if (check_module_notification(np) == ESP8266_MODULE_BUSY) continue;
 
 			uint8_t cmd_status = cmd_proc(np);
 			if (cmd_status == ESP8266_CMD_CONTINUE) continue;
@@ -199,12 +227,13 @@ static uint8_t parse_ok(void) {
 
 static uint8_t _ESP8266_ping(struct ESP8266_network_parameters* np) {
 	if (parse_ok()) {
+		np->module_ready = 1;
 		return ESP8266_CMD_SUCCESS;
 
 	} else if (strstr("AT", ESP8266_line_incoming) != NULL) {
 		return ESP8266_CMD_CONTINUE;
-
 	}
+
 	return ESP8266_CMD_FAILURE;
 }
 uint8_t ESP8266_ping(struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
@@ -214,12 +243,13 @@ uint8_t ESP8266_ping(struct ESP8266_network_parameters* np, uint16_t timeout_ms)
 
 static uint8_t _ESP8266_echo_disable(struct ESP8266_network_parameters* np) {
 	if (parse_ok()) {
+		np->command_echo = 0;
 		return ESP8266_CMD_SUCCESS;
 
 	} else if (strstr("ATE0", ESP8266_line_incoming) != NULL) {
 		return ESP8266_CMD_CONTINUE;
-
 	}
+
 	return ESP8266_CMD_FAILURE;
 }
 uint8_t ESP8266_echo_disable(struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
@@ -227,7 +257,7 @@ uint8_t ESP8266_echo_disable(struct ESP8266_network_parameters* np, uint16_t tim
 	return run_cmd(_ESP8266_echo_disable, cmd, np, timeout_ms);
 }
 
-uint8_t _ESP8266_status(struct ESP8266_network_parameters* np) {
+static uint8_t _ESP8266_status(struct ESP8266_network_parameters* np) {
 	if (parse_ok()) {
 		return ESP8266_CMD_SUCCESS;
 
@@ -244,7 +274,7 @@ uint8_t _ESP8266_status(struct ESP8266_network_parameters* np) {
 		return ESP8266_CMD_CONTINUE;
 
 	} else if (strstr("STATUS:4", ESP8266_line_incoming) != NULL) {
-		np->tcp_connection = 1;
+		np->tcp_connection = 0;
 		return ESP8266_CMD_CONTINUE;
 
 	} else if (strstr("STATUS:5", ESP8266_line_incoming) != NULL) {
@@ -252,8 +282,8 @@ uint8_t _ESP8266_status(struct ESP8266_network_parameters* np) {
 		np->ip_obtained = 0;
 		np->tcp_connection = 0;
 		return ESP8266_CMD_CONTINUE;
-
 	}
+
 	return ESP8266_CMD_FAILURE;
 }
 uint8_t ESP8266_status(struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
@@ -261,44 +291,113 @@ uint8_t ESP8266_status(struct ESP8266_network_parameters* np, uint16_t timeout_m
 	return run_cmd(_ESP8266_status, cmd, np, timeout_ms);
 }
 
-/*
-uint8_t _ESP8266_restart(uint16_t timeout_ms) {
-	uint8_t retval;
+static uint8_t _ESP8266_wifi_mode(struct ESP8266_network_parameters* np) {
+	if (parse_ok()) {
+		return ESP8266_CMD_SUCCESS;
 
-	uart_puts("AT\r\n");
+	} else if (strstr("CWMODE_CUR:1", ESP8266_line_incoming) != NULL) {
+		np->wifi_mode = 1;
+		return ESP8266_CMD_CONTINUE;
 
-	for (uint16_t i = 0; i < timeout_ms * 10; ++i) {
-		_delay_us(100);
+	} else if (strstr("CWMODE_CUR:2", ESP8266_line_incoming) != NULL) {
+		np->wifi_mode = 2;
+		return ESP8266_CMD_CONTINUE;
 
-		retval = ESP8266_recv();
+	} else if (strstr("CWMODE_CUR:3", ESP8266_line_incoming) != NULL) {
+		np->wifi_mode = 3;
+		return ESP8266_CMD_CONTINUE;
 
-}
-*/
-
-void ESP8266_link_init(struct ESP8266_network_parameters* np, char* server_msg_buf, uint8_t n_msg_buf, uint8_t msg_timeout) {
-	uart_init(57600);
-
-	line_ptr = 0;
-	memset(ESP8266_line_incoming, '\0', ESP8266_LINE_MAX_SIZE + 1);
-
-	if (np != NULL) {
-		np->module_ready = -1;
-		np->command_echo = -1;
-		np->multiplexing = -1;
-		np->wifi_mode = -1; 
-		np->lan_connection = -1;
-		np->ip_obtained = -1;
-		np->tcp_connection = -1;
+	} else if (strstr("CWMODE_DEF", ESP8266_line_incoming) != NULL) {
+		return ESP8266_CMD_CONTINUE;
 	}
 
-	server_message_buffer = server_msg_buf;
-	server_message_size = n_msg_buf;
-	server_message_timeout = msg_timeout;
+	return ESP8266_CMD_FAILURE;
+}
+uint8_t ESP8266_wifi_mode_get(struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
+	char* cmd = "AT+CWMODE_CUR?\r\n";
+	return run_cmd(_ESP8266_status, cmd, np, timeout_ms);
 }
 
-void ESP8266_reset_serial(void) {
-	_delay_ms(500);
-	uart_flush();
+uint8_t ESP8266_wifi_mode_set(struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
+	char* cmd = "AT+CWMODE_DEF=1\r\n";
+
+	uint8_t result = run_cmd(_ESP8266_wifi_mode, cmd, np, timeout_ms);
+	if (result == ESP8266_CMD_SUCCESS) np->wifi_mode = ESP8266_MODE_STATION;
+
+	return result;
+}
+
+static uint8_t _ESP8266_lan_connect(struct ESP8266_network_parameters* np) {
+	if (parse_ok()) {
+		return ESP8266_CMD_SUCCESS;
+
+	} else {
+// This is probably redundant and will be checked within in run_cmd() anyway.
+// TODO: test this somehow?
+		uint8_t result = check_module_notification(np);
+		if (result == ESP8266_MODULE_NOTIFICATION || result == ESP8266_MODULE_BUSY) return ESP8266_CMD_CONTINUE;
+	}
+
+	return ESP8266_CMD_FAILURE;
+}
+uint8_t ESP8266_lan_connect(struct ESP8266_network_parameters* np, uint16_t timeout_ms, char* wifi_ssid, char* wifi_pass) {
+	char cmd[64];
+	sprintf(cmd, "AT+CWJAP_CUR=\"%s\",\"%s\"\r\n", wifi_ssid, wifi_pass);
+	return run_cmd(_ESP8266_lan_connect, cmd, np, timeout_ms);
+}
+
+static uint8_t _ESP8266_socket_connect(struct ESP8266_network_parameters* np) {
+	if (parse_ok()) {
+		return ESP8266_CMD_SUCCESS;
+
+	} else if (strstr("no ip", ESP8266_line_incoming) != NULL) {
+		np->ip_obtained = 0;
+		return ESP8266_STATUS_UPDATE;
+	}
+
+	return ESP8266_CMD_FAILURE;
+}
+uint8_t ESP8266_socket_connect(struct ESP8266_network_parameters* np, uint16_t timeout_ms, char* socket_addr, char* socket_port) {
+	char cmd[64];
+	sprintf(cmd, "AT+CIPSTART=\"TCP\",\"%s\",%s\r\n", socket_addr, socket_port);
+	return run_cmd(_ESP8266_socket_connect, cmd, np, timeout_ms);
+}
+
+static uint8_t _ESP8266_socket_send(struct ESP8266_network_parameters* np) {
+	if (parse_ok()) {
+		return ESP8266_CMD_CONTINUE;
+
+	} else if (strstr("link is not valid", ESP8266_line_incoming) != NULL) {
+		np->tcp_connection = 0;
+		return ESP8266_STATUS_UPDATE;
+
+	} else if (strstr("no ip", ESP8266_line_incoming) != NULL) {
+		np->ip_obtained = 0;
+		return ESP8266_STATUS_UPDATE;
+
+	} else if (strstr(">", ESP8266_line_incoming) != NULL) {
+		return ESP8266_CMD_CONTINUE;
+
+	} else if (strstr("Recv", ESP8266_line_incoming) != NULL) {
+		return ESP8266_CMD_CONTINUE;
+
+	} else if (strstr("SEND OK", ESP8266_line_incoming) != NULL) {
+		return ESP8266_CMD_SUCCESS;
+	}
+	
+	return ESP8266_CMD_FAILURE;
+}
+uint8_t ESP8266_socket_send(struct ESP8266_network_parameters* np, uint16_t timeout_ms, char* message_buffer, uint8_t bytes) {
+//TODO: max message size?
+	uint8_t result = ESP8266_CMD_FAILURE;
+	char cmd[32];
+	sprintf(cmd, "AT+CIPSEND=%u\r\n", bytes);
+	if ((result = run_cmd(_ESP8266_socket_send, cmd, np, timeout_ms)) == ESP8266_CMD_CONTINUE) {
+		sprintf(cmd, message_buffer);
+		result = run_cmd(_ESP8266_socket_send, cmd, np, timeout_ms);
+	}
+
+	return result;
 }
 
 

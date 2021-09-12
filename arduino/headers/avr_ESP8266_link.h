@@ -9,14 +9,15 @@
 #define ESP8266_RECV_BUFOVERFLOW 3
 #define ESP8266_RECV_TIMEOUT 4
 #define ESP8266_RECV_SERVERTIMEOUT 5
-#define ESP8266_MODULE_NOTIFICATION 6
-#define ESP8266_MODULE_BUSY 7
-#define ESP8266_MESSAGE_NONE 8
-#define ESP8266_CMD_SUCCESS 10
-#define ESP8266_CMD_FAILURE 11
-#define ESP8266_CMD_CONTINUE 12
-#define ESP8266_CMD_UNKNOWN 13
-#define ESP8266_STATUS_UPDATE 20
+#define ESP8266_MODULE_NOTIFICATION 10
+#define ESP8266_MODULE_BUSY 11
+#define ESP8266_MESSAGE_NONE 12
+#define ESP8266_CMD_SUCCESS 20
+#define ESP8266_CMD_FAILURE 21
+#define ESP8266_CMD_CONTINUE 22
+#define ESP8266_CMD_UNKNOWN 23
+#define ESP8266_STATUS_UPDATE 30
+#define ESP8266_SEND_READY 31
 #define ESP8266_UNKNOWN_ERROR 69
 #define ESP8266_NULL 255
 
@@ -42,20 +43,22 @@ void ESP8266_link_init(struct ESP8266_network_parameters*, char*, uint8_t, uint8
 //uint8_t ESP8266_recv(void);
 
 // All following functions require timeout for second parameter.
-uint8_t ESP8266_poll(struct ESP8266_network_parameters*, uint16_t);
+uint8_t ESP8266_poll(struct ESP8266_network_parameters*, uint32_t);
 
-uint8_t ESP8266_ping(struct ESP8266_network_parameters*, uint16_t);
+uint8_t ESP8266_ping(struct ESP8266_network_parameters*, uint32_t);
 
-uint8_t ESP8266_echo_disable(struct ESP8266_network_parameters*, uint16_t);
+uint8_t ESP8266_echo_disable(struct ESP8266_network_parameters*, uint32_t);
 
-uint8_t ESP8266_status(struct ESP8266_network_parameters*, uint16_t);
+uint8_t ESP8266_status(struct ESP8266_network_parameters*, uint32_t);
 
-uint8_t ESP8266_wifi_mode_get(struct ESP8266_network_parameters*, uint16_t);
+uint8_t ESP8266_wifi_mode_get(struct ESP8266_network_parameters*, uint32_t);
 
-uint8_t ESP8266_wifi_mode_set(struct ESP8266_network_parameters*, uint16_t);
+uint8_t ESP8266_wifi_mode_set(struct ESP8266_network_parameters*, uint32_t);
 
-uint8_t ESP8266_socket_connect(struct ESP8266_network_parameters*, uint16_t, char* socket_addr, char* socket_port);
+uint8_t ESP8266_lan_connect(struct ESP8266_network_parameters* np, uint32_t timeout_ms, char* wifi_ssid, char* wifi_pass);
 
-uint8_t ESP8266_socket_send(struct ESP8266_network_parameters*, uint16_t, char* message_buffer, uint8_t bytes);
+uint8_t ESP8266_socket_connect(struct ESP8266_network_parameters*, uint32_t, char* socket_addr, char* socket_port);
+
+uint8_t ESP8266_socket_send(struct ESP8266_network_parameters*, uint32_t, char* message_buffer, uint8_t bytes);
 
 #endif

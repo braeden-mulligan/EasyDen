@@ -7,6 +7,10 @@
 #include <string.h>
 #include <util/delay.h>
 
+#define DEBUG_MODE
+
+#define ESP8266_UART_TIMEOUT 3
+
 static uint8_t line_ptr;
 
 static char ESP8266_line_incoming[ESP8266_LINE_MAX_SIZE + 1];
@@ -65,12 +69,20 @@ uint8_t ESP8266_recv(void) {
 			return ESP8266_RECV_BUFOVERFLOW;
 		}
 
+// Edge case for AT+CIPSEND
+// TODO: leading whitespace issue?
+		if (c == '>') {
+			ESP8266_line_incoming[line_ptr] = '\0';
+			line_ptr = 0;
+			return ESP8266_RECV_TRUE;
+		}
+
 // Unprompted server messages;
 		char * server_message_start;
 		if ((server_message_start = strstr(ESP8266_line_incoming, "+IPD,")) != NULL) {
 			int8_t message_bytes = 0;
 
-			for (uint8_t i = 0; i < server_message_timeout * 10; ++i) {
+			for (uint16_t i = 0; i < ESP8266_UART_TIMEOUT * 10; ++i) {
 				while (uart_available()) {
 					c = uart_getc();
 
@@ -145,10 +157,10 @@ uint8_t check_module_notification(struct ESP8266_network_parameters* np) {
 }
 
 //TODO:
-uint8_t ESP8266_poll(struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
+uint8_t ESP8266_poll(struct ESP8266_network_parameters* np, uint32_t timeout_ms) {
 	uint8_t result = 0;
 
-	for (uint16_t i = 0; i < timeout_ms * 10; ++i) {
+	for (uint32_t i = 0; i < timeout_ms * 10; ++i) {
 		result = ESP8266_recv();
 
 		uint8_t module_message;
@@ -173,30 +185,34 @@ uint8_t ESP8266_poll(struct ESP8266_network_parameters* np, uint16_t timeout_ms)
 	return result;
 }
 
-static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*), char* cmd, struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
+static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*), char* cmd, struct ESP8266_network_parameters* np, uint32_t timeout_ms) {
 	uint8_t retval;
 
 	uart_puts(cmd);
 
-	for (uint16_t i = 0; i < timeout_ms * 10; ++i) {
+	for (uint32_t i = 0; i < timeout_ms * 10; ++i) {
 		retval = ESP8266_recv();
 
 		switch (retval) {
 		case ESP8266_RECV_FALSE:
-			_delay_us(100);
-			continue;
+			break;
 
 		case ESP8266_RECV_TRUE:
-			if (!strcmp("", ESP8266_line_incoming)) continue;
+			if (!strcmp("", ESP8266_line_incoming)) break;
 
 //TODO: Check if ERROR should be handled by command proc
-			if (check_module_notification(np) == ESP8266_MODULE_NOTIFICATION) continue;
-			if (check_module_notification(np) == ESP8266_MODULE_BUSY) continue;
+			if (check_module_notification(np) == ESP8266_MODULE_NOTIFICATION) break;
+			if (check_module_notification(np) == ESP8266_MODULE_BUSY) break;
 
 			uint8_t cmd_status = cmd_proc(np);
-			if (cmd_status == ESP8266_CMD_CONTINUE) continue;
+			if (cmd_status == ESP8266_CMD_CONTINUE) break;
+
+//TODO: return cmd_status case-by-case or regardless?
+			if (cmd_status == ESP8266_SEND_READY) return ESP8266_SEND_READY;
+
 			if (cmd_status == ESP8266_CMD_SUCCESS) return ESP8266_CMD_SUCCESS;
 			if (cmd_status == ESP8266_CMD_FAILURE) return ESP8266_CMD_FAILURE;
+			
 			break;
 
 		case ESP8266_RECV_SERVER:
@@ -215,6 +231,8 @@ static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*),
 #endif
 			return ESP8266_UNKNOWN_ERROR;
 		}
+
+		_delay_us(100);
 	}
 
 	return ESP8266_RECV_TIMEOUT;
@@ -236,7 +254,7 @@ static uint8_t _ESP8266_ping(struct ESP8266_network_parameters* np) {
 
 	return ESP8266_CMD_FAILURE;
 }
-uint8_t ESP8266_ping(struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
+uint8_t ESP8266_ping(struct ESP8266_network_parameters* np, uint32_t timeout_ms) {
 	char* cmd = "AT\r\n"; 
 	return run_cmd(_ESP8266_ping, cmd, np, timeout_ms);
 }
@@ -252,7 +270,7 @@ static uint8_t _ESP8266_echo_disable(struct ESP8266_network_parameters* np) {
 
 	return ESP8266_CMD_FAILURE;
 }
-uint8_t ESP8266_echo_disable(struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
+uint8_t ESP8266_echo_disable(struct ESP8266_network_parameters* np, uint32_t timeout_ms) {
 	char* cmd = "ATE0\r\n"; 
 	return run_cmd(_ESP8266_echo_disable, cmd, np, timeout_ms);
 }
@@ -286,7 +304,7 @@ static uint8_t _ESP8266_status(struct ESP8266_network_parameters* np) {
 
 	return ESP8266_CMD_FAILURE;
 }
-uint8_t ESP8266_status(struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
+uint8_t ESP8266_status(struct ESP8266_network_parameters* np, uint32_t timeout_ms) {
 	char* cmd = "AT+CIPSTATUS\r\n";
 	return run_cmd(_ESP8266_status, cmd, np, timeout_ms);
 }
@@ -313,12 +331,12 @@ static uint8_t _ESP8266_wifi_mode(struct ESP8266_network_parameters* np) {
 
 	return ESP8266_CMD_FAILURE;
 }
-uint8_t ESP8266_wifi_mode_get(struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
+uint8_t ESP8266_wifi_mode_get(struct ESP8266_network_parameters* np, uint32_t timeout_ms) {
 	char* cmd = "AT+CWMODE_CUR?\r\n";
 	return run_cmd(_ESP8266_status, cmd, np, timeout_ms);
 }
 
-uint8_t ESP8266_wifi_mode_set(struct ESP8266_network_parameters* np, uint16_t timeout_ms) {
+uint8_t ESP8266_wifi_mode_set(struct ESP8266_network_parameters* np, uint32_t timeout_ms) {
 	char* cmd = "AT+CWMODE_DEF=1\r\n";
 
 	uint8_t result = run_cmd(_ESP8266_wifi_mode, cmd, np, timeout_ms);
@@ -331,6 +349,9 @@ static uint8_t _ESP8266_lan_connect(struct ESP8266_network_parameters* np) {
 	if (parse_ok()) {
 		return ESP8266_CMD_SUCCESS;
 
+	} else if (strstr("CWJAP_CUR", ESP8266_line_incoming) != NULL) {
+		return ESP8266_CMD_CONTINUE;
+
 	} else {
 // This is probably redundant and will be checked within in run_cmd() anyway.
 // TODO: test this somehow?
@@ -340,7 +361,7 @@ static uint8_t _ESP8266_lan_connect(struct ESP8266_network_parameters* np) {
 
 	return ESP8266_CMD_FAILURE;
 }
-uint8_t ESP8266_lan_connect(struct ESP8266_network_parameters* np, uint16_t timeout_ms, char* wifi_ssid, char* wifi_pass) {
+uint8_t ESP8266_lan_connect(struct ESP8266_network_parameters* np, uint32_t timeout_ms, char* wifi_ssid, char* wifi_pass) {
 	char cmd[64];
 	sprintf(cmd, "AT+CWJAP_CUR=\"%s\",\"%s\"\r\n", wifi_ssid, wifi_pass);
 	return run_cmd(_ESP8266_lan_connect, cmd, np, timeout_ms);
@@ -357,14 +378,17 @@ static uint8_t _ESP8266_socket_connect(struct ESP8266_network_parameters* np) {
 
 	return ESP8266_CMD_FAILURE;
 }
-uint8_t ESP8266_socket_connect(struct ESP8266_network_parameters* np, uint16_t timeout_ms, char* socket_addr, char* socket_port) {
+uint8_t ESP8266_socket_connect(struct ESP8266_network_parameters* np, uint32_t timeout_ms, char* socket_addr, char* socket_port) {
 	char cmd[64];
 	sprintf(cmd, "AT+CIPSTART=\"TCP\",\"%s\",%s\r\n", socket_addr, socket_port);
 	return run_cmd(_ESP8266_socket_connect, cmd, np, timeout_ms);
 }
 
 static uint8_t _ESP8266_socket_send(struct ESP8266_network_parameters* np) {
-	if (parse_ok()) {
+	if (parse_ok() && strstr("SEND", ESP8266_line_incoming) == NULL) {
+		return ESP8266_CMD_CONTINUE;
+
+	} else if (strstr("AT+CIPSEND", ESP8266_line_incoming) != NULL) {
 		return ESP8266_CMD_CONTINUE;
 
 	} else if (strstr("link is not valid", ESP8266_line_incoming) != NULL) {
@@ -376,7 +400,7 @@ static uint8_t _ESP8266_socket_send(struct ESP8266_network_parameters* np) {
 		return ESP8266_STATUS_UPDATE;
 
 	} else if (strstr(">", ESP8266_line_incoming) != NULL) {
-		return ESP8266_CMD_CONTINUE;
+		return ESP8266_SEND_READY;
 
 	} else if (strstr("Recv", ESP8266_line_incoming) != NULL) {
 		return ESP8266_CMD_CONTINUE;
@@ -387,12 +411,16 @@ static uint8_t _ESP8266_socket_send(struct ESP8266_network_parameters* np) {
 	
 	return ESP8266_CMD_FAILURE;
 }
-uint8_t ESP8266_socket_send(struct ESP8266_network_parameters* np, uint16_t timeout_ms, char* message_buffer, uint8_t bytes) {
+uint8_t ESP8266_socket_send(struct ESP8266_network_parameters* np, uint32_t timeout_ms, char* message_buffer, uint8_t bytes) {
 //TODO: max message size?
 	uint8_t result = ESP8266_CMD_FAILURE;
 	char cmd[32];
 	sprintf(cmd, "AT+CIPSEND=%u\r\n", bytes);
-	if ((result = run_cmd(_ESP8266_socket_send, cmd, np, timeout_ms)) == ESP8266_CMD_CONTINUE) {
+
+	result = run_cmd(_ESP8266_socket_send, cmd, np, timeout_ms);
+
+	if (result == ESP8266_SEND_READY) {
+		blink_led(2, 300);
 		sprintf(cmd, message_buffer);
 		result = run_cmd(_ESP8266_socket_send, cmd, np, timeout_ms);
 	}

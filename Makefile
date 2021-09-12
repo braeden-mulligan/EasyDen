@@ -1,7 +1,7 @@
 INCLUDE_PATHS := -I src -I ../libraries/arduino/ -I ../libraries/arduino/headers
 CC := avr-gcc
-CFLAGS := -std=gnu99 $(INCLUDE_PATHS) -Os -DF_CPU=16000000UL -mmcu=atmega328p -Wall 
-LFLAGS := -std=gnu99 -mmcu=atmega328p -Wall
+CFLAGS := -std=gnu99 $(INCLUDE_PATHS) -Os -DF_CPU=16000000UL -mmcu=atmega328p -Wall $(WIFI_DEFINES) $(SOCKET_DEFINES)
+LFLAGS := -std=gnu99 -mmcu=atmega328p -Wall $(WIFI_DEFINES) $(SOCKET_DEFINES)
 
 SRC := $(shell cd src && ls *.c)
 SRC_TMP := $(addprefix build/,$(SRC))
@@ -17,7 +17,9 @@ CRUFT := *.o *.elf
 
 TARGET := smart-plug
 
-all: clean target
+all: target
+
+full: clean target
 
 target: $(OBJ)
 	@mkdir -p bin

@@ -7,18 +7,20 @@
 #define ESP8266_RECV_TRUE 1
 #define ESP8266_RECV_SERVER 2
 #define ESP8266_RECV_BUFOVERFLOW 3
-#define ESP8266_RECV_TIMEOUT 4
-#define ESP8266_RECV_SERVERTIMEOUT 5
+#define ESP8266_RECV_SERVERTIMEOUT 4
+
 #define ESP8266_MODULE_NOTIFICATION 10
 #define ESP8266_MODULE_BUSY 11
 #define ESP8266_MESSAGE_NONE 12
+
 #define ESP8266_CMD_SUCCESS 20
 #define ESP8266_CMD_FAILURE 21
 #define ESP8266_CMD_CONTINUE 22
-#define ESP8266_CMD_UNKNOWN 23
-#define ESP8266_STATUS_UPDATE 30
-#define ESP8266_SEND_READY 31
-#define ESP8266_UNKNOWN_ERROR 69
+#define ESP8266_CMD_TIMEOUT 23
+#define ESP8266_CMD_SENDREADY 25
+
+#define ESP8266_STATUS_UPDATE 40
+#define ESP8266_ERROR_UNKNOWN 69
 #define ESP8266_NULL 255
 
 #define ESP8266_MODE_STATION 1
@@ -40,7 +42,11 @@ struct ESP8266_network_parameters {
 // Pass a buffer for server messages, the buffer size, and allotted time for a tcp message.
 void ESP8266_link_init(struct ESP8266_network_parameters*, char*, uint8_t, uint8_t);
 
-//uint8_t ESP8266_recv(void);
+void ESP8266_reset_serial(void);
+
+uint8_t server_message_waiting(void);
+
+void dequeue_server_message(void);
 
 // All following functions require timeout for second parameter.
 uint8_t ESP8266_poll(struct ESP8266_network_parameters*, uint32_t);

@@ -22,7 +22,7 @@ void timer8_start(void);
 
 void timer8_stop(void);
 
-void timer8_reset(void);
+void timer8_restart(void);
 
 void timer8_deinit(void);
 
@@ -35,7 +35,7 @@ void timer16_start(void);
 
 void timer16_stop(void);
 
-void timer16_reset(void);
+void timer16_restart(void);
 
 void timer16_deinit(void);
 

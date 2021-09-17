@@ -49,7 +49,7 @@ inline void timer8_stop(void) {
 	}
 }
 
-void timer8_reset(void) {
+void timer8_restart(void) {
 	timer8_stop();
 	timer8_start();
 }
@@ -106,7 +106,7 @@ void timer16_stop(void) {
 	}
 }
 
-void timer16_reset(void) {
+void timer16_restart(void) {
 	timer16_stop();
 	timer16_start();
 }

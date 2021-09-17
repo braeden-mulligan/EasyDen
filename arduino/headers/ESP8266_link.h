@@ -27,6 +27,7 @@
 #define ESP8266_MODE_SOFTAP 2
 #define ESP8266_MODE_BOTH 3
 
+#define ESP8266_UART_BAUD 57600
 #define ESP8266_LINE_MAX_SIZE 127
 
 struct ESP8266_network_parameters {

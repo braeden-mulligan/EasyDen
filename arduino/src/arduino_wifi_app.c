@@ -4,6 +4,7 @@
 #include "avr_utilities.h"
 
 #include <stddef.h>
+#include <string.h>
 #include <util/delay.h>
 
 // TODO: Move defines to common for use with ESP32?
@@ -26,10 +27,10 @@
 static struct ESP8266_network_parameters esp_params;
 static struct wifi_app_config* config;
 
-static char* wifi_ssid = WIFI_SSID;
-static char* wifi_pass = WIFI_PASS;
+//static char* wifi_ssid = WIFI_SSID;
+//static char* wifi_pass = WIFI_PASS;
 
-uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_parameters*, uint32_t), uint32_t timeout_ms, uint8_t retries) {
+static uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_parameters*, uint32_t), uint32_t timeout_ms, uint8_t retries) {
 	uint8_t result = ESP8266_CMD_FAILURE; 
 
 	for (uint8_t i = 0; i < retries; ++i) {
@@ -72,9 +73,42 @@ static void module_startup_procedure(void) {
 	}
 }
 
+static uint8_t module_poll(void) {
+	uint8_t result;
+	if ((result = ESP8266_poll(&esp_params, 100))) {
+#if defined (DEBUG_MODE)
+		if (result == ESP8266_RECV_SERVER) {
+			blink_led(5, 250);
+		} else if (result == MODULE_NOTIFICATION) {
+			blink_led(2, 250);
+		}
+#endif
+	}
+
+// TODO check for server message
+
+	return 0;
+}
+
+
+/*
+
+*/
 void app_error_check(uint8_t retval) {
 	switch(retval) {
+	case ARDUINO_APP_SUCCESS:
+		return;
+#if defined (DEGUB_MODE)
+	case ARDUINO_APP_ERROR:
+		blink_led(-1, 1000);
+		break;
+#else 
+	case ARDUINO_APP_ERROR:
+		blink_led(3, 1000);
+		break;
+#endif
 
+#if defined (DEBUG_MODE)
 	case ESP8266_CMD_SUCCESS:
 		blink_led(5, 200);
 		break;
@@ -87,40 +121,38 @@ void app_error_check(uint8_t retval) {
 	case ESP8266_RECV_BUFOVERFLOW:
 		blink_led(3, 1000);
 		break;
-	case ESP8266_ERROR_UNKNOWN:
-		blink_led(-1, 1000);
-		break;
 	case ESP8266_CMD_SENDREADY:
 		blink_led(4, 1000);
 		break;
+	case ESP8266_ERROR_UNKNOWN:
+		blink_led(5, 1000);
+		break;
+#endif
 	default:
-		blink_led(5,1000);
+		blink_led(-1, 300);
+		break;
 	}
-	_delay_ms(2000);
 }
 
-static uint8_t module_poll(void) {
-	if (ESP8266_poll(&esp_params, 100)) {
-
-// TODO check for server message
-		blink_led(3, 250);
-	}
-
-	return 0;
-}
-
-
-/*
-
-*/
 uint8_t wifi_send(char* message) {
-	return 0;
+	uint8_t bytes = strnlen(message, config->server_buf_size);
+	uint8_t result = ARDUINO_APP_ERROR;
+
+	if (esp_params.tcp_connection) {
+		result = ESP8266_socket_send(&esp_params, config->command_timeout, config->server_message_buf, bytes);
+	}
+
+	if (result == ESP8266_CMD_SUCCESS) return ARDUINO_APP_SUCCESS;
+#if defined (DEBUG_MODE)
+	return result;
+#endif
+	return ARDUINO_APP_ERROR;
 }
 
 struct wifi_app_config wifi_app_config_create(void) {
 	struct wifi_app_config config_default = {
 		.wifi_startup_timeout = WIFI_STARTUP_TIMEOUT_DEFAULT,
-		.module_check_interval = MODULE_CHECK_INTERVAL_DEFAULT,
+		.application_interval = APPLICATION_INTERVAL_DEFAULT,
 		.command_retries = CMD_RETRIES_DEFAULT,
 		.command_timeout = CMD_TIMEOUT_DEFAULT,
 		.server_latency_timeout = SERVER_LATENCY_TIMEOUT_DEFAULT,
@@ -143,33 +175,39 @@ uint8_t wifi_app_init(struct wifi_app_config* wac) {
 		wifi_app_initialized = 1;
 	}
 
-//TODO:
-/*
-	if (timer init already started)
-		throw error
-	}
-*/
-	return 0;
+	if (timer16_init(config->application_interval) == TIMER_INIT_ERROR) return ARDUINO_APP_ERROR;
+
+	return ARDUINO_APP_SUCCESS;
 }
 
 void wifi_app_start(void) {
 	module_startup_procedure();
 
+	timer16_start();
+
 	for (;;) {
+		if (timer16_flag) {
+			module_check();
+			_delay_ms(10);
+		
+			//TODO:
+			// if module check good:
+				module_poll();
 
-		module_check();
+			if (!esp_params.lan_connection) {
+				ESP8266_lan_connect(&esp_params, 15000, WIFI_SSID, WIFI_PASS);
+			} else if (!esp_params.ip_obtained) {
+				// disconnect from AP to try reconnect?
+			} else if (!esp_params.tcp_connection) {
+				ESP8266_socket_connect(&esp_params, 8000, SOCKET_ADDR, SOCKET_PORT);
+			} else {
+				config->app_main_callback();
+			}
 
-		if (!esp_params.lan_connection) {
-			ESP8266_lan_connect(&esp_params, 15000, WIFI_SSID, WIFI_PASS);
-		} else if (!esp_params.ip_obtained) {
-			// disconnect from AP to try reconnect?
-		} else if (!esp_params.tcp_connection) {
-			ESP8266_socket_connect(&esp_params, 8000, SOCKET_ADDR, SOCKET_PORT);
-		} else {
-			
+			timer16_restart();
 		}
 
+		// if server message check, call callback
 	}
-		//if timer triggers: call callback
 }
 

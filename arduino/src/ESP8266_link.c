@@ -19,7 +19,7 @@ static uint8_t server_message_timeout;
 static uint8_t server_message_queued;
 
 void ESP8266_link_init(struct ESP8266_network_parameters* np, char* server_msg_buf, uint8_t n_msg_buf, uint8_t msg_timeout) {
-	uart_init(57600);
+	uart_init(ESP8266_UART_BAUD);
 
 	line_ptr = 0;
 	memset(ESP8266_line_incoming, '\0', ESP8266_LINE_MAX_SIZE + 1);

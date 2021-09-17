@@ -11,9 +11,12 @@
 #ifndef AVR_TIMER_UTIL_H
 #define AVR_TIMER_UTIL_H
 
-volatile bool timer8_flag;
+#define TIMER_INIT_SUCCESS 0
+#define TIMER_INIT_ERROR 1
 
-void timer8_init(uint16_t period_ms);
+volatile uint8_t timer8_flag;
+
+uint8_t timer8_init(uint16_t period_ms);
 
 void timer8_start(void);
 
@@ -21,15 +24,19 @@ void timer8_stop(void);
 
 void timer8_reset(void);
 
+void timer8_deinit(void);
 
-volatile bool timer16_flag;
 
-void timer16_init(uint16_t period_s);
+volatile uint8_t timer16_flag;
+
+uint8_t timer16_init(uint16_t period_s);
 
 void timer16_start(void);
 
 void timer16_stop(void);
 
 void timer16_reset(void);
+
+void timer16_deinit(void);
 
 #endif

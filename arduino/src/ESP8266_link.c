@@ -58,6 +58,12 @@ uint8_t ESP8266_recv(void) {
 			ESP8266_line_incoming[line_ptr] = '\0';
 			if (line_ptr == 0) return ESP8266_RECV_FALSE;
 
+// Leading whitespace after a tcp send
+			if (line_ptr == 1 && ESP8266_line_incoming[0] == ' ' ) {
+				line_ptr = 0;
+				return ESP8266_RECV_FALSE;
+			}
+
 			line_ptr = 0;
 			return ESP8266_RECV_TRUE;
 		}
@@ -82,7 +88,7 @@ uint8_t ESP8266_recv(void) {
 		if ((server_message_start = strstr(ESP8266_line_incoming, "+IPD,")) != NULL) {
 			int8_t message_bytes = 0;
 
-			for (uint16_t i = 0; i < ESP8266_UART_TIMEOUT * 10; ++i) {
+			for (uint16_t i = 0; i < ESP8266_UART_TIMEOUT * 100; ++i) {
 				while (uart_available()) {
 					c = uart_getc();
 
@@ -106,7 +112,7 @@ uint8_t ESP8266_recv(void) {
 					}
 				} 
 
-				_delay_us(100);
+				_delay_us(10);
 			}
 
 			return ESP8266_RECV_SERVERTIMEOUT;
@@ -118,18 +124,18 @@ uint8_t ESP8266_recv(void) {
 	return ESP8266_RECV_FALSE;
 }
 
-static void enqueue_server_message(void) {
-	if (!server_message_queued) {
+static void server_message_enqueue(void) {
+	if (!server_message_queued && server_message_buffer != NULL) {
 		strncpy(server_message_buffer, ESP8266_line_incoming, server_message_size);
 		server_message_queued = 1;
 	}
 }
 
-uint8_t server_message_waiting(void) {
+uint8_t server_message_available(void) {
 	return server_message_queued;
 }
 
-void dequeue_server_message(void) {
+void server_message_dequeue(void) {
 	server_message_queued = 0;
 }
 
@@ -185,15 +191,14 @@ ESP8266_ERROR_UNKNOWN
 */
 uint8_t ESP8266_poll(struct ESP8266_network_parameters* np, uint32_t timeout_ms) {
 	uint8_t retval = ESP8266_RECV_FALSE;
+	uint8_t module_message;
 
-	for (uint32_t i = 0; i < timeout_ms * 10; ++i) {
+	for (uint32_t i = 0; i < timeout_ms * 100; ++i) {
 		retval = ESP8266_recv();
-
-		uint8_t module_message;
 
 		switch (retval) {
 		case ESP8266_RECV_FALSE:
-			_delay_us(100);
+			_delay_us(10);
 			continue;
 
 		case ESP8266_RECV_TRUE:
@@ -202,7 +207,7 @@ uint8_t ESP8266_poll(struct ESP8266_network_parameters* np, uint32_t timeout_ms)
 			return ESP8266_RECV_TRUE;
 
 		case ESP8266_RECV_SERVER:
-			enqueue_server_message();
+			server_message_enqueue();
 			return ESP8266_RECV_SERVER;
 
 		case ESP8266_RECV_BUFOVERFLOW:
@@ -218,20 +223,56 @@ uint8_t ESP8266_poll(struct ESP8266_network_parameters* np, uint32_t timeout_ms)
 /*
 		run_cmd
 	Possible return values:
-	All of ESP8266_poll and
 	ESP8266_CMD_SUCCESS
 	ESP8266_CMD_FAILURE
 	ESP8266_CMD_CONTINUE
 	ESP8266_CMD_SENDREADY
 	ESP8266_CMD_TIMEOUT
-	
+	ESP8266_CMD_ERROR
 */
 static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*), char* cmd, struct ESP8266_network_parameters* np, uint32_t timeout_ms) {
-	uint8_t retval = ESP8266_CMD_TIMEOUT;
+	uint8_t retval = ESP8266_RECV_FALSE;
 	uint8_t cmd_status;
+	uint8_t module_message;
 
 	uart_puts(cmd);
 
+	for (uint32_t i = 0; i < timeout_ms * 100; ++i) {
+		retval = ESP8266_recv();
+
+		switch (retval) {
+		case ESP8266_RECV_FALSE:
+			break;
+
+		case ESP8266_RECV_TRUE:
+			module_message = check_module_notification(np);
+			if (module_message == ESP8266_MODULE_NOTIFICATION) break;
+			if (module_message == ESP8266_MODULE_BUSY) break;
+			if (module_message == ESP8266_ERROR_UNKNOWN) return ESP8266_CMD_ERROR;
+
+			cmd_status = cmd_proc(np);
+			if (cmd_status == ESP8266_CMD_CONTINUE) break;
+			if (cmd_status == ESP8266_CMD_SUCCESS) return ESP8266_CMD_SUCCESS;
+			if (cmd_status == ESP8266_CMD_FAILURE) return ESP8266_CMD_FAILURE;
+			if (cmd_status == ESP8266_CMD_SENDREADY) return ESP8266_CMD_SENDREADY;
+			break;
+
+		case ESP8266_RECV_SERVER:
+			server_message_enqueue();
+			break;
+
+		case ESP8266_RECV_BUFOVERFLOW:
+		case ESP8266_RECV_SERVERTIMEOUT:
+		default:
+			return ESP8266_CMD_ERROR;
+		}
+
+		_delay_us(10);
+	}
+
+	return ESP8266_CMD_TIMEOUT;
+}
+/*
 poll_cmd_result:
 	retval = ESP8266_poll(np, timeout_ms);
 
@@ -262,6 +303,7 @@ poll_cmd_result:
 	
 	return retval;
 }
+*/
 
 static uint8_t parse_ok(void) {
 	if (strstr(ESP8266_line_incoming, "OK") != NULL) return 1;
@@ -304,7 +346,7 @@ static uint8_t _ESP8266_status(struct ESP8266_network_parameters* np) {
 	if (parse_ok()) {
 		return ESP8266_CMD_SUCCESS;
 
-	} else if (strstr(ESP8266_line_incoming, "AT+CIPSTATUS") != NULL) {
+	} else if (strstr(ESP8266_line_incoming, "CIPSTATUS") != NULL) {
 		return ESP8266_CMD_CONTINUE;
 
 	} else if (strstr(ESP8266_line_incoming, "STATUS:2") != NULL) {
@@ -395,9 +437,12 @@ static uint8_t _ESP8266_socket_connect(struct ESP8266_network_parameters* np) {
 	if (parse_ok()) {
 		return ESP8266_CMD_SUCCESS;
 
+	} else if (strstr(ESP8266_line_incoming, "CIPSTART") != NULL) {
+		return ESP8266_CMD_CONTINUE;
+
 	} else if (strstr(ESP8266_line_incoming, "no ip") != NULL) {
 		np->ip_obtained = 0;
-		return ESP8266_STATUS_UPDATE;
+		return ESP8266_CMD_CONTINUE;
 	}
 
 	return ESP8266_CMD_FAILURE;
@@ -417,12 +462,12 @@ static uint8_t _ESP8266_socket_send(struct ESP8266_network_parameters* np) {
 
 	} else if (strstr(ESP8266_line_incoming, "link is not valid") != NULL) {
 		np->tcp_connection = 0;
-		return ESP8266_STATUS_UPDATE;
+		return ESP8266_CMD_CONTINUE;
 
 	} else if (strstr(ESP8266_line_incoming, "no ip") != NULL) {
 		np->ip_obtained = 0;
 		np->tcp_connection = 0;
-		return ESP8266_STATUS_UPDATE;
+		return ESP8266_CMD_CONTINUE;
 
 	} else if (strstr(ESP8266_line_incoming, ">") != NULL) {
 		return ESP8266_CMD_SENDREADY;
@@ -436,19 +481,17 @@ static uint8_t _ESP8266_socket_send(struct ESP8266_network_parameters* np) {
 	
 	return ESP8266_CMD_FAILURE;
 }
-uint8_t ESP8266_socket_send(struct ESP8266_network_parameters* np, uint32_t timeout_ms, char* message_buffer, uint8_t bytes) {
-	uint8_t result = ESP8266_CMD_CONTINUE;
-	char cmd[server_message_size];
-	sprintf(cmd, "AT+CIPSEND=%u\r\n", bytes);
+uint8_t ESP8266_socket_send(struct ESP8266_network_parameters* np, uint32_t timeout_ms, char* message_buffer) {
+	uint8_t result;
+	char cmd[24];
+	sprintf(cmd, "AT+CIPSEND=%d\r\n", strlen(message_buffer));
 
 	result = run_cmd(_ESP8266_socket_send, cmd, np, timeout_ms);
 
 	if (result == ESP8266_CMD_SENDREADY) {
-		sprintf(cmd, message_buffer);
-		result = run_cmd(_ESP8266_socket_send, cmd, np, timeout_ms);
+		result = run_cmd(_ESP8266_socket_send, message_buffer, np, timeout_ms);
 	}
 
 	return result;
 }
-
 

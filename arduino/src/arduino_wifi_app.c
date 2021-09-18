@@ -7,7 +7,6 @@
 #include <string.h>
 #include <util/delay.h>
 
-// TODO: Move defines to common for use with ESP32?
 #ifndef WIFI_SSID 
 	#error No wifi ssid defined.
 #endif
@@ -27,8 +26,12 @@
 static struct ESP8266_network_parameters esp_params;
 static struct wifi_app_config* config;
 
-//static char* wifi_ssid = WIFI_SSID;
-//static char* wifi_pass = WIFI_PASS;
+static void process_server_message(void) {
+	if (server_message_available()) {
+		config->server_message_callback();
+		server_message_dequeue();
+	}
+}
 
 static uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_parameters*, uint32_t), uint32_t timeout_ms, uint8_t retries) {
 	uint8_t result = ESP8266_CMD_FAILURE; 
@@ -37,7 +40,8 @@ static uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_param
 		if ((result = command_func(&esp_params, timeout_ms)) == ESP8266_CMD_SUCCESS) break;
 	}
 
-// TODO check for server message
+	process_server_message();
+
 	return result;
 }
 
@@ -50,7 +54,8 @@ static uint8_t module_check(void) {
 
 	ESP8266_status(&esp_params, config->command_timeout);
 
-// TODO check for server message
+	process_server_message();
+
 	return 0;
 }
 
@@ -64,6 +69,7 @@ static void module_startup_procedure(void) {
 	}
 
 	timer16_stop();
+	timer16_deinit();
 
 // In case the ESP8266 sent "ready" before the arduino could catch it.
 	if (!esp_params.module_ready) {
@@ -85,15 +91,16 @@ static uint8_t module_poll(void) {
 #endif
 	}
 
-// TODO check for server message
+	process_server_message();
 
 	return 0;
 }
 
 
 /*
-
+	Start of public funcitons
 */
+
 void app_error_check(uint8_t retval) {
 	switch(retval) {
 	case ARDUINO_APP_SUCCESS:
@@ -135,11 +142,10 @@ void app_error_check(uint8_t retval) {
 }
 
 uint8_t wifi_send(char* message) {
-	uint8_t bytes = strnlen(message, config->server_buf_size);
 	uint8_t result = ARDUINO_APP_ERROR;
 
 	if (esp_params.tcp_connection) {
-		result = ESP8266_socket_send(&esp_params, config->command_timeout, config->server_message_buf, bytes);
+		result = ESP8266_socket_send(&esp_params, config->command_timeout, message);
 	}
 
 	if (result == ESP8266_CMD_SUCCESS) return ARDUINO_APP_SUCCESS;
@@ -175,24 +181,19 @@ uint8_t wifi_app_init(struct wifi_app_config* wac) {
 		wifi_app_initialized = 1;
 	}
 
-	if (timer16_init(config->application_interval) == TIMER_INIT_ERROR) return ARDUINO_APP_ERROR;
-
 	return ARDUINO_APP_SUCCESS;
 }
 
 void wifi_app_start(void) {
 	module_startup_procedure();
 
+	if (timer16_init(config->application_interval) == TIMER_INIT_ERROR) return;
 	timer16_start();
 
 	for (;;) {
 		if (timer16_flag) {
 			module_check();
 			_delay_ms(10);
-		
-			//TODO:
-			// if module check good:
-				module_poll();
 
 			if (!esp_params.lan_connection) {
 				ESP8266_lan_connect(&esp_params, 15000, WIFI_SSID, WIFI_PASS);
@@ -207,7 +208,11 @@ void wifi_app_start(void) {
 			timer16_restart();
 		}
 
-		// if server message check, call callback
+		module_poll();
+
+		process_server_message();
+
+		_delay_ms(10);
 	}
 }
 

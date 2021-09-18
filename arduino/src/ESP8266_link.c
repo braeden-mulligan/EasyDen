@@ -7,7 +7,7 @@
 #include <string.h>
 #include <util/delay.h>
 
-#define ESP8266_UART_TIMEOUT 3
+#define ESP8266_UART_TIMEOUT 1
 
 static uint8_t line_ptr;
 
@@ -103,6 +103,7 @@ uint8_t ESP8266_recv(void) {
 
 					if (message_bytes && (line_ptr >= message_bytes)) {
 						ESP8266_line_incoming[line_ptr] = '\0';
+						line_ptr = 0;
 						return ESP8266_RECV_SERVER;
 					}
 
@@ -110,11 +111,14 @@ uint8_t ESP8266_recv(void) {
 						line_ptr = 0;
 						return ESP8266_RECV_BUFOVERFLOW;
 					}
+					
+					if (i > 1) --i;
 				} 
 
 				_delay_us(10);
 			}
 
+			line_ptr = 0;
 			return ESP8266_RECV_SERVERTIMEOUT;
 		}
 
@@ -272,38 +276,6 @@ static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*),
 
 	return ESP8266_CMD_TIMEOUT;
 }
-/*
-poll_cmd_result:
-	retval = ESP8266_poll(np, timeout_ms);
-
-	switch (retval) {
-	case ESP8266_RECV_FALSE:
-		return ESP8266_CMD_TIMEOUT;
-
-	case ESP8266_RECV_TRUE:
-		cmd_status = cmd_proc(np);
-		if (cmd_status == ESP8266_CMD_CONTINUE) goto poll_cmd_result;
-		if (cmd_status == ESP8266_CMD_SUCCESS) return ESP8266_CMD_SUCCESS;
-		if (cmd_status == ESP8266_CMD_FAILURE) return ESP8266_CMD_FAILURE;
-		if (cmd_status == ESP8266_CMD_SENDREADY) return ESP8266_CMD_SENDREADY;
-		break;
-
-	case ESP8266_RECV_SERVER:
-	case ESP8266_MODULE_NOTIFICATION:
-	case ESP8266_MODULE_BUSY:
-	case ESP8266_MESSAGE_NONE:
-		goto poll_cmd_result;
-
-	case ESP8266_RECV_BUFOVERFLOW:
-	case ESP8266_RECV_SERVERTIMEOUT:
-	case ESP8266_ERROR_UNKNOWN:
-	default:
-		break;
-	}
-	
-	return retval;
-}
-*/
 
 static uint8_t parse_ok(void) {
 	if (strstr(ESP8266_line_incoming, "OK") != NULL) return 1;
@@ -490,6 +462,8 @@ uint8_t ESP8266_socket_send(struct ESP8266_network_parameters* np, uint32_t time
 
 	if (result == ESP8266_CMD_SENDREADY) {
 		result = run_cmd(_ESP8266_socket_send, message_buffer, np, timeout_ms);
+	} else {
+	
 	}
 
 	return result;

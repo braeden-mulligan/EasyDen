@@ -61,6 +61,7 @@ static uint8_t module_check(void) {
 
 // Allow time for WiFi module startup.
 static void module_startup_procedure(void) {
+	timer16_deinit();
 	timer16_init(config->wifi_startup_timeout);
 	timer16_start();
 
@@ -203,15 +204,13 @@ void wifi_app_start(void) {
 				ESP8266_socket_connect(&esp_params, 8000, SOCKET_ADDR, SOCKET_PORT);
 			} else {
 				config->app_main_callback();
+				_delay_ms(10);
 			}
 
 			timer16_restart();
 		}
 
 		module_poll();
-
-		process_server_message();
-
 		_delay_ms(10);
 	}
 }

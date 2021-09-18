@@ -15,7 +15,7 @@ OBJ := $(subst .c,.o,$(SRC_TMP)) $(subst .c,.o,$(LIB_TMP))
 
 CRUFT := *.o *.elf
 
-TARGET := smart-plug
+TARGET := power-socket
 
 all: target
 

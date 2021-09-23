@@ -16,7 +16,7 @@
 
 volatile uint8_t timer8_flag;
 
-uint8_t timer8_init(uint16_t period_ms);
+uint8_t timer8_init(uint16_t period_ms, uint8_t low_res);
 
 void timer8_start(void);
 

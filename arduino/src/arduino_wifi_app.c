@@ -185,6 +185,7 @@ uint8_t wifi_app_init(struct wifi_app_config* wac) {
 	return ARDUINO_APP_SUCCESS;
 }
 
+// TODO allow reinit of timer
 void wifi_app_start(void) {
 	module_startup_procedure();
 

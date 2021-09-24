@@ -45,6 +45,30 @@ static uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_param
 	return result;
 }
 
+// Allow time for WiFi module startup.
+static void module_startup_procedure(void) {
+	timer8_deinit();
+//TODO check for existing init? unlikely.
+	timer8_init(config->wifi_startup_timeout * 1000, 1);
+	timer8_start();
+
+	while (!timer8_flag) {
+		if (ESP8266_poll(&esp_params, 100) != ESP8266_RECV_FALSE) esp_params.module_ready = 1;
+	}
+
+	timer8_stop();
+	timer8_deinit();
+
+// In case the ESP8266 sent "ready" before the arduino could catch it.
+	if (!esp_params.module_ready) {
+		if (try_command(ESP8266_ping, config->command_timeout, config->command_retries) == ESP8266_CMD_SUCCESS) {
+			esp_params.module_ready = 1;
+		}
+	}
+
+	blink_led(5, 200);
+}
+
 static uint8_t module_check(void) {
 	if (esp_params.command_echo) try_command(ESP8266_echo_disable, config->command_timeout, config->command_retries); 
 
@@ -57,27 +81,6 @@ static uint8_t module_check(void) {
 	process_server_message();
 
 	return 0;
-}
-
-// Allow time for WiFi module startup.
-static void module_startup_procedure(void) {
-	timer16_deinit();
-	timer16_init(config->wifi_startup_timeout);
-	timer16_start();
-
-	while (!timer16_flag) {
-		if (ESP8266_poll(&esp_params, 100) != ESP8266_RECV_FALSE) esp_params.module_ready = 1;
-	}
-
-	timer16_stop();
-	timer16_deinit();
-
-// In case the ESP8266 sent "ready" before the arduino could catch it.
-	if (!esp_params.module_ready) {
-		if (try_command(ESP8266_ping, config->command_timeout, config->command_retries) == ESP8266_CMD_SUCCESS) {
-			esp_params.module_ready = 1;
-		}
-	}
 }
 
 static uint8_t module_poll(void) {
@@ -160,6 +163,7 @@ struct wifi_app_config wifi_app_config_create(void) {
 	struct wifi_app_config config_default = {
 		.wifi_startup_timeout = WIFI_STARTUP_TIMEOUT_DEFAULT,
 		.application_interval = APPLICATION_INTERVAL_DEFAULT,
+		.connection_interval = CONNECTION_INTERVAL_DEFAULT,
 		.command_retries = CMD_RETRIES_DEFAULT,
 		.command_timeout = CMD_TIMEOUT_DEFAULT,
 		.server_latency_timeout = SERVER_LATENCY_TIMEOUT_DEFAULT,
@@ -174,10 +178,17 @@ struct wifi_app_config wifi_app_config_create(void) {
 
 static uint8_t wifi_app_initialized = 0;
 
+static uint16_t wifi_conn_clock_s;
+static uint16_t wifi_app_clock_s;
+
 uint8_t wifi_app_init(struct wifi_app_config* wac) {
 	config = wac;
 
+	wifi_conn_clock_s = 0;
+	wifi_app_clock_s = 0;
+
 	if (!wifi_app_initialized) {
+		if (timer8_init(1000, 1) == TIMER_INIT_ERROR) return ARDUINO_APP_ERROR;
 		ESP8266_link_init(&esp_params, config->server_message_buf, config->server_buf_size, config->server_latency_timeout);
 		wifi_app_initialized = 1;
 	}
@@ -185,34 +196,41 @@ uint8_t wifi_app_init(struct wifi_app_config* wac) {
 	return ARDUINO_APP_SUCCESS;
 }
 
-// TODO allow reinit of timer
 void wifi_app_start(void) {
 	module_startup_procedure();
 
-	if (timer16_init(config->application_interval) == TIMER_INIT_ERROR) return;
-	timer16_start();
+	timer8_init(1000, 1);
+	timer8_start();
 
 	for (;;) {
-		if (timer16_flag) {
+		if (timer8_flag) {
+			wifi_conn_clock_s += timer8_flag;
+			wifi_app_clock_s += timer8_flag;
+			timer8_restart();
+		}
+
+		if (wifi_conn_clock_s >= config->connection_interval) {
 			module_check();
-			_delay_ms(10);
+			_delay_ms(1);
 
 			if (!esp_params.lan_connection) {
-				ESP8266_lan_connect(&esp_params, 15000, WIFI_SSID, WIFI_PASS);
+				ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, WIFI_SSID, WIFI_PASS);
 			} else if (!esp_params.ip_obtained) {
 				// disconnect from AP to try reconnect?
 			} else if (!esp_params.tcp_connection) {
-				ESP8266_socket_connect(&esp_params, 8000, SOCKET_ADDR, SOCKET_PORT);
-			} else {
-				config->app_main_callback();
-				_delay_ms(10);
+				ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout, SOCKET_ADDR, SOCKET_PORT);
 			}
+	
+			wifi_conn_clock_s = 0;
+		}
 
-			timer16_restart();
+		if (wifi_app_clock_s >= config->application_interval) {
+			config->app_main_callback();
+			_delay_ms(1);
+			wifi_app_clock_s = 0;
 		}
 
 		module_poll();
-		_delay_ms(10);
+		_delay_ms(1);
 	}
 }
-

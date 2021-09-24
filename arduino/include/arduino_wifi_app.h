@@ -7,15 +7,25 @@
 #define ARDUINO_APP_ERROR 1
 
 #define WIFI_STARTUP_TIMEOUT_DEFAULT 5
-#define APPLICATION_INTERVAL_DEFAULT 60
+#define APPLICATION_INTERVAL_DEFAULT 30
+#define CONNECTION_INTERVAL_DEFAULT 60
 #define CMD_RETRIES_DEFAULT 2
-#define CMD_TIMEOUT_DEFAULT 2000
+#define CMD_TIMEOUT_DEFAULT 1000
 #define SERVER_LATENCY_TIMEOUT_DEFAULT 3
 #define SERVER_BUF_SIZE_DEFAULT 0
 
+/*
+	All timeouts/intervals are in units of seconds except command_timeout and 
+	  server_latency_timeout.
+
+	Wifi app can be re-initialized at any time and will respect changes to any parameter
+	  that differes from the original init arguments except server_latency_timeout, 
+	  server_message_buf, server_buf_size.
+*/
 struct wifi_app_config {
-	uint16_t wifi_startup_timeout;
+	uint16_t wifi_startup_timeout; // Keep under 60s to maintain system timing integrity.
 	uint16_t application_interval;
+	uint16_t connection_interval;
 	uint16_t command_retries;
 	uint16_t command_timeout;
 	uint8_t server_latency_timeout;

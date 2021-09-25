@@ -3,6 +3,11 @@
 
 #include <stdint.h>
 
+#if defined (__AVR_ATmega328P__)
+	#define EEPROM_ADDR_TYPE 8
+	#define EEPROM_ADDR_ID 9
+#endif
+
 struct sh_device_metadata {
 	uint8_t type;
 	uint8_t id;
@@ -25,7 +30,7 @@ struct sh_device_metadata {
 	Registers per device.
 	All vlues are passed as integers but may not represent integers in device units.
 */
-//#define SMARTHOME_REG_ID 0
+#define SMARTHOME_REG_NULL 0
 
 #define IRRIGATION_REG_ENABLE 1
 #define IRRIGATION_REG_POLL_FREQUENCY 2

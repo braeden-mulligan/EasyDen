@@ -3,9 +3,10 @@
 
 #include <stdint.h>
 
-#define SH_PARSE_SUCCESS 0
-#define SH_PARSE_ERROR 1
+#define SH_PROTOCOL_SUCCESS 0
+#define SH_PROTOCOL_ERROR 1
 
+#define CMD_NUL 0
 #define CMD_GET 1
 #define CMD_SET 2
 #define CMD_RSP 3

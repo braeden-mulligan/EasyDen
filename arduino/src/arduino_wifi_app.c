@@ -5,7 +5,6 @@
 
 #include <stddef.h>
 #include <string.h>
-#include <util/delay.h>
 
 #ifndef WIFI_SSID 
 	#error No wifi ssid defined.
@@ -196,8 +195,20 @@ uint8_t wifi_app_init(struct wifi_app_config* wac) {
 	return ARDUINO_APP_SUCCESS;
 }
 
+static void socket_check(void){
+	if (!esp_params.lan_connection) {
+		ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, WIFI_SSID, WIFI_PASS);
+	} else if (!esp_params.ip_obtained) {
+		// disconnect from AP to try reconnect?
+	} else if (!esp_params.tcp_connection) {
+		ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout, SOCKET_ADDR, SOCKET_PORT);
+	}
+}
+
 void wifi_app_start(void) {
 	module_startup_procedure();
+
+	socket_check();
 
 	timer8_init(1000, 1);
 	timer8_start();
@@ -211,26 +222,17 @@ void wifi_app_start(void) {
 
 		if (wifi_conn_clock_s >= config->connection_interval) {
 			module_check();
-			_delay_ms(1);
 
-			if (!esp_params.lan_connection) {
-				ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, WIFI_SSID, WIFI_PASS);
-			} else if (!esp_params.ip_obtained) {
-				// disconnect from AP to try reconnect?
-			} else if (!esp_params.tcp_connection) {
-				ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout, SOCKET_ADDR, SOCKET_PORT);
-			}
+			socket_check();
 	
 			wifi_conn_clock_s = 0;
 		}
 
 		if (wifi_app_clock_s >= config->application_interval) {
 			config->app_main_callback();
-			_delay_ms(1);
 			wifi_app_clock_s = 0;
 		}
 
 		module_poll();
-		_delay_ms(1);
 	}
 }

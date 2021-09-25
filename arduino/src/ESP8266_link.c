@@ -88,7 +88,7 @@ uint8_t ESP8266_recv(void) {
 		if ((server_message_start = strstr(ESP8266_line_incoming, "+IPD,")) != NULL) {
 			int8_t message_bytes = 0;
 
-			for (uint16_t i = 0; i < ESP8266_UART_TIMEOUT * 100; ++i) {
+			for (uint16_t i = 0; i < ESP8266_UART_TIMEOUT * 1000; ++i) {
 				while (uart_available()) {
 					c = uart_getc();
 
@@ -115,7 +115,7 @@ uint8_t ESP8266_recv(void) {
 					if (i > 1) --i;
 				} 
 
-				_delay_us(10);
+				_delay_us(1);
 			}
 
 			line_ptr = 0;
@@ -197,12 +197,12 @@ uint8_t ESP8266_poll(struct ESP8266_network_parameters* np, uint32_t timeout_ms)
 	uint8_t retval = ESP8266_RECV_FALSE;
 	uint8_t module_message;
 
-	for (uint32_t i = 0; i < timeout_ms * 100; ++i) {
+	for (uint32_t i = 0; i < timeout_ms * 1000; ++i) {
 		retval = ESP8266_recv();
 
 		switch (retval) {
 		case ESP8266_RECV_FALSE:
-			_delay_us(10);
+			_delay_us(1);
 			continue;
 
 		case ESP8266_RECV_TRUE:
@@ -241,7 +241,7 @@ static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*),
 
 	uart_puts(cmd);
 
-	for (uint32_t i = 0; i < timeout_ms * 100; ++i) {
+	for (uint32_t i = 0; i < timeout_ms * 1000; ++i) {
 		retval = ESP8266_recv();
 
 		switch (retval) {
@@ -271,7 +271,7 @@ static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*),
 			return ESP8266_CMD_ERROR;
 		}
 
-		_delay_us(10);
+		_delay_us(1);
 	}
 
 	return ESP8266_CMD_TIMEOUT;

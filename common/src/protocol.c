@@ -7,9 +7,10 @@
 
 static uint16_t seq_num = 0;
 
-static void increment_seq_num(void) {
+uint16_t generate_seq(void) {
 	++seq_num;
 	if (!seq_num) ++seq_num;
+	return seq_num;
 }
 	
 // <seq, cmd, reg, val>
@@ -35,21 +36,6 @@ uint8_t sh_parse_packet(struct sh_packet* p, char* msg_buf) {
 }
 
 uint8_t sh_build_packet(struct sh_packet* p, char* msg_buf) {
-	switch (p->cmd) {
-		case CMD_NUL:
-		case CMD_GET:
-		case CMD_SET:
-		case CMD_IDY:
-		case CMD_DAT:
-		case CMD_RSP:
-			break;
-		case CMD_PSH:
-			increment_seq_num();
-			p->seq = seq_num;
-		default:
-			return SH_PROTOCOL_ERROR;
-	}
-
 #if defined (__AVR_ATmega328P__)
 	if (sprintf(msg_buf, "%04X,%02X,%02X,%08lX", p->seq, p->cmd, p->reg, p->val) < 0) return SH_PROTOCOL_ERROR;
 #else

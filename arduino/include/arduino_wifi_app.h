@@ -35,14 +35,14 @@ struct wifi_app_config {
 	void (* app_main_callback)(void);
 };
 
-void app_error_check(uint8_t retval);
+void app_error_check(uint8_t);
 
 struct wifi_app_config wifi_app_config_create(void);
 
-uint8_t wifi_app_init(struct wifi_app_config* wac);
+uint8_t wifi_app_init(struct wifi_app_config*);
 
 void wifi_app_start(void);
 
-uint8_t wifi_send(char* message);
+uint8_t wifi_send(char*);
 
 #endif

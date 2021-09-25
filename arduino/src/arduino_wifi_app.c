@@ -27,7 +27,7 @@ static struct wifi_app_config* config;
 
 static void process_server_message(void) {
 	if (server_message_available()) {
-		config->server_message_callback();
+		if (config->server_message_callback != NULL) config->server_message_callback();
 		server_message_dequeue();
 	}
 }
@@ -229,7 +229,7 @@ void wifi_app_start(void) {
 		}
 
 		if (wifi_app_clock_s >= config->application_interval) {
-			config->app_main_callback();
+			if (config->app_main_callback != NULL) config->app_main_callback();
 			wifi_app_clock_s = 0;
 		}
 

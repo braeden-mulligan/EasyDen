@@ -31,6 +31,8 @@ struct sh_data_packet {
 	uint8_t* dat;
 };
 
+uint16_t generate_seq(void);
+
 uint8_t sh_parse_packet(struct sh_packet*, char* msg_buf);
 
 uint8_t sh_build_packet(struct sh_packet*, char* msg_buf);

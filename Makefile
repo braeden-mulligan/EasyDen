@@ -17,7 +17,7 @@ OBJ := $(subst .c,.o,$(SRC_TMP)) $(subst .c,.o,$(LIB_TMP))
 
 CRUFT := *.o *.elf
 
-project:= power-socket
+project:= power-outlet
 
 all: project 
 

@@ -1,1 +1,1 @@
-# SmartHome-power-socket
+# SmartHome-power-outlet

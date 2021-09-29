@@ -1,4 +1,4 @@
-export FLASK_APP=run_server.py
+export FLASK_APP=app_top_level.py
 export FLASK_ENV=development
 export FLASK_DEBUG=1
 

@@ -2,4 +2,4 @@ from flask import Flask
 
 app = Flask(__name__)
 
-from dashboard import views 
+from dashboard import routes

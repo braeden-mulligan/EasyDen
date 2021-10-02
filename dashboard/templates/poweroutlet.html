@@ -1,0 +1,21 @@
+{% extends "base.html" %}
+
+{% block content %}
+<h2>Smart Outlets</h2>
+<div class="device-list">
+	<ul>
+	{% for d in devices %}	
+		<li>
+		<div class = "device-obj">
+			{{ d }} <br>
+			<form method="POST">
+			<button type="submit" value="Toggle">Toggle</button>
+			</form>
+		</div>
+		</li>
+	<!-- Only one outlet for now -->
+	{% endfor %}
+	</ul>
+</div>
+
+{% endblock %}

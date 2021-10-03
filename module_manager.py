@@ -1,14 +1,5 @@
+import config
 import json, select, socket, sys, time, os
-
-DASHBOARD_MAX_CONN  = 2
-SERVER_INTERCONNECT = "/tmp/sh_server_ic"
-
-DEVICE_MAX_CONN = 16
-WIFI_HOST = "192.168.0.105"
-#WIFI_HOST = "0.0.0.0"
-WIFI_PORT = 1338
-
-POLL_TIMEOUT = 250
 
 class SH_Device:
 	CMD_NUL = 0
@@ -85,8 +76,9 @@ class SH_Device:
 		elif words[1] == SH_Device.CMD_IDY:
 			self.device_type = words[2]
 			self.device_id = words[3]
+			return self.device_id
 
-		return
+		return None
 
 #TODO: introduce delays for ESP to process?
 #TODO: use queue?
@@ -115,9 +107,8 @@ class SH_Device:
 			#try: except
 			msg = self.soc_connection.recv(32).decode()
 			print("Device recv: [" + msg + "]")
-			self.parse_message(msg)
-			return True 
-		return False
+			return self.parse_message(msg)
+		return None
 
 	def disconnect(self):
 		self.online_status = False
@@ -134,14 +125,14 @@ class SH_Device:
 
 def connection_init(dashboard = False):
 	addr_fam = socket.AF_INET
-	addr = (WIFI_HOST, WIFI_PORT)
-	max_conn = DEVICE_MAX_CONN
+	addr = (config.SERVER_ADDR, config.SERVER_PORT)
+	max_conn = config.DEVICE_MAX_CONN
 	if dashboard:
-		if os.path.exists(SERVER_INTERCONNECT):
-			os.remove(SERVER_INTERCONNECT)
+		if os.path.exists(config.SERVER_INTERCONNECT):
+			os.remove(config.SERVER_INTERCONNECT)
 		addr_fam = socket.AF_UNIX
-		addr = SERVER_INTERCONNECT
-		max_conn = DASHBOARD_MAX_CONN
+		addr = config.SERVER_INTERCONNECT
+		max_conn = config.DASHBOARD_MAX_CONN
 
 	soc = socket.socket(addr_fam, socket.SOCK_STREAM)
 	soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
@@ -180,7 +171,7 @@ if __name__ == "__main__":
 			if not d.device_id and len(d.pending_response) == 0:
 				d.device_send(SH_Device.CMD_IDY, 0, 0)
 
-		poll_result = poller.poll(POLL_TIMEOUT)
+		poll_result = poller.poll(config.POLL_TIMEOUT)
 
 		for fd, event in poll_result:
 			msg = None
@@ -237,7 +228,12 @@ if __name__ == "__main__":
 				for d in device_list:
 					if fd == d.soc_fd:
 						if not check_socket_error(event, d.soc_connection, poller):
-							d.device_recv()
+#TODO Fix this nested crap
+							check_duplicate = d.device_recv()
+							if check_duplicate:
+								for dd in device_list:
+									if check_duplicate == d.device_id and dd is not d:
+										device_list.remove(dd)
 						else:
 							d.disconnect()
 

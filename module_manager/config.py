@@ -8,6 +8,12 @@ SERVER_INTERCONNECT = "/tmp/sh_server_ic"
 DASHBOARD_MAX_CONN  = 2
 
 POLL_TIMEOUT = 250
+DEVICE_KEEPALIVE = 60
+
+def log(info):
+	if DEBUG:
+		print(info)
+	return
 
 if ENV == "production":
 	BASE_DIR = "/root/server"
@@ -17,7 +23,9 @@ if ENV == "production":
 elif ENV == "development":
 	BASE_DIR = "/home/braeden/Projects/SmartHome/server"
 	SERVER_ADDR = "192.168.0.105"
+	DEVICE_KEEPALIVE = 5
 	DEBUG = True
 
 else:
 	raise ValueError("ENV not a valid option.")
+

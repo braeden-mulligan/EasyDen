@@ -98,7 +98,7 @@ void handle_server_message(void) {
 
 	default:
 		msg_packet.cmd = CMD_RSP;
-		msg_packet.reg = SMARTHOME_REG_NULL;
+		msg_packet.reg = GENERIC_REG_NULL;
 		break;
 	}
 

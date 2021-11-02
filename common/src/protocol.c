@@ -44,6 +44,7 @@ uint8_t sh_build_packet(struct sh_packet* p, char* msg_buf) {
 	return SH_PROTOCOL_SUCCESS;
 }
 
+/*
 uint8_t sh_build_data_packet(struct sh_data_packet* p, char* msg_buf) {
 	if (p->len > DATA_LEN_MAX) return SH_PROTOCOL_ERROR;
 
@@ -57,3 +58,4 @@ uint8_t sh_build_data_packet(struct sh_data_packet* p, char* msg_buf) {
 
 	return SH_PROTOCOL_SUCCESS;
 }
+*/

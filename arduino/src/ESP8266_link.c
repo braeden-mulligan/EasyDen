@@ -393,7 +393,7 @@ static uint8_t _ESP8266_lan_connect(struct ESP8266_network_parameters* np) {
 	if (parse_ok()) {
 		return ESP8266_CMD_SUCCESS;
 
-	} else if (strstr(ESP8266_line_incoming, "CWJAP_CUR") != NULL) {
+	} else if (strstr(ESP8266_line_incoming, "CWJAP_DEF") != NULL) {
 		return ESP8266_CMD_CONTINUE;
 	}
 
@@ -401,9 +401,53 @@ static uint8_t _ESP8266_lan_connect(struct ESP8266_network_parameters* np) {
 }
 uint8_t ESP8266_lan_connect(struct ESP8266_network_parameters* np, uint32_t timeout_ms, char* wifi_ssid, char* wifi_pass) {
 	char cmd[64];
-	sprintf(cmd, "AT+CWJAP_CUR=\"%s\",\"%s\"\r\n", wifi_ssid, wifi_pass);
+	sprintf(cmd, "AT+CWJAP_DEF=\"%s\",\"%s\"\r\n", wifi_ssid, wifi_pass);
 	return run_cmd(_ESP8266_lan_connect, cmd, np, timeout_ms);
 }
+
+/*
+// Diry hack for ap query to pass variables through run_cmd() without refactoring everything.
+static uint8_t ap_query_matched_ssid;
+static char* ap_query_target_ssid;
+
+static uint8_t _ESP8266_ap_query(struct ESP8266_network_parameters* np) { 
+	ap_query_matched_ssid = 0;
+
+	if (parse_ok()) {
+		return ESP8266_CMD_SUCCESS;
+
+	} else if (strstr(ESP8266_line_incoming, "CWJAP_CUR") != NULL) {
+		return ESP8266_CMD_CONTINUE;
+
+	} else if (strstr(ESP8266_line_incoming, ap_query_target_ssid) != NULL) {
+		ap_query_matched_ssid = 1;
+
+		return ESP8266_CMD_CONTINUE;
+
+	} else if (strstr(ESP8266_line_incoming, "No AP") != NULL) {
+		ap_query_matched_ssid = 1;
+		np->lan_connection = 0;
+		np->ip_obtained = 0;
+		np->tcp_connection = 0;
+		return ESP8266_CMD_CONTINUE;
+	}
+
+	return ESP8266_CMD_FAILURE;
+}
+uint8_t ESP8266_ap_query(struct ESP8266_network_parameters* np, uint32_t timeout_ms, char* target_wifi_ssid, uint8_t* matched_ssid) {
+	char* cmd = "AT+CWJAP_CUR?\r\n";
+
+	ap_query_target_ssid = target_wifi_ssid;
+	*matched_ssid = 0;
+
+	uint8_t result = run_cmd(_ESP8266_ap_query, cmd, np, timeout_ms);
+	if (result == ESP8266_CMD_SUCCESS) *matched_ssid = ap_query_matched_ssid;
+	
+	ap_query_target_ssid = NULL;
+
+	return result;
+}
+*/
 
 static uint8_t _ESP8266_socket_connect(struct ESP8266_network_parameters* np) {
 	if (parse_ok()) {
@@ -464,6 +508,29 @@ uint8_t ESP8266_socket_send(struct ESP8266_network_parameters* np, uint32_t time
 		result = run_cmd(_ESP8266_socket_send, message_buffer, np, timeout_ms);
 	} else {
 	
+	}
+
+	return result;
+}
+
+static uint8_t _ESP8266_lan_disconnect(struct ESP8266_network_parameters* np) {
+	if (parse_ok()) {
+		return ESP8266_CMD_SUCCESS;
+
+	} else if (strstr(ESP8266_line_incoming, "CWQAP") != NULL) {
+		return ESP8266_CMD_CONTINUE;
+	}
+
+	return ESP8266_CMD_FAILURE;
+}
+uint8_t ESP8266_lan_disconnect(struct ESP8266_network_parameters* np, uint32_t timeout_ms) { 
+	char* cmd = "AT+CWQAP\r\n";
+
+	uint8_t result = run_cmd(_ESP8266_lan_disconnect, cmd, np, timeout_ms);
+	if (result == ESP8266_CMD_SUCCESS) {
+		np->lan_connection = 0;
+		np->ip_obtained = 0;
+		np->tcp_connection = 0;
 	}
 
 	return result;

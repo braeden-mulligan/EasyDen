@@ -1,6 +1,5 @@
 import config
 from device import SH_Device
-from socket_util import socket_error
 import json, select, socket, sys, time, os
 
 device_list = []
@@ -24,6 +23,18 @@ def listener_init(dashboard = False):
 	soc.listen(max_conn)
 	return soc
 
+def socket_error(soc, event, poll_obj):
+	if event & select.POLLHUP or event & select.POLLERR: 
+		print("Unregister fd " + str(soc.fileno()))
+		poll_obj.unregister(soc)
+		try:
+			soc.shutdown(socket.SHUT_RDWR)
+		except Exception as err:
+			print(err)
+		soc.close()
+		return True
+	return False
+
 def device_from_attr(soc_fd = -1, device_id = -1):
 	for d in device_list:
 		if soc_fd == d.soc_fd:
@@ -32,14 +43,14 @@ def device_from_attr(soc_fd = -1, device_id = -1):
 			return d
 	return None
 
-def handle_dashboard_message(msg):
+def handle_dashboard_message(dash_conn, msg):
 	print("Dash message: [" + msg + "]")
-
 #TODO: debugging stuff here
 	if "fetch" in msg:
 		json_obj_list = []
 		for d in device_list:
-			json_obj_list.append(d.get_json_obj())
+			if d.device_id:
+				json_obj_list.append(d.get_json_obj())
 		dash_conn.send(json.dumps(json_obj_list).encode())
 	elif "debug get" in msg:
 		d_id = int(msg.split(' ')[2])
@@ -62,11 +73,12 @@ def handle_device_message(device, new_id):
 				# We have an already existing entry with this id
 				# Update old entry with new socket and invalidate current device
 				existing_device.connect(device.soc_connection)
-				existing_device.pending_response.clear()
+				existing_device.pending_response = None
 				config.log("Duplicate device found with id " + str(new_id))
+				config.log("Old device list" + str (device_list))
 				device_list.remove(device)
 				config.log("Removed device " + str(device))
-				config.log("New device list" + str (device_list))
+				config.log("Updated device list" + str (device_list))
 	return 
 
 if __name__ == "__main__":
@@ -82,17 +94,20 @@ if __name__ == "__main__":
 
 	while True:
 		for d in device_list:
-			if not d.device_id and len(d.pending_response) == 0:
+			if not d.device_id and d.pending_response is None:
 				config.log("New device detected, requesting ID")
 				d.device_send(SH_Device.CMD_IDY, 0, 0)
 
 		poll_result = poller.poll(config.POLL_TIMEOUT)
 
 		for fd, event in poll_result:
-			msg = None
 			print("\nFD: " + str(fd) + " EVENT: " + str(event))
 
-			if (fd == dash_soc.fileno()):
+			if event & select.POLLNVAL:
+				print("Unregister fd " + str(fd))
+				poller.unregister(fd)
+
+			elif (fd == dash_soc.fileno()):
 				conn, addr = dash_soc.accept()
 				conn.setblocking(False)
 				print("Dashboard connected from " + str(addr))
@@ -104,7 +119,7 @@ if __name__ == "__main__":
 				conn.setblocking(False)
 				print("Device connected from " + str(addr))
 				poller.register(conn, poll_opts)
-				device_list.append(SH_Device(conn, poll_obj = poller))
+				device_list.append(SH_Device(conn))
 
 			else:
 				dash_conn = next((d for d in dashboard_connections if d.fileno() == fd), None)
@@ -112,7 +127,7 @@ if __name__ == "__main__":
 					if socket_error(dash_conn, event, poller):
 						dashboard_connections.remove(dash_conn)
 					else:
-						handle_dashboard_message(dash_conn.recv(2048).decode())
+						handle_dashboard_message(dash_conn, dash_conn.recv(2048).decode())
 				# else:
 				device = device_from_attr(fd)
 				if device is not None:
@@ -122,9 +137,13 @@ if __name__ == "__main__":
 						device.disconnect() # But do not remove device from list.
 					else:
 						handle_device_message(device, device.device_recv())
+					print(" ")
 
 		for d in device_list:
-			d.update_pending()
+			if d.update_pending() == SH_Device.STATUS_UNRESPONSIVE and d.no_response >= 2:
+				print("Device " + str(d.device_id) + " unresponsive. Closing connection")
+				socket_error(d.soc_connection, select.POLLHUP, poller)
+				d.disconnect()
 
 		for d in device_list:
 			d.check_keepalive()

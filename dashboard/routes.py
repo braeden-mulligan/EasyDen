@@ -50,14 +50,13 @@ def poweroutlet():
 
 	if request.method == "GET":
 		data_request("debug get " + str(d_id))
-		time.sleep(0.3)
 		devices = json.loads(data_request("fetch"))
 		return render_template("poweroutlet.html", title="Smart Outlet", devices=devices)
 
 	if request.method == "POST":
 		if devices:
 			regs = devices[0]["registers"]
-			if regs["6"] == 65280: 
+			if regs["101"] == 65280: 
 				value = 1
 			else:
 				value = 0

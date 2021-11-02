@@ -17,13 +17,13 @@ def log(info):
 
 if ENV == "production":
 	BASE_DIR = "/root/server"
-	SERVER_ADDR = "192.168.0.101"
+	SERVER_ADDR = "192.168.1.85"
 	DEBUG = False
 
 elif ENV == "development":
 	BASE_DIR = "/home/braeden/Projects/SmartHome/server"
-	SERVER_ADDR = "192.168.0.105"
-	DEVICE_KEEPALIVE = 5
+	SERVER_ADDR = "192.168.1.70"
+	DEVICE_KEEPALIVE = 10
 	DEBUG = True
 
 else:

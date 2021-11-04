@@ -1,5 +1,5 @@
-import config
-from device import SH_Device
+from . import config
+from .device import SH_Device
 import json, select, socket, sys, time, os
 
 device_list = []
@@ -74,14 +74,16 @@ def handle_device_message(device, new_id):
 				# Update old entry with new socket and invalidate current device
 				existing_device.connect(device.soc_connection)
 				existing_device.pending_response = None
-				config.log("Duplicate device found with id " + str(new_id))
-				config.log("Old device list" + str (device_list))
+				print("Duplicate device found with id " + str(new_id))
+				print("Old device list" + str (device_list))
 				device_list.remove(device)
-				config.log("Removed device " + str(device))
-				config.log("Updated device list" + str (device_list))
+				print("Removed device " + str(device))
+				print("Updated device list" + str (device_list))
 	return 
 
-if __name__ == "__main__":
+#if __name__ == "__main__":
+def run():
+	print("Starting socket server.")
 	poller = select.poll()
 
 	dash_soc = listener_init(dashboard = True)
@@ -95,7 +97,7 @@ if __name__ == "__main__":
 	while True:
 		for d in device_list:
 			if not d.device_id and d.pending_response is None:
-				config.log("New device detected, requesting ID")
+				print("New device detected, requesting ID")
 				d.device_send(SH_Device.CMD_IDY, 0, 0)
 
 		poll_result = poller.poll(config.POLL_TIMEOUT)
@@ -133,7 +135,7 @@ if __name__ == "__main__":
 				if device is not None:
 					print("Device operation fd: " + str(device.soc_fd))
 					if socket_error(device.soc_connection, event, poller):
-						config.log("Device disconnected.")
+						print("Device disconnected.")
 						device.disconnect() # But do not remove device from list.
 					else:
 						handle_device_message(device, device.device_recv())

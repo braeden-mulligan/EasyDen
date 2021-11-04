@@ -10,11 +10,6 @@ DASHBOARD_MAX_CONN  = 2
 POLL_TIMEOUT = 250
 DEVICE_KEEPALIVE = 60
 
-def log(info):
-	if DEBUG:
-		print(info)
-	return
-
 if ENV == "production":
 	BASE_DIR = "/root/server"
 	SERVER_ADDR = "192.168.1.85"
@@ -23,7 +18,7 @@ if ENV == "production":
 elif ENV == "development":
 	BASE_DIR = "/home/braeden/Projects/SmartHome/server"
 	SERVER_ADDR = "192.168.1.70"
-	DEVICE_KEEPALIVE = 10
+	DEVICE_KEEPALIVE = 30
 	DEBUG = True
 
 else:

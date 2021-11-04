@@ -1,5 +1,5 @@
 from flask import Flask
 
-app = Flask(__name__)
+dashboard_app = Flask(__name__)
 
-from dashboard import routes
+from . import routes

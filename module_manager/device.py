@@ -1,4 +1,4 @@
-import config
+from . import config
 import json, socket, sys, time, os
 
 class SH_Device:
@@ -67,9 +67,6 @@ class SH_Device:
 	def __init__(self, socket_connection = None):
 		self.device_type = 0
 		self.device_id = 0
-		self.online_status = False 
-
-#TODO: remove assigned debug value
 		self.device_attrs = {} #(reg, val)
 
 		self.msg_timeout = 3.0
@@ -80,6 +77,7 @@ class SH_Device:
 		self.soc_fd = None
 		self.soc_keepalive = config.DEVICE_KEEPALIVE
 		self.soc_last_keepalive = time.time()
+		self.online_status = False 
 
 # pending response triple of (message_string, timeout, retry_count) 
 		self.pending_response = None
@@ -125,19 +123,22 @@ class SH_Device:
 
 		return SH_Device.STATUS_OK
 
-#TODO: debug version
 	def update_attributes(self, reg, val):
-		self.device_attrs[reg] = val
+		if reg == SH_Device.GENERIC_REG_NULL:
+			return
+		elif reg == SH_Device.GENERIC_REG_PING:
+			return
+		else: 
+			self.device_attrs[reg] = val
 		return
 
-#TODO: improve parsing
+#TODO: improve parsing robustness
 	def parse_message(self, message_str):
 		words = [int(w, 16) for w in message_str.split(',')]
 
 		prev_msg_cmd = None
 		prev_words = None
-#TODO: if pending_response is none then message came later than timeout
-# Handle this event
+
 		if self.pending_response:
 			prev_words = [int(w, 16) for w in self.pending_response[0].split(',')]
 			if prev_words[0] == words[0]:
@@ -160,11 +161,11 @@ class SH_Device:
 
 		if words[1] == SH_Device.CMD_RSP and prev_msg_cmd == SH_Device.CMD_GET:
 			self.update_attributes(words[2], words[3])
+
 		elif words[1] == SH_Device.CMD_RSP and prev_msg_cmd == SH_Device.CMD_SET: 
 			self.update_attributes(prev_words[2], prev_words[3])
-			#confirm success or failure to inform web app?
-#TODO 
-			pass
+			#TODO: confirm success or failure to inform web app?
+
 		elif words[1] == SH_Device.CMD_IDY:
 			self.device_type = words[2]
 			self.device_id = words[3]

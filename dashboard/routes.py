@@ -1,5 +1,7 @@
 from flask import render_template, request
-from dashboard import app
+from . import dashboard_app
+
+from module_manager.device import SH_Device
 
 import json, socket, time
 
@@ -24,20 +26,21 @@ def data_request(msg):
 	soc.close()
 	return resp
 
-@app.route("/")
+@dashboard_app.route("/")
 def index():
 	return render_template("home.html", title="Dashboard")
 #	return "Home Server"
 
-@app.route("/thermostat")
+@dashboard_app.route("/thermostat")
 def thermostat():
-	return "Thermostat not yet available."
+	return str(SH_Device.GENERIC_REG_NULL)
+	#return "Thermostat not yet available."
 
-@app.route("/irrigator")
+@dashboard_app.route("/irrigator")
 def irrigator():
 	return "Irrigation not yet available"
 
-@app.route("/poweroutlet", methods=["GET", "POST"])
+@dashboard_app.route("/poweroutlet", methods=["GET", "POST"])
 def poweroutlet():
 	devices = []
 
@@ -66,6 +69,6 @@ def poweroutlet():
 		devices = json.loads(data_request("fetch"))
 		return render_template("poweroutlet.html", title="Smart Outlet", devices=devices)
 
-@app.route("/debug", methods=["GET", "POST"])
+@dashboard_app.route("/debug", methods=["GET", "POST"])
 def debug():
 	return "Debug page."

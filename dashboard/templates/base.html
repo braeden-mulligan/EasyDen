@@ -1,9 +1,11 @@
 <!DOCTYPE html>
 <html>
 <head lang="en">
+	<link rel="stylesheet" href="{{ url_for('static', filename = 'css/base_style.css') }}">
+
 	<meta charset="utf-8">
 	{% if title %}	
-	<title>SmartHome | {{ title }}</title>
+	<title>SmartHome | {{title}}</title>
 	{% else %}
 	<title>SmartHome</title>
 	{% endif %}

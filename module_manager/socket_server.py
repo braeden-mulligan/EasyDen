@@ -148,7 +148,7 @@ def run():
 				d.disconnect()
 
 		for d in device_list:
-			d.check_keepalive()
+			d.check_heartbeat()
 
 		# other routine checks.
 		# ...

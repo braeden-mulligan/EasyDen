@@ -1,5 +1,5 @@
 from . import config
-import json, socket, sys, time, os
+import datetime, json, socket, sys, time, os
 
 class SH_Device:
 	SH_TYPE_RESERVED_1 = 0
@@ -36,21 +36,21 @@ class SH_Device:
 	POWEROUTLET_REG_STATE = 101
 	POWEROUTLET_REG_OUTLET_COUNT = 102
 
-	THERMOSTAT_REG_TEMPERATURE = 201
-	THERMOSTAT_REG_TARGET_TEMPERATURE = 202
-	THERMOSTAT_REG_THRESHOLD_HIGH = 203
-	THERMOSTAT_REG_THRESHOLD_LOW = 204
-	THERMOSTAT_REG_HYSTERESIS = 205
-	THERMOSTAT_REG_MIN_COOLDOWN = 206
-	THERMOSTAT_REG_HUMIDITY = 207
+	THERMOSTAT_REG_TEMPERATURE = 101
+	THERMOSTAT_REG_TARGET_TEMPERATURE = 102
+	THERMOSTAT_REG_THRESHOLD_HIGH = 103
+	THERMOSTAT_REG_THRESHOLD_LOW = 104
+	THERMOSTAT_REG_HYSTERESIS = 105
+	THERMOSTAT_REG_MIN_COOLDOWN = 106
+	THERMOSTAT_REG_HUMIDITY = 107
 
-	IRRIGATION_REG_MOISTURE = 301
-	IRRIGATION_REG_TARGET_MOISTURE = 302
-	IRRIGATION_REG_THRESHOLD_HIGH = 303
-	IRRIGATION_REG_THRESHOLD_LOW = 304
-	IRRIGATION_REG_HYSTERESIS = 305
-	IRRIGATION_REG_MIN_COOLDOWN = 306
-	IRRIGATION_REG_SWITCH_COUNTER = 307
+	IRRIGATION_REG_MOISTURE = 101
+	IRRIGATION_REG_TARGET_MOISTURE = 102
+	IRRIGATION_REG_THRESHOLD_HIGH = 103
+	IRRIGATION_REG_THRESHOLD_LOW = 104
+	IRRIGATION_REG_HYSTERESIS = 105
+	IRRIGATION_REG_MIN_COOLDOWN = 106
+	IRRIGATION_REG_SWITCH_COUNTER = 107
 
 	CMD_NUL = 0
 	CMD_GET = 1
@@ -68,6 +68,7 @@ class SH_Device:
 		self.device_type = 0
 		self.device_id = 0
 		self.device_attrs = {} #(reg, val)
+		self.name = ""
 
 		self.msg_timeout = 3.0
 		self.msg_retries = 1
@@ -75,9 +76,11 @@ class SH_Device:
 
 		self.soc_connection = None
 		self.soc_fd = None
-		self.soc_keepalive = config.DEVICE_KEEPALIVE
-		self.soc_last_keepalive = time.time()
+		self.soc_heartbeat = config.DEVICE_KEEPALIVE
+		self.soc_last_heartbeat = None
 		self.online_status = False 
+		self.last_contact = None
+		self.reconnect_count = -1
 
 # pending response triple of (message_string, timeout, retry_count) 
 		self.pending_response = None
@@ -87,6 +90,13 @@ class SH_Device:
 		self.no_response = 0
 
 		self.connect(socket_connection)
+		self.update_last_contact()
+		return
+
+	def update_last_contact(self):
+		self.last_contact = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
+		self.soc_last_heartbeat = time.time()
+		self.no_response = 0
 		return
 
 	def get_json_obj(self):
@@ -94,6 +104,7 @@ class SH_Device:
 		device_obj["device_type"] = self.device_type
 		device_obj["device_id"] = self.device_id
 		device_obj["online_status"] = self.online_status
+		device_obj["last_contact"] = self.last_contact
 		device_obj["registers"] = self.device_attrs
 		return device_obj
 
@@ -173,13 +184,13 @@ class SH_Device:
 
 		return None
 
-	def device_send(self, cmd, reg, val, retries = -1, raw_msg = None):
+	def device_send(self, cmd, reg, val, retries = -1, raw_message = None):
 		r = retries 
 		if r < 0:
 			r = self.msg_retries
 
 		if self.soc_connection is not None:
-			m = raw_msg or "{:04X},{:02X},{:02X},{:08X}".format(self.msg_seq, cmd, reg, val)
+			m = raw_message or "{:04X},{:02X},{:02X},{:08X}".format(self.msg_seq, cmd, reg, val)
 			print("Device " + str(self.device_id) + " submit: [" + m + "] retries = " + str(r))
 
 			if len(self.pending_send) >= self.max_pending_messages:
@@ -189,7 +200,7 @@ class SH_Device:
 			self.pending_send.append((m, r))
 			print("Pending send: " + str(self.pending_send))
 
-			if raw_msg is None:
+			if raw_message is None:
 				self.msg_seq += 1
 				if self.msg_seq >= 65535:
 					self.msg_seq = 1;
@@ -202,8 +213,7 @@ class SH_Device:
 			msg = self.soc_connection.recv(32).decode()
 			print("Device " + str(self.device_id) + " recv: [" + msg + "]")
 
-			self.soc_last_keepalive = time.time()
-			self.no_response = 0
+			self.update_last_contact()
 
 			return self.parse_message(msg)
 		return None
@@ -220,17 +230,18 @@ class SH_Device:
 			self.soc_fd = self.soc_connection.fileno()
 			self.online_status = True
 			self.no_response = 0
+			self.reconnect_count += 1
 		return 
 
-	def check_keepalive(self):
+	def check_heartbeat(self):
 		if self.pending_response:
 			words = [int(w, 16) for w in self.pending_response[0].split(',')]
 			if words[2] == SH_Device.GENERIC_REG_PING:
-				# Already checking keepalive.
+				# Already waiting on a heartbeat check.
 				return
 		if self.online_status:
-			if time.time() > self.soc_last_keepalive + config.DEVICE_KEEPALIVE:
+			if time.time() > self.soc_last_heartbeat + config.DEVICE_KEEPALIVE:
 				self.device_send(SH_Device.CMD_GET, SH_Device.GENERIC_REG_PING, 0, retries = 1)
-				self.soc_last_keepalive = time.time()
+				self.soc_last_heartbeat = time.time()
 
 

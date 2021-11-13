@@ -82,9 +82,9 @@ class SH_Device:
 		self.last_contact = None
 		self.reconnect_count = -1
 
-# pending response triple of (message_string, timeout, retry_count) 
+# pending response triple of (packet_string, timeout, retry_count) 
 		self.pending_response = None
-# pending send list of double of (message_string, retry_count) 
+# pending send list of double of (packet_string, retry_count) 
 		self.pending_send = []
 		self.max_pending_messages = 3
 		self.no_response = 0
@@ -110,27 +110,27 @@ class SH_Device:
 
 	def update_pending(self):
 		if self.pending_response:
-			message, timestamp, retries = self.pending_response 
-			print("waiting on message [" + message + "] retries remaining: " + str(retries))
+			packet, timestamp, retries = self.pending_response 
+			print("waiting on message [" + packet + "] retries remaining: " + str(retries))
 
 			if time.time() > timestamp + self.msg_timeout:
 				self.pending_response = None
 				if retries > 0:
-					print("Message [" + message + "] deilvery failed, retrying " + str(retries) + " more times...")
-					self.device_send(0, 0, 0, retries - 1, message) 
+					print("Message [" + packet + "] deilvery failed, retrying " + str(retries) + " more times...")
+					self.device_send(None, retries - 1, packet) 
 				else:
-					print("Message [" + message + "] deilvery failed.")
+					print("Message [" + packet + "] deilvery failed.")
 					self.no_response += 1
 					return SH_Device.STATUS_UNRESPONSIVE
 
 		elif self.pending_send:
-			m, r = self.pending_send.pop(0)
-			print("Transmitting: [" + str(m) + "] retries " + str(r))
+			p, r = self.pending_send.pop(0)
+			print("Transmitting: [" + str(p) + "] retries " + str(r))
 			#try:
 			#TODO: except close broken connections 
 			if self.soc_connection:
-				self.pending_response = (m, time.time(), r)
-				self.soc_connection.send(m.encode())
+				self.pending_response = (p, time.time(), r)
+				self.soc_connection.send(p.encode())
 
 		return SH_Device.STATUS_OK
 
@@ -144,8 +144,8 @@ class SH_Device:
 		return
 
 #TODO: improve parsing robustness
-	def parse_message(self, message_str):
-		words = [int(w, 16) for w in message_str.split(',')]
+	def parse_message(self, packet_string):
+		words = [int(w, 16) for w in packet_string.split(',')]
 
 		prev_msg_cmd = None
 		prev_words = None
@@ -184,13 +184,18 @@ class SH_Device:
 
 		return None
 
-	def device_send(self, cmd, reg, val, retries = -1, raw_message = None):
+	def device_send(self, message, retries = -1, raw_packet= None):
 		r = retries 
 		if r < 0:
 			r = self.msg_retries
 
 		if self.soc_connection is not None:
-			m = raw_message or "{:04X},{:02X},{:02X},{:08X}".format(self.msg_seq, cmd, reg, val)
+			m = raw_packet or "{:04X},".format(self.msg_seq) + message
+			if raw_packet is None:
+				self.msg_seq += 1
+				if self.msg_seq >= 65535:
+					self.msg_seq = 1;
+
 			print("Device " + str(self.device_id) + " submit: [" + m + "] retries = " + str(r))
 
 			if len(self.pending_send) >= self.max_pending_messages:
@@ -200,10 +205,6 @@ class SH_Device:
 			self.pending_send.append((m, r))
 			print("Pending send: " + str(self.pending_send))
 
-			if raw_message is None:
-				self.msg_seq += 1
-				if self.msg_seq >= 65535:
-					self.msg_seq = 1;
 			return True 
 		return False
 
@@ -241,7 +242,7 @@ class SH_Device:
 				return
 		if self.online_status:
 			if time.time() > self.soc_last_heartbeat + config.DEVICE_KEEPALIVE:
-				self.device_send(SH_Device.CMD_GET, SH_Device.GENERIC_REG_PING, 0, retries = 1)
+				self.device_send("{:02X},{:02X},{:08X}".format(SH_Device.CMD_GET, SH_Device.GENERIC_REG_PING, 0), retries = 1)
 				self.soc_last_heartbeat = time.time()
 
 

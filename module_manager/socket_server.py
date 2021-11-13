@@ -1,5 +1,7 @@
 from . import config
 from .device import SH_Device
+from .messaging import *
+
 import json, select, socket, sys, time, os
 
 device_list = []
@@ -45,18 +47,41 @@ def device_from_attr(soc_fd = -1, device_id = -1):
 
 def handle_dashboard_message(dash_conn, msg):
 	print("Dash message: [" + msg + "]")
-#TODO: debugging stuff here
-	if "fetch" in msg:
-		json_obj_list = []
-		for d in device_list:
-			if d.device_id:
-				json_obj_list.append(d.get_json_obj())
+	words = msg.split(' ')
+
+	if not words and not words[1]:
+		print("Malformed dashboard request.")
+		return 
+
+# fetch [all | type x | id x]
+	if "fetch" in words[0]:
+		json_obj_list = [d.get_json_obj() for d in device_list if d.device_id]
+		if "all" in words[1]:
+			pass
+		elif "type" in words[1]:
+			if not words[2]:
+				print("Malformed dashboard request.")
+				return 
+			json_obj_list = [d for d in json_obj_list if d.device_type == words[2]]
+		elif "id" in words[1]:
+			if not words[2]:
+				print("Malformed dashboard request.")
+				return 
+			json_obj_list = [d for d in json_obj_list if d.device_id == words[2]]
+		else:
+			#TODO: report error?
+			pass
+
 		dash_conn.send(json.dumps(json_obj_list).encode())
+# command id x [raw message]
+
+# info [id x <specifier> | server <parameter>]
+	"""
 	elif "debug get" in msg:
 		d_id = int(msg.split(' ')[2])
 		d = device_from_attr(device_id = d_id);
 		if d:
-			d.device_send(SH_Device.CMD_GET, SH_Device.POWEROUTLET_REG_STATE, 0)
+			d.device_send(poweroutlet_get_state(d.device_id))
 	elif "debug set" in msg:
 		d_id = int(msg.split(' ')[2])
 		val = int(msg.split(' ')[3])
@@ -64,6 +89,7 @@ def handle_dashboard_message(dash_conn, msg):
 		d = device_from_attr(device_id = d_id);
 		if d:
 			d.device_send(SH_Device.CMD_SET, SH_Device.POWEROUTLET_REG_STATE, val)
+	"""
 	return
 
 def handle_device_message(device, new_id):
@@ -98,7 +124,7 @@ def run():
 		for d in device_list:
 			if not d.device_id and d.pending_response is None:
 				print("New device detected, requesting ID")
-				d.device_send(SH_Device.CMD_IDY, 0, 0)
+				d.device_send("{:02X,:02X,:08X}".format(SH_Device.CMD_IDY, 0, 0))
 
 		poll_result = poller.poll(config.POLL_TIMEOUT)
 

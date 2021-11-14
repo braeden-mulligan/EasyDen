@@ -2,7 +2,7 @@ import module_manager
 
 import socket 
 
-def data_transaction(msg):
+def data_transaction(msg, timeout = 1.0):
 	soc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 	try:
 		soc.connect(module_manager.config.SERVER_INTERCONNECT)
@@ -11,7 +11,7 @@ def data_transaction(msg):
 	except Exception as e:
 		return "ERROR: " + str(e)
 	
-	soc.settimeout(1.0)
+	soc.settimeout(timeout)
 
 	soc.send(msg.encode())
 

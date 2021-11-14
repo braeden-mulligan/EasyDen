@@ -1,8 +1,9 @@
-from flask import render_template, request, url_for
+from flask import redirect, render_template, request, url_for
 from . import dashboard_app
 
 from .server_interconnect import data_transaction
 from module_manager.device import SH_Device
+from module_manager.messaging import *
 
 import json, time
 
@@ -30,62 +31,62 @@ def thermostat():
 def irrigator():
 	return "Irrigation not yet available"
 
-@dashboard_app.route("/poweroutlet", methods=["GET", "POST"])
-def poweroutlet():
+
+def debug_fetch_devices_helper():
 	devices = []
-	device_json_raw = data_transaction("fetch")
+	device_json_raw = data_transaction("fetch type " + str(SH_Device.SH_TYPE_POWEROUTLET))
 	
 	error = error_check(device_json_raw)
 	if error:
 		return error
 
-	return device_json_raw
 	devices = json.loads(device_json_raw)
+	return devices
 
-	power_outlets = []
-
-	for d in devices:
-		if d["device_type"] == str(SH_Device.SH_TYPE_POWEROUTLET):
-			pass
+@dashboard_app.route("/poweroutlet", methods=["GET", "POST"])
+def poweroutlet():
+	devices = debug_fetch_devices_helper()
 
 #TODO: make general requests.
-#TODO: Debug only
-	p_regs = {}
-	if power_outlets:
-		p_id = power_outlets[0]["device_id"]
-		p_regs = power_outlets[0]["registers"]
+	d_regs = {}
+	d_id = 0
+	if devices:
+		d_id = devices[0]["device_id"] or 0
+		d_regs = devices[0]["registers"]
 
-	state = 0
-	if p_id:
-		if p_regs[str(SH_Device.POWEROUTLET_REG_STATE)] == 65535:
+	state = 2
+	if d_id and d_regs:
+#TODO: Debug only
+		print(d_regs[str(SH_Device.POWEROUTLET_REG_STATE)])
+		if d_regs[str(SH_Device.POWEROUTLET_REG_STATE)] & 0x0001 == 1:
 			state = 1
-		elif p_regs[str(SH_Device.POWEROUTLET_REG_STATE)] == 65280:
+		elif d_regs[str(SH_Device.POWEROUTLET_REG_STATE)] & 0x0001 == 0:
 			state = 0
-		else:
-			state = 2
 
 	if request.method == "GET":
-		if p_id and state == 2:
-			data_transaction("debug get " + str(p_id))
+		if d_id and state == 2:
+			data_transaction("command id " + str(d_id) + " " + poweroutlet_get_state())
 			time.sleep(0.5)
-			return render_template("poweroutlet.html", title="Smart Outlet", devices=[{p_id:state}])
+			return redirect(url_for("poweroutlet"))
+			#return render_template("poweroutlet.html", title="Smart Outlet", devices=[{d_id:state}])
 		else:
 			s_state = "UNKNOWN"
 			if state == 1:
 				s_state = "ON"
 			elif state == 0:
 				s_state = "OFF"
-
-			outlets = [{"Outlet ID: " + str(p_id): s_state}]
-			return render_template("poweroutlet.html", title="Smart Outlet", devices=[{p_id:state}])
+			#outlets = [{"Outlet ID: " + str(d_id): s_state}]
+		return render_template("poweroutlet.html", title="Smart Outlet", devices=[{d_id:s_state}])
 
 	if request.method == "POST":
-		if p_id:
-			data_transaction("debug set " + str(p_id) + " " + str(state))
+		if d_id:
+			state = not state
+			data_transaction("command id " + str(d_id) + " " + poweroutlet_set_state([(0, state)]))
 
 		time.sleep(0.5)
-		devices = json.loads(data_transaction("fetch"))
-		return render_template("poweroutlet.html", title="Smart Outlet", devices=power_outlets)
+		#devices = debug_fetch_devices_helper()
+		return redirect(url_for("poweroutlet"))
+		#return render_template("poweroutlet.html", title="Smart Outlet", devices=[{d_id:state}])
 
 @dashboard_app.route("/debug", methods=["GET", "POST"])
 def debug():

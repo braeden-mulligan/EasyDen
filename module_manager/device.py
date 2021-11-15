@@ -23,7 +23,7 @@ class SH_Device:
 	#GENERIC_REG_KEEPALIVE = 8
 	GENERIC_REG_DATE = 9
 	GENERIC_REG_TIME = 10
-	GENERIC_REG_WEEKDAY = 11
+	#GENERIC_REG_WEEKDAY = 11
 	GENERIC_REG_SCHEDULE = 12
 	GENERIC_REG_SCHEDULE_ENABLE = 13
 	GENERIC_REG_SCHEDULE_COUNT = 14
@@ -58,7 +58,7 @@ class SH_Device:
 	CMD_RSP = 3
 	CMD_PSH = 4
 	CMD_IDY = 5
-	#CMD_DAT = 5
+	#CMD_DAT = 6
 
 	STATUS_OK = 0
 	STATUS_UNRESPONSIVE = 1
@@ -68,7 +68,7 @@ class SH_Device:
 		self.device_type = 0
 		self.device_id = 0
 		self.device_attrs = {} #(reg, val)
-		self.name = ""
+		self.name = "Default Name"
 
 		self.msg_timeout = 3.0
 		self.msg_retries = 1
@@ -81,6 +81,7 @@ class SH_Device:
 		self.online_status = False 
 		self.last_contact = None
 		self.reconnect_count = -1
+		self.fully_initialized = False
 
 # pending response triple of (packet_string, timeout, retry_count) 
 		self.pending_response = None
@@ -99,12 +100,13 @@ class SH_Device:
 		self.no_response = 0
 		return
 
-	def get_json_obj(self):
+	def get_obj_json(self):
 		device_obj = {}
 		device_obj["device_type"] = self.device_type
 		device_obj["device_id"] = self.device_id
+		device_obj["name"] = self.name
 		device_obj["online_status"] = self.online_status
-		device_obj["last_contact"] = self.last_contact
+		#device_obj["last_contact"] = self.last_contact
 		device_obj["registers"] = self.device_attrs
 		return device_obj
 

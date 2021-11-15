@@ -7,6 +7,8 @@ import json, select, socket, sys, time, os
 device_list = []
 dashboard_connections = []
 
+# --- Socket Management ---
+
 def listener_init(dashboard = False):
 	addr_fam = socket.AF_INET
 	addr = (config.SERVER_ADDR, config.SERVER_PORT)
@@ -37,6 +39,11 @@ def socket_error(soc, event, poll_obj):
 		return True
 	return False
 
+# --- ---
+
+
+# --- Device Messaging Tools ---
+
 def device_from_attr(soc_fd = -1, device_id = -1):
 	for d in device_list:
 		if soc_fd == d.soc_fd:
@@ -45,86 +52,128 @@ def device_from_attr(soc_fd = -1, device_id = -1):
 			return d
 	return None
 
-#TODO: message validation
-#TODO: web server expects ACK
-def handle_dashboard_message(dash_conn, msg):
-	print("Dash message: [" + msg + "]")
-	words = msg.split(' ')
+def handle_device_message(device, new_id):
+	if new_id: # Check for duplicate devices
+		for existing_device in device_list:
+			if new_id == existing_device.device_id and device is not existing_device:
+				# We have an already existing entry with this id
+				# Update old entry with new socket and delete current device object
+				existing_device.connect(device.soc_connection)
+				existing_device.pending_response = None
+				print("Duplicate device found with id " + str(new_id))
+				device_list.remove(device)
+	return 
+
+# --- ---
+
+
+# --- Dashboard Messaging ---
+
+#TODO: improve upon cursory validation
+def dashboard_message_validate(msg):
+	if not msg:
+		return False
+
+	words = message.split(' ')
 
 	if len(words) < 2: 
-		print("Malformed dashboard request.")
-		return 
+		return False
+
+	if "fetch" in words[0]:
+		if "all" in words[1]:
+			pass
+		elif len(words) < 4:
+			return False
+
+	elif "command" in words[0]:
+		if len(words) < 4:
+			return False
+
+		if "id" in words[1]:
+			cmd = words[3].split(',')
+			if len(cmd) < 3:
+				return False
+		elif "server" in words[1] and len(words) < 3:
+			return False
+
+	elif "info" in words[0]:
+		if "id" in words[1] and len(words) < 4:
+			return False
+		elif "server" in words[1] and len(words) < 3:
+			return False
+
+	return True
+		
+#TODO: web server expects ACK
+def handle_dashboard_message(dash_conn, msg):
+	response = "ERROR: Malformed request"
+
+	if not dashboard_message_validate(msg):
+		dash_conn.send(response.encode())
+		return
+		
+	print("Dash message: [" + msg + "]")
+	words = msg.split(' ')
 
 # fetch [all | type x | id x]
 	if "fetch" in words[0]:
 		json_obj_list = []
 
 		if "all" in words[1]:
-			json_obj_list = [d.get_json_obj() for d in device_list if d.device_id]
-			pass
-
+			json_obj_list = [d.get_obj_json() for d in device_list if d.device_id]
+			response = "JSON: " + json.dumps(json_obj_list)
 		elif "type" in words[1]:
-			if len(words) < 3:
-				print("Malformed dashboard request.")
-				return 
-			json_obj_list = [d.get_json_obj() for d in device_list if d.device_type == int(words[2])]
-
+			#TODO: validate
+			num = int(words[2])
+			json_obj_list = [d.get_obj_json() for d in device_list if d.device_type == num]
+			response = "JSON: " + json.dumps(json_obj_list)
 		elif "id" in words[1]:
-			if len(words) < 3:
-				print("Malformed dashboard request.")
-				return 
-			json_obj_list = [d.get_json_obj() for d in device_list if d.device_id == int(words[2])]
+			#TODO: validate
+			num = int(words[2])
+			json_obj_list = [d.get_obj_json() for d in device_list if d.device_id == num]
+			response = "JSON: " + json.dumps(json_obj_list)
 
-		else:
-			#TODO: report error?
-			pass
-
-		dash_conn.send(json.dumps(json_obj_list).encode())
-
-# command id x [raw message]
+# command [id x <raw message> | server <specifier>]
 	elif "command" in msg:
-		if len(words) < 4:
-			print("Malformed dashboard request.")
-			return 
+		response = "SUCCESS: null"
 
 		if "id" in words[1]:
 			d_id = int(words[2])
 			d = device_from_attr(device_id = d_id);
 			if d:
 				d.device_send(words[3])
+			else:
+				response = "ERROR: Device not found"
+		elif "server" in words[1]:
+			# set <device id> name <name>
+			response = "FAILURE: Unimplemented feature"
 
-#TODO: fix 
-		dash_conn.send("ACK".encode())
-
-# info [id x <specifier> | server <parameter>]
+# info [id x <specifier> | server <specifier>]
 	elif "info" in words[1]:
-		"""
-		d_id = int(msg.split(' ')[2])
-		val = int(msg.split(' ')[3])
-		val = 0xFFFF if val else 0xFF00
-		d = device_from_attr(device_id = d_id);
-		if d:
-			d.device_send(SH_Device.CMD_SET, SH_Device.POWEROUTLET_REG_STATE, val)
-		"""
+		if "id" in words[1]:
+			#TODO: validate
+			num = int(words[2])
+			device = next((d for d in device_list if d.device_id == num), None)
 
+			if device is None:
+				response = "ERROR: Device not found"
+			elif "last_contact" in words[3]:
+				response = "PARAMETER: " + str(device.last_contact)
+			elif "reconnections" in words[3]:
+				response = "PARAMETER: " + str(device.reconnect_count)
+
+		elif "server" in words[1]:
+			response = "FAILURE: Unimplemented feature"
+
+	elif "debug" in words[1]:
+		response = "FAILURE: Unimplemented feature"
+		
+	dash_conn.send(response.encode())
 	return
 
-def handle_device_message(device, new_id):
-	if new_id: # Check for duplicate devices
-		for existing_device in device_list:
-			if new_id == existing_device.device_id and device is not existing_device:
-				# We have an already existing entry with this id
-				# Update old entry with new socket and invalidate current device
-				existing_device.connect(device.soc_connection)
-				existing_device.pending_response = None
-				print("Duplicate device found with id " + str(new_id))
-				print("Old device list" + str (device_list))
-				device_list.remove(device)
-				print("Removed device " + str(device))
-				print("Updated device list" + str (device_list))
-	return 
+# --- ---
 
-#if __name__ == "__main__":
+
 def run():
 	print("Starting socket server.")
 	poller = select.poll()
@@ -132,7 +181,6 @@ def run():
 	dash_soc = listener_init(dashboard = True)
 	device_soc = listener_init()
 
-#TODO POLLOUT?
 	poll_opts = select.POLLIN | select.POLLERR | select.POLLHUP | select.POLLNVAL
 	poller.register(dash_soc, poll_opts)
 	poller.register(device_soc, poll_opts)
@@ -141,7 +189,7 @@ def run():
 		for d in device_list:
 			if not d.device_id and d.pending_response is None:
 				print("New device detected, requesting ID")
-				d.device_send("{:02X},{:02X},{:08X}".format(SH_Device.CMD_IDY, 0, 0))
+				d.device_send(generic_request_identity())
 
 		poll_result = poller.poll(config.POLL_TIMEOUT)
 
@@ -192,6 +240,9 @@ def run():
 
 		for d in device_list:
 			d.check_heartbeat()
+
+		#for d in device_list:
+			#d.initial_connection_task()			
 
 		# other routine checks.
 		# ...

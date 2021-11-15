@@ -5,6 +5,9 @@ _set = SH_Device.CMD_SET
 
 template = "{:02X},{:02X},{:08X}" 
 
+def generic_request_identity():
+	return template.format(SH_Device.CMD_IDY, 0, 0)
+
 def poweroutlet_get_count():
 	return template.format(_get, SH_Device.POWEROUTLET_REG_OUTLET_COUNT, 0)
 

@@ -2,8 +2,6 @@ from flask import redirect, render_template, request, url_for
 from . import dashboard_app
 
 from .server_interconnect import data_transaction
-from module_manager.device import SH_Device
-from module_manager.messaging import *
 
 import os
  
@@ -22,7 +20,7 @@ def override_url_for():
 
 @dashboard_app.route("/")
 def index():
-	return render_template("home.html", title="Dashboard")
+	return render_template("home.html", title = "Dashboard")
 
 @dashboard_app.route("/error")
 def error():
@@ -30,7 +28,13 @@ def error():
 
 @dashboard_app.route("/debug", methods=["GET", "POST"])
 def debug():
-	return "Debug page."
+	if request.method == "GET":
+		return render_template("debug.html")
+	elif request.method == "POST":
+		debug_text = request.form["debug-input"]
+		response = data_transaction(debug_text)
+		return render_template("debug.html", response = response)
+		
 
 @dashboard_app.route("/irrigator")
 def irrigator():

@@ -74,25 +74,28 @@ def dashboard_message_validate(msg):
 	if not msg:
 		return False
 
-	words = message.split(' ')
-
+	words = msg.split(' ')
 	if len(words) < 2: 
 		return False
 
 	if "fetch" in words[0]:
 		if "all" in words[1]:
 			pass
-		elif len(words) < 4:
+		elif len(words) < 3:
 			return False
 
 	elif "command" in words[0]:
-		if len(words) < 4:
+		if len(words) < 3:
 			return False
 
 		if "id" in words[1]:
+			if len(words) < 4:
+				return False
+
 			cmd = words[3].split(',')
 			if len(cmd) < 3:
 				return False
+
 		elif "server" in words[1] and len(words) < 3:
 			return False
 
@@ -134,7 +137,7 @@ def handle_dashboard_message(dash_conn, msg):
 			response = "JSON: " + json.dumps(json_obj_list)
 
 # command [id x <raw message> | server <specifier>]
-	elif "command" in msg:
+	elif "command" in words[0]:
 		response = "SUCCESS: null"
 
 		if "id" in words[1]:
@@ -149,7 +152,7 @@ def handle_dashboard_message(dash_conn, msg):
 			response = "FAILURE: Unimplemented feature"
 
 # info [id x <specifier> | server <specifier>]
-	elif "info" in words[1]:
+	elif "info" in words[0]:
 		if "id" in words[1]:
 			#TODO: validate
 			num = int(words[2])

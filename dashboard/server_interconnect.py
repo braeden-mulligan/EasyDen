@@ -85,3 +85,12 @@ def compose_error_log(response_label, response_message):
 	response_message = response_message.replace('EXCEPTION:', "Socket exception")
 	error_log = "Module Manager response " + strerror(response_label) + ": " + str(response_message)
 	return error_log
+
+def build_command(message, device_id = 0, target = "device"):
+	full_command = None
+	if target == "device" and device_id:
+		full_command = "command id " + str(device_id) + " " + message
+	elif target == "server":
+		full_command = "command server " + message
+	return full_command
+

@@ -29,3 +29,19 @@ def poweroutlet_set_state(outlet_values):
 
 	return template.format(_set, SH_Device.POWEROUTLET_REG_STATE, reg_value)
 
+# return list of tuples (<outlet index>, <boolean value>)
+def poweroutlet_read_state(reg_value, outlet_count = 8)
+	if outlet_count > 8:
+		print("WARNING: poweroutlet_read_state invalid argument passed.")
+		outlet_count = 8
+
+	reg_value = int(reg_value)
+	outlets = []
+
+	for i in range(outlet_count):
+		if reg_value & (1 << i):
+			outlets.append((i, True))
+		else:
+			outlets.append((i, False))
+
+	return outlets

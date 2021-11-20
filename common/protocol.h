@@ -21,7 +21,7 @@ struct sh_packet {
 	uint16_t seq;
 	uint8_t cmd; 
 	uint8_t reg; // (type)
-	int32_t val; // (id)
+	uint32_t val; // (id)
 };
 
 /*

@@ -16,15 +16,16 @@ struct sh_device_metadata {
 /*
 	Device type enumeration.
 */
-#define SH_TYPE_RESERVED_1 0
-#define SH_TYPE_RESERVED_2 1
-#define SH_TYPE_RESERVED_3 2
-#define SH_TYPE_RESERVED_4 3
-#define SH_TYPE_RESERVED_5 4
-#define SH_TYPE_CAMERA 5
+#define SH_TYPE_NULL 0
+#define SH_TYPE_RESERVED_1 1
+#define SH_TYPE_RESERVED_2 2
+#define SH_TYPE_RESERVED_3 3
+#define SH_TYPE_RESERVED_4 4
+#define SH_TYPE_RESERVED_5 5
 #define SH_TYPE_IRRIGATION 6
 #define SH_TYPE_POWEROUTLET 7
 #define SH_TYPE_THERMOSTAT 8
+#define SH_TYPE_CAMERA 9
 
 /*
 	Registers per device.
@@ -52,7 +53,7 @@ struct sh_device_metadata {
 #define GENERIC_REG_PUSH_BUFFERING 33
 
 #define POWEROUTLET_REG_STATE 101
-#define POWEROUTLET_REG_OUTLET_COUNT 102
+#define POWEROUTLET_REG_SOCKET_COUNT 102
 
 #define THERMOSTAT_REG_TEMPERATURE 101
 #define THERMOSTAT_REG_TARGET_TEMPERATURE 102

@@ -1,56 +1,31 @@
 from . import config
-import datetime, json, socket, sys, time, os
+import datetime, json, re, socket, sys, time, os
+
+def read_device_defs():
+# TODO: use absolute path?
+	device_defs = os.path.dirname(__file__) + "/../../libraries/common/device_definition.h"
+	defs_file = open(device_defs, "r")
+	contents = defs_file.read()
+	defs_file.close()
+	contents = re.sub("//.*?\n|/\*.*?\*/", "", contents, flags=re.S)
+	contents = contents.split("\n")
+	contents = [line.removeprefix("#define").strip() for line in contents if line.strip()]
+	return contents
+
+def build_definition_mapping(search_term):
+	defs = read_device_defs()
+	def_map = []
+	for definition in defs:
+		if search_term in definition:
+			def_pair = definition.split(" ")
+			reg = def_pair[0]
+			index = def_pair[-1] # In case of multple spaces in line.
+			def_map.append((reg, int(index)))
+	return def_map
 
 class SH_Device:
-	SH_TYPE_RESERVED_1 = 0
-	SH_TYPE_RESERVED_2 = 1
-	SH_TYPE_RESERVED_3 = 2
-	SH_TYPE_RESERVED_4 = 3
-	SH_TYPE_RESERVED_5 = 4
-	SH_TYPE_CAMERA = 5
-	SH_TYPE_IRRIGATION = 6
-	SH_TYPE_POWEROUTLET = 7
-	SH_TYPE_THERMOSTAT = 8
-
-	GENERIC_REG_NULL = 0
-	GENERIC_REG_RESERVED_1 = 1
-	GENERIC_REG_RESERVED_2 = 2
-	GENERIC_REG_RESERVED_3 = 3
-	GENERIC_REG_RESERVED_4 = 4
-	GENERIC_REG_RESERVED_5 = 5
-	GENERIC_REG_ENABLE = 6
-	GENERIC_REG_PING = 7
-	#GENERIC_REG_KEEPALIVE = 8
-	GENERIC_REG_DATE = 9
-	GENERIC_REG_TIME = 10
-	#GENERIC_REG_WEEKDAY = 11
-	GENERIC_REG_SCHEDULE = 12
-	GENERIC_REG_SCHEDULE_ENABLE = 13
-	GENERIC_REG_SCHEDULE_COUNT = 14
-	GENERIC_REG_APP_FREQUENCY = 20
-	GENERIC_REG_POLL_FREQUENCY = 21
-	GENERIC_REG_PUSH_ENABLE = 31
-	GENERIC_REG_PUSH_FREQUENCY = 32
-	GENERIC_REG_PUSH_BUFFERING = 33
-
-	POWEROUTLET_REG_STATE = 101
-	POWEROUTLET_REG_OUTLET_COUNT = 102
-
-	THERMOSTAT_REG_TEMPERATURE = 101
-	THERMOSTAT_REG_TARGET_TEMPERATURE = 102
-	THERMOSTAT_REG_THRESHOLD_HIGH = 103
-	THERMOSTAT_REG_THRESHOLD_LOW = 104
-	THERMOSTAT_REG_HYSTERESIS = 105
-	THERMOSTAT_REG_MIN_COOLDOWN = 106
-	THERMOSTAT_REG_HUMIDITY = 107
-
-	IRRIGATION_REG_MOISTURE = 101
-	IRRIGATION_REG_TARGET_MOISTURE = 102
-	IRRIGATION_REG_THRESHOLD_HIGH = 103
-	IRRIGATION_REG_THRESHOLD_LOW = 104
-	IRRIGATION_REG_HYSTERESIS = 105
-	IRRIGATION_REG_MIN_COOLDOWN = 106
-	IRRIGATION_REG_SWITCH_COUNTER = 107
+	TYPE_MAP = build_definition_mapping("SH_TYPE_")
+	REGISTER_MAP = build_definition_mapping("_REG_")
 
 	CMD_NUL = 0
 	CMD_GET = 1
@@ -63,6 +38,39 @@ class SH_Device:
 	STATUS_OK = 0
 	STATUS_UNRESPONSIVE = 1
 	STATUS_ERROR = 2
+
+	def type_id(type_name):
+		for t in SH_Device.TYPE_MAP:
+			if (type_name == t[0]):
+				return t[1]
+		return None
+
+	def type_label(type_id):
+		for t in SH_Device.TYPE_MAP:
+			if type_id == t[1]:
+				return t[0]
+		return None
+
+	def register_id(reg_name):
+		for reg in SH_Device.REGISTER_MAP:
+			if reg_name == reg[0]:
+				return reg[1]
+		return None
+	
+	# Because the register mapping is not one-to-one we need device type
+	# Type can be passed as either string or int
+	def register_label(reg_id, device_type):
+		if isinstance(device_type, int):
+			device_type = SH_Device.type_label(device_type)
+		if not device_type:
+			return None
+		type_name = device_type.removeprefix("SH_TYPE_")
+
+		for reg_label, reg_num in SH_Device.REGISTER_MAP:
+			if reg_id == reg_num:
+				if "GENERIC" in reg_label or type_name in reg_label:
+					return reg_label
+		return None
 
 	def __init__(self, socket_connection = None):
 		self.device_type = 0
@@ -137,9 +145,9 @@ class SH_Device:
 		return SH_Device.STATUS_OK
 
 	def update_attributes(self, reg, val):
-		if reg == SH_Device.GENERIC_REG_NULL:
+		if reg == SH_Device.register_id("GENERIC_REG_NULL"):
 			return
-		elif reg == SH_Device.GENERIC_REG_PING:
+		elif reg == SH_Device.register_id("GENERIC_REG_PING"):
 			return
 		else: 
 			self.device_attrs[reg] = val
@@ -239,12 +247,12 @@ class SH_Device:
 	def check_heartbeat(self):
 		if self.pending_response:
 			words = [int(w, 16) for w in self.pending_response[0].split(',')]
-			if words[2] == SH_Device.GENERIC_REG_PING:
+			if words[2] == SH_Device.register_id("GENERIC_REG_PING"):
 				# Already waiting on a heartbeat check.
 				return
 		if self.online_status:
 			if time.time() > self.soc_last_heartbeat + config.DEVICE_KEEPALIVE:
-				self.device_send("{:02X},{:02X},{:08X}".format(SH_Device.CMD_GET, SH_Device.GENERIC_REG_PING, 0), retries = 1)
+				self.device_send("{:02X},{:02X},{:08X}".format(SH_Device.CMD_GET, SH_Device.register_id("GENERIC_REG_PING"), 0), retries = 1)
 				self.soc_last_heartbeat = time.time()
 
 

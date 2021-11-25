@@ -147,6 +147,19 @@ def handle_dashboard_message(dash_conn, msg):
 				d.device_send(words[3])
 			else:
 				response = "ERROR: Device not found"
+
+		elif "type" in words[1]:
+			device_count = 0
+			d_type = int(words[2])
+			for d in device_list:
+				if d.device_type == d_type:
+					d.device_send(words[3])
+					device_count += 1
+			if device_count: 
+				response = "SUCCESS: command sent to " + str(device_count) + " devices"
+			else:
+				response = "ERROR: No devices found"
+
 		elif "server" in words[1]:
 			# set <device id> name <name>
 			response = "FAILURE: Unimplemented feature"

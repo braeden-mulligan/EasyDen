@@ -1,7 +1,9 @@
 from flask import redirect, render_template, request, url_for
 from . import dashboard_app
 
-from .server_interconnect import data_transaction
+from . import server_interconnect as si 
+from module_manager.device import SH_Device
+from module_manager.messaging import *
 
 import os
  
@@ -28,15 +30,57 @@ def error():
 
 @dashboard_app.route("/debug", methods=["GET", "POST"])
 def debug():
+	print(str(request.get_data()))
 	if request.method == "GET":
 		return render_template("debug.html")
 	elif request.method == "POST":
 		debug_text = request.form["debug-input"]
-		response = data_transaction(debug_text)
+		response = si.data_transaction(debug_text)
 		return render_template("debug.html", response = response)
 		
+@dashboard_app.route("/device/refresh", methods=["GET"])
+def device_refresh():
+#TODO: Could do more data validation
+	category = request.args.get("category", "")
+	query = "fetch " + category
 
-@dashboard_app.route("/irrigator")
+	if category == "type" or category == "id":
+		device_selector = request.args.get("selector")
+		if not device_selector:
+#TODO more comprehensive error handling.
+			return render_template("error.html", message = "Invalid query")
+		else:
+			query += " " + device_selector
+	elif category == "all":
+		pass
+	else:
+		return render_template("error.html", message = "Invalid query")
+
+	si_response = si.data_transaction(query)
+	label, response = si.parse_response(si_response)
+
+	devices = []
+	if label == si.RESPONSE_JSON:
+		devices = response
+	else:
+		return render_template("error.html", message = si.compose_error_log(label, si_response))
+	return str(devices)
+
+@dashboard_app.route("/device/command", methods=["POST"])
+def device_command():
+	return "success"
+
+@dashboard_app.route("/device/irrigator")
 def irrigator():
 	return "Irrigation not yet available"
+
+@dashboard_app.route("/device/thermostat")
+def thermostat():
+	return str(SH_Device.SH_TYPE_THERMOSTAT)
+	#return "Thermostat not yet available."
+
+@dashboard_app.route("/device/poweroutlet", methods=["GET"])
+def poweroutlet():
+
+	return render_template("poweroutlet.html", title="Smart Outlet", devices = devices)
 

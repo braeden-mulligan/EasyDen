@@ -17,7 +17,7 @@ if ENV == "production":
 
 elif ENV == "development":
 	BASE_DIR = "/home/braeden/Projects/SmartHome/server"
-	SERVER_ADDR = "192.168.1.79"
+	#SERVER_ADDR = "192.168.1.79"
 	DEVICE_KEEPALIVE = 30
 	DEBUG = True
 

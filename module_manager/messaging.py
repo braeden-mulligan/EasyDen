@@ -9,6 +9,7 @@ template = "{:02X},{:02X},{:08X}"
 def generic_request_identity():
 	return template.format(SH_Device.CMD_IDY, 0, 0)
 
+"""
 def poweroutlet_get_count():
 	return template.format(_get, _reg("POWEROUTLET_REG_OUTLET_COUNT"), 0)
 
@@ -45,3 +46,4 @@ def poweroutlet_read_state(reg_value, outlet_count = 8):
 			outlets.append((i, False))
 
 	return outlets
+"""

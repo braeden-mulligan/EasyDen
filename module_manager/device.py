@@ -110,11 +110,11 @@ class SH_Device:
 
 	def get_obj_json(self):
 		device_obj = {}
-		device_obj["device_type"] = self.device_type
-		device_obj["device_id"] = self.device_id
+		device_obj["type"] = self.device_type
+		device_obj["id"] = self.device_id
 		device_obj["name"] = self.name
-		device_obj["online_status"] = self.online_status
-		#device_obj["last_contact"] = self.last_contact
+		device_obj["online"] = self.online_status
+		#device_obj["last-contact"] = self.last_contact
 		device_obj["registers"] = self.device_attrs
 		return device_obj
 

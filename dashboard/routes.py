@@ -5,7 +5,7 @@ from . import server_interconnect as si
 from module_manager.device import SH_Device
 from module_manager.messaging import *
 
-import os
+import json, os
  
 # Circumvent browser caching 
 def timestamped_url_for(endpoint, **values):
@@ -13,7 +13,7 @@ def timestamped_url_for(endpoint, **values):
 		file_name = values.get('filename', None)
 		if file_name:
 			file_path = os.path.join(dashboard_app.root_path, endpoint, file_name)
-			values['v'] = int(os.stat(file_path).st_mtime)
+			values["ver"] = int(os.stat(file_path).st_mtime)
 	return url_for(endpoint, **values)
 
 @dashboard_app.context_processor
@@ -28,7 +28,7 @@ def index():
 def error():
 	return render_template("error.html")
 
-@dashboard_app.route("/debug", methods=["GET", "POST"])
+@dashboard_app.route("/device/debug", methods=["GET", "POST"])
 def debug():
 	print(str(request.get_data()))
 	if request.method == "GET":
@@ -64,7 +64,7 @@ def device_refresh():
 		devices = response
 	else:
 		return render_template("error.html", message = si.compose_error_log(label, si_response))
-	return str(devices)
+	return json.dumps(devices)
 
 @dashboard_app.route("/device/command", methods=["POST"])
 def device_command():
@@ -81,6 +81,5 @@ def thermostat():
 
 @dashboard_app.route("/device/poweroutlet", methods=["GET"])
 def poweroutlet():
-
-	return render_template("poweroutlet.html", title="Smart Outlet", devices = devices)
+	return render_template("poweroutlet.html", title="Smart Outlet")
 

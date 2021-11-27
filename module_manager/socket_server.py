@@ -107,7 +107,7 @@ def dashboard_message_validate(msg):
 
 	return True
 		
-#TODO: web server expects ACK
+# Should always return something to dashboard.
 def handle_dashboard_message(dash_conn, msg):
 	response = "ERROR: Malformed request"
 

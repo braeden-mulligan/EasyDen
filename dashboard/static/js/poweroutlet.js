@@ -1,12 +1,6 @@
 // TODO: unhardcode this stuff
 let server_addr = "192.168.1.79";
 
-function toggle_action(evt) {
-	console.log("Clicked device " + evt.target.device_id);
-	//send request
-	//track changes
-}
-
 class Poweroutlet extends SH_Device {
 	static elem_tag_socket_count = "div";
 
@@ -16,11 +10,15 @@ class Poweroutlet extends SH_Device {
 	static class_label_socket_state = "poweroutlet-attr-socket-state";
 
 	constructor(id, name, online, socket_count = 0, socket_states = []) {
-		//SH_Device.POWEROUTLET_REG_STATE = 101;
-		//SH_Device.POWEROUTLET_REG_OUTLET_COUNT = 102;
 		super(SH_Device.SH_TYPE_POWEROUTLET, id, name, online);
 		this.socket_count = socket_count;
 		this.socket_states = socket_states;
+	}
+
+	differ(sh_device) {
+		return super.differ(sh_device);
+
+		return false;
 	}
 
 	write_html() {
@@ -30,6 +28,7 @@ class Poweroutlet extends SH_Device {
 			// Update all attributes that are mutable.
 			var socket_list;
 
+//TODO: Put block into generic function
 			for (var i = 0; i < device_elem.children.length; ++i) {
 				var attr = device_elem.children[i];
 				if (attr.className == SH_Device.class_label_name) {
@@ -90,37 +89,26 @@ class Poweroutlet extends SH_Device {
 	}
 }
 
-function refresh_devices() {
-	console.log("fetching devices");
-
-	var url = "http://" + server_addr + "/device/refresh?category=type&selector=" + SH_Device.SH_TYPE_POWEROUTLET.toString();
-
-	try {
-		var xhr = new XMLHttpRequest();
-	} catch (e) {
-		alert("Something went wrong!");
-		return false;
-	}
-
-	xhr.onreadystatechange = function() {
-		if (xhr.readyState == XMLHttpRequest.DONE) {
-			console.log(xhr.responseText);
-			poweroutlets = JSON.parse(xhr.responseText);
-		}
-	}
-
-	xhr.open("GET", url, true);
-	xhr.send();
+function notify(generic_param = null) {
+	console.log("got notified");
 }
 
-var timeout_handle;
-var interval_handle;
+data_tracker = new Data_Tracker();
+data_tracker.start_global_poll();
+data_tracker.submit_tracking(1, "set", notify);
 
-devices = [];
+function toggle_action(evt) {
+	console.log("Clicked device " + evt.target.device_id);
+	data_tracker.submit_tracking(evt.target.device_id);
+}
 
 // Test ----
+devices = [];
+
 devices.push(new Poweroutlet(69, "Nice device", false, 2, [[0,1],[1,1]]));
 devices.push(new Poweroutlet(420, "Dank device", false, 3, [[0,1],[1,0],[2,1]]));
+
+console.log("Diff check: " + devices[0].differ(devices[0]));
 
 const device_panel = document.getElementById("device-panel");
 

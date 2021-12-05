@@ -42,13 +42,12 @@ class Poweroutlet extends SH_Device {
 				}
 			}
 
-			//each item should have a button and a pair/value
+			//each item should have a button and a state value
 			for (var i = 0; i < socket_list.children.length; ++i) {
 				var socket_item = socket_list.children[i];
 				for (var j = 0; j < socket_item.children.length; ++j) {
 					if (socket_item.children[j].className == Poweroutlet.class_label_socket_state) {
-//TODO: properly associate object index with labeled index
-						socket_item.children[j].innerHTML = "Socket " + this.socket_states[i][0] + ": " + (this.socket_states[i][1] ? "ON" : "OFF");
+						socket_item.children[j].innerHTML = "Socket " + i + ": " + (this.socket_states[i] ? "ON" : "OFF");
 					}
 				}
 			}
@@ -68,16 +67,16 @@ class Poweroutlet extends SH_Device {
 			var entry = document.createElement("li");
 			entry.setAttribute("class", Poweroutlet.class_label_socket_item);
 
-			var outlet_pair = document.createElement("p");
-			outlet_pair.setAttribute("class", Poweroutlet.class_label_socket_state);
-			outlet_pair.innerHTML = "Socket " + this.socket_states[i][0] + ": " + (this.socket_states[i][1] ? "ON" : "OFF");
+			var outlet_state = document.createElement("p");
+			outlet_state.setAttribute("class", Poweroutlet.class_label_socket_state);
+			outlet_state.innerHTML = "Socket " + i + ": " + (this.socket_states[i] ? "ON" : "OFF");
 
 			var toggle_button =  document.createElement("button");
 			toggle_button.innerHTML = "Toggle";
 			toggle_button.device_id = this.id;
 			toggle_button.addEventListener('click', toggle_action, false);
 
-			entry.append(outlet_pair);
+			entry.append(outlet_state);
 			entry.append(toggle_button);
 
 			outlet_list.append(entry);
@@ -89,42 +88,48 @@ class Poweroutlet extends SH_Device {
 	}
 }
 
+class Poweroutlet_Tracker extends Data_Tracker {
+	constructor() {
+		super.constructor(SH_Device.SH_TYPE_POWEROUTLET);
+	}
+
+	ajax_response_processor = function(device_json) {
+		//current devices
+		/*
+		for (var i = 0; i < this.device_updated.length; ++i) {
+			//if (devices_update[i].id == device_
+
+		}
+		*/
+	}
+}
+
 function notify(generic_param = null) {
 	console.log("got notified");
 }
 
-data_tracker = new Data_Tracker();
-data_tracker.start_global_poll();
-data_tracker.submit_tracking(1, "set", notify);
+tracker = new Data_Tracker();
+tracker.start_global_poll();
 
 function toggle_action(evt) {
 	console.log("Clicked device " + evt.target.device_id);
-	data_tracker.submit_tracking(evt.target.device_id);
+	tracker.submit_tracking(evt.target.device_id);
 }
 
 // Test ----
-devices = [];
+tracker.device_add(new Poweroutlet(69, "Nice device", false, 2, [1, 1]));
+tracker.device_add(new Poweroutlet(420, "Dank device", false, 3, [1, 0, 1]));
 
-devices.push(new Poweroutlet(69, "Nice device", false, 2, [[0,1],[1,1]]));
-devices.push(new Poweroutlet(420, "Dank device", false, 3, [[0,1],[1,0],[2,1]]));
-
-console.log("Diff check: " + devices[0].differ(devices[0]));
+console.log("Diff check: " + tracker.devices[0].differ(tracker.devices[0]));
 
 const device_panel = document.getElementById("device-panel");
 
-for (var i = 0; i < devices.length; ++i) {
-	device_node = devices[i].write_html();
+for (var i = 0; i < tracker.devices.length; ++i) {
+	device_node = tracker.devices[i].write_html();
 	console.log(device_node);
 	device_panel.append(device_node);
 	device_panel.append(document.createElement("br"));
 }
 
-setTimeout(function() {
-	console.log("Updated devices");
-	devices[0].online = true;
-	devices[0].socket_states[0][1] = false;
-	devices[0].write_html();
-}, 2000);
-
-
+tracker.submit_tracking(69, notify);
 

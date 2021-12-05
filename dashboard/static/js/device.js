@@ -65,62 +65,48 @@ class SH_Device {
 class Data_Tracker {
 	global_poll = null;
 
+	device_type = SH_Device.SH_TYPE_NULL;
+
 	devices = [];
 	devices_updated = [];
 
 	pending_requests = [];
 	pending_request_obj = {
-		//device_id;
-		//timeout_handle;
-		//interval_handle;
+		//device_id
+		//timeout_handle
+		//interval_handle
 	};
 
+	constructor(device_type) {
+		this.device_type = device_type;
+		//if (response_processor) this.ajax_response_processor = response_processor;
+		//this.start_global_poll();
+	}
+
+	device_by_id = function(seek_id, list = this.devices) {
+		for (var i = 0; i < list.length; ++i) {
+			if (list[i].id == seek_id) return { device: list[i], index: i };
+		}
+		return null;
+	}
+
+	device_add = function(list = this.devices) {
+		//TODO: Add to both devices and devices updated.
+	}
+
+	device_remove = function(list = this.devices) {
+	}
+
 	ajax_response_processor = function(device_json) {
-		// update devices after list;
-
 		console.log(device_json);
-	}
-
-/*
-	onTimeout(id)
-		if pending(id)
-		clear interval for id
-			set device[id].html_write pending flag failed if interval running.
-
-		clear timeout for if
-	}
-
-	onInterval(id) {
-		if pending(id) check devices after list
-			do device diff
-			if diff, clear pending and set html pending flag inactive
-				set devices before = devices_updated.
-	}
-*/
-
-	submit_tracking = function (id = 0, command = "set", notify_callback = null) {
-		/*
-		setTimeout(function() {
-			if (notify_callback) notify_callback();
-		}, 3000);
-		*/
-/*
-		device.write_html(pending_flag)
-
-		id = id
-		handle setInterval(watch device with id)
-		handle setTimeout(on device id, notify_callback if not null, 5000);
-
-		pending_requests append(handles)
-*/
 	}
 
 	start_global_poll = function() {
 		if (this.global_poll) return;
 
-		fetch_devices(this.ajax_response_processor);
+		fetch_devices(this.ajax_response_processor, 0, this.device_type);
 		this.global_poll = setInterval(function() {
-			fetch_devices(this.ajax_response_processor);
+			fetch_devices(this.ajax_response_processor, 0, this.device_type);
 		}.bind(this), 30000);
 	}
 
@@ -129,16 +115,77 @@ class Data_Tracker {
 		this.global_poll = null;
 	}
 
-	constructor(response_processor) {
-		if (response_processor) this.ajax_response_processor = response_processor;
-		//this.start_global_poll();
+	request_timeout(device_id) {
+		for (var i = 0; i < this.pending_requests.length; ++i) {
+			if (this.pending_requests[i].device_id = device_id) {
+				console.log("timeout on " + device_id.toString());
+				clearInterval(this.pending_requests[i].interval_handle);
+				clearTimeout(this.pending_requests[i].timeout_handle);
+				this.pending_requests.splice(i, 1);
+				//TODO: device.html_write pending flag failed 
+			}
+		}
+	}
+	
+	request_check(device_id /*, get vs set, notify_callback ?*/) {
+		console.log("checking " + device_id.toString());
+
+		for (var i = 0; i < this.pending_requests.length; ++i) {
+			if (this.pending_requests[i].device_id = device_id) {
+				var current = this.device_by_id(device_id);
+				var after = this.device_by_id(device_id, this.devices_updated);
+
+				if (current.device.differ(after.device)) {
+					console.log("Device update detected");
+					clearInterval(this.pending_requests[i].interval_handle);
+					clearTimeout(this.pending_requests[i].timeout_handle);
+					this.pending_requests.splice(i, 1);
+					this.devices[current.index] = after.device;
+					//TODO: set html pending flag inactive
+				}
+			}
+		}
+	}
+
+	submit_tracking = function (id = 0, notify_callback = null) {
+		this.stop_global_poll();
+
+		for (var i = 0; i < this.pending_requests.length; ++i) {
+			if (this.pending_requests[i].device_id = device_id) return;
+		}
+
+		var device = this.device_by_id(id);
+		if (device == null) return;
+
+		//TODO: device.write_html(pending_flag);
+
+		var request = {
+			device_id: id,
+
+			timeout_handle: setTimeout(function() {
+				this.request_timeout(id);
+			}.bind(this), 4000),
+
+			interval_handle: setInterval(function() {
+				this.request_check(id);
+			}.bind(this), 500)
+		}
+
+		this.pending_requests.push(request);
 	}
 }
 
 function fetch_devices(response_processor, id = 0, type = SH_Device.SH_TYPE_NULL) {
 	console.log("fetching devices");
 
-	var url = "http://" + server_addr + "/device/refresh?category=type&selector=" + SH_Device.SH_TYPE_POWEROUTLET.toString();
+	var category = "type";
+	var selector = type.toString();
+	if (id) {
+		category = "id";
+		selector = it.toString();
+	}
+
+	var url = "http://" + server_addr + "/device/refresh?category=" + category + "&selector=" + selector;
 
 	try {
 		var xhr = new XMLHttpRequest();

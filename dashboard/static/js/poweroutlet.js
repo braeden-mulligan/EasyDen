@@ -15,9 +15,17 @@ class Poweroutlet extends SH_Device {
 		this.socket_states = socket_states;
 	}
 
+	copy() {
+		var copy_states = [];
+		for (var i = 0; i < this.socket_states.length; ++i) {
+			copy_states.push(this.socket_states[i]);
+		}
+
+		return new Poweroutlet(this.id, this.name, this.online, this.socket_count, copy_states);
+	}
+
 	differ(sh_device) {
 		return super.differ(sh_device);
-
 		return false;
 	}
 
@@ -93,7 +101,7 @@ class Poweroutlet_Tracker extends Data_Tracker {
 		super.constructor(SH_Device.SH_TYPE_POWEROUTLET);
 	}
 
-	ajax_response_processor = function(device_json) {
+	request_response_processor = function(device_json) {
 		//current devices
 		/*
 		for (var i = 0; i < this.device_updated.length; ++i) {
@@ -120,8 +128,6 @@ function toggle_action(evt) {
 tracker.device_add(new Poweroutlet(69, "Nice device", false, 2, [1, 1]));
 tracker.device_add(new Poweroutlet(420, "Dank device", false, 3, [1, 0, 1]));
 
-console.log("Diff check: " + tracker.devices[0].differ(tracker.devices[0]));
-
 const device_panel = document.getElementById("device-panel");
 
 for (var i = 0; i < tracker.devices.length; ++i) {
@@ -131,5 +137,10 @@ for (var i = 0; i < tracker.devices.length; ++i) {
 	device_panel.append(document.createElement("br"));
 }
 
-tracker.submit_tracking(69, notify);
+tracker.start_global_poll();
+//tracker.submit_tracking(69, notify);
+
+setTimeout(function() {
+	tracker.devices_updated[0].online = true;
+}, 1700);
 

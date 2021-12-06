@@ -27,6 +27,10 @@ class SH_Device {
 		this.online = online;
 	}
 
+	copy() {
+		return new SH_Device(this.type, this.id, this.name, this.online);
+	}
+
 	differ(sh_device) {
 		if (sh_device.type != this.type) return true;
 		if (sh_device.id != this.id) return true;
@@ -67,6 +71,7 @@ class Data_Tracker {
 
 	device_type = SH_Device.SH_TYPE_NULL;
 
+// These should mirror each other
 	devices = [];
 	devices_updated = [];
 
@@ -83,31 +88,64 @@ class Data_Tracker {
 		//this.start_global_poll();
 	}
 
-	device_by_id = function(seek_id, list = this.devices) {
+	device_entry = function(seek_id, list = this.devices) {
 		for (var i = 0; i < list.length; ++i) {
-			if (list[i].id == seek_id) return { device: list[i], index: i };
+			if (list[i].id == seek_id) return {device: list[i], index: i};
 		}
 		return null;
 	}
 
-	device_add = function(list = this.devices) {
-		//TODO: Add to both devices and devices updated.
+	device_add = function(device) {
+		for (var i = 0; i < this.devices.length; ++i) {
+			console.log(device.id + " : " +this.devices[i].id);
+			if (device.id == this.devices[i].id) return false;
+		}
+		
+		this.devices.push(device);
+		this.devices_updated.push(device.copy());
+		return true;
 	}
 
-	device_remove = function(list = this.devices) {
+	device_remove = function(device) {
+		for (var i = 0; i < this.devices.length; ++i) {
+			if (device.id == this.devces[i]) { 
+				if (device.id != this.devices_updated[i]) {
+					console.log("device_remove error: arrays not associated");
+					return false;
+				}
+
+				this.devices.splice(i, 1);
+				this.devices_updated.splice(i, 1);
+				return true;
+			}
+		}
+
+		return false;
 	}
 
-	ajax_response_processor = function(device_json) {
+	request_response_processor = function(device_json, tracking_object) {
 		console.log(device_json);
 	}
 
-	start_global_poll = function() {
+	global_poll_response_processor = function(device_json, tracking_object) {
+		console.log(device_json);
+		for (var i = 0; i < tracking_object.devices.length; ++i) {
+			if (tracking_object.devices[i].differ(tracking_object.devices_updated[i])) {
+				console.log("Global poll found diff");
+				tracking_object.devices[i] = tracking_object.devices_updated[i].copy();
+			}
+		}
+	}
+
+	start_global_poll = function(now = true) {
 		if (this.global_poll) return;
 
-		fetch_devices(this.ajax_response_processor, 0, this.device_type);
+		var obj = this;
+		if (now) fetch_devices(obj, false, 0, this.device_type);
+
 		this.global_poll = setInterval(function() {
-			fetch_devices(this.ajax_response_processor, 0, this.device_type);
-		}.bind(this), 30000);
+			fetch_devices(obj, false, 0, this.device_type);
+		}.bind(this), 10000);
 	}
 
 	stop_global_poll = function() {
@@ -123,25 +161,36 @@ class Data_Tracker {
 				clearTimeout(this.pending_requests[i].timeout_handle);
 				this.pending_requests.splice(i, 1);
 				//TODO: device.html_write pending flag failed 
+				
+				start_global_poll(false);
 			}
 		}
 	}
 	
 	request_check(device_id /*, get vs set, notify_callback ?*/) {
-		console.log("checking " + device_id.toString());
+		console.log("request_check: " + device_id.toString());
 
 		for (var i = 0; i < this.pending_requests.length; ++i) {
 			if (this.pending_requests[i].device_id = device_id) {
-				var current = this.device_by_id(device_id);
-				var after = this.device_by_id(device_id, this.devices_updated);
+				var current = this.device_entry(device_id, this.devices);
+				var after = this.device_entry(device_id, this.devices_updated);
+
+				if (current == null || after == null) {
+					console.log("request_check: device not found");
+					return;
+				}
 
 				if (current.device.differ(after.device)) {
 					console.log("Device update detected");
 					clearInterval(this.pending_requests[i].interval_handle);
 					clearTimeout(this.pending_requests[i].timeout_handle);
 					this.pending_requests.splice(i, 1);
-					this.devices[current.index] = after.device;
+
+					//TODO: verify if copy is necessary
+					this.devices[current.index] = after.device.copy();
 					//TODO: set html pending flag inactive
+
+					start_global_poll(false);
 				}
 			}
 		}
@@ -154,7 +203,7 @@ class Data_Tracker {
 			if (this.pending_requests[i].device_id = device_id) return;
 		}
 
-		var device = this.device_by_id(id);
+		var device = this.device_entry(id).device;
 		if (device == null) return;
 
 		//TODO: device.write_html(pending_flag);
@@ -164,25 +213,25 @@ class Data_Tracker {
 
 			timeout_handle: setTimeout(function() {
 				this.request_timeout(id);
-			}.bind(this), 4000),
+			}.bind(this), 5000),
 
 			interval_handle: setInterval(function() {
 				this.request_check(id);
-			}.bind(this), 500)
+			}.bind(this), 300)
 		}
 
 		this.pending_requests.push(request);
 	}
 }
 
-function fetch_devices(response_processor, id = 0, type = SH_Device.SH_TYPE_NULL) {
+function fetch_devices(tracking_object, fast_poll = true, id = 0, type = SH_Device.SH_TYPE_NULL) {
 	console.log("fetching devices");
 
 	var category = "type";
 	var selector = type.toString();
 	if (id) {
 		category = "id";
-		selector = it.toString();
+		selector = id.toString();
 	}
 
 	var url = "http://" + server_addr + "/device/refresh?category=" + category + "&selector=" + selector;
@@ -198,7 +247,11 @@ function fetch_devices(response_processor, id = 0, type = SH_Device.SH_TYPE_NULL
 		if (xhr.readyState == XMLHttpRequest.DONE) {
 			console.log(xhr.responseText);
 			devices = JSON.parse(xhr.responseText);
-			response_processor(devices);
+			if (fast_poll) {
+				tracking_object.request_response_processor(devices, tracking_object);
+			} else {
+				tracking_object.global_poll_response_processor(devices, tracking_object);
+			}
 		}
 	}
 

@@ -9,41 +9,39 @@ template = "{:02X},{:02X},{:08X}"
 def generic_request_identity():
 	return template.format(SH_Device.CMD_IDY, 0, 0)
 
-"""
 def poweroutlet_get_count():
 	return template.format(_get, _reg("POWEROUTLET_REG_OUTLET_COUNT"), 0)
 
 def poweroutlet_get_state():
 	return template.format(_get, _reg("POWEROUTLET_REG_STATE"), 0)
 
-# pass a list of tuples (<outlet index>, <boolean value>)
-def poweroutlet_set_state(outlet_values):
+# pass a list 
+def poweroutlet_set_state(socket_states):
 	high_byte = 0
 	low_byte = 0
-	for i, val in outlet_values:
+	for i, val in enumerate(socket_states):
 		high_byte |= (1 << i)
 		if val:
 			low_byte |= (1 << i)
-		else:
-			low_byte &= ~(1 << i)
 	reg_value = high_byte << 8 | low_byte
+	print("REG VAL: " + str(reg_value))
 
 	return template.format(_set, _reg("POWEROUTLET_REG_STATE"), reg_value)
 
-# return list of tuples (<outlet index>, <boolean value>)
-def poweroutlet_read_state(reg_value, outlet_count = 8):
-	if outlet_count > 8:
+# return list 
+def poweroutlet_read_state(reg_value, socket_count = 8):
+	if socket_count > 8:
 		print("WARNING: poweroutlet_read_state invalid argument passed.")
-		outlet_count = 8
+		socket_count = 8
 
-	reg_value = int(reg_value, 16)
-	outlets = []
+	if isinstance(reg_value, str):
+		reg_value = int(reg_value, 16)
+	socket_states = []
 
-	for i in range(outlet_count):
+	for i in range(socket_count):
 		if reg_value & (1 << i):
-			outlets.append((i, True))
+			socket_states.append(1)
 		else:
-			outlets.append((i, False))
+			socket_states.append(0)
 
-	return outlets
-"""
+	return socket_states

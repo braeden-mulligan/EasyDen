@@ -18,16 +18,16 @@ class SH_Device {
 	static class_label_name = "sh-device-attr-name";
 	static class_label_online = "sh-device-attr-online";
 
-	schedules = [];
-
 	constructor(type, id, name, online) {
 		this.type = type;
 		this.id = id;
 		this.name = name;
 		this.online = online;
+		this.schedules = [];
 	}
 
 	copy() {
+		//TODO: copy schedules.
 		return new SH_Device(this.type, this.id, this.name, this.online);
 	}
 
@@ -47,7 +47,12 @@ class SH_Device {
 		device_elem.setAttribute("id", "device-" + this.id.toString());
 		device_elem.setAttribute("class", "sh-device"); 
 
-		var attr = document.createElement(SH_Device.elem_tag_id);
+		var attr = document.createElement("div");
+		attr.setAttribute("class", "sh-device-waiting-flag"); 
+		attr.style.display = "none";
+		device_elem.append(attr);
+
+		attr = document.createElement(SH_Device.elem_tag_id);
 		attr.innerHTML = this.id.toString();
 		attr.setAttribute("class", SH_Device.class_label_id);
 		device_elem.append(attr);
@@ -97,12 +102,13 @@ class Data_Tracker {
 
 	device_add = function(device) {
 		for (var i = 0; i < this.devices.length; ++i) {
-			console.log(device.id + " : " +this.devices[i].id);
+			//console.log(device.id + " : " + this.devices[i].id);
 			if (device.id == this.devices[i].id) return false;
 		}
 		
 		this.devices.push(device);
-		this.devices_updated.push(device.copy());
+		var mirror = device.copy();
+		this.devices_updated.push(mirror);
 		return true;
 	}
 
@@ -123,29 +129,22 @@ class Data_Tracker {
 		return false;
 	}
 
-	request_response_processor = function(device_json, tracking_object) {
-		console.log(device_json);
+	request_response_processor = function(device_json, tracking_object, device_id) {
+		console.log("Implement device-specific response_processor");
 	}
 
 	global_poll_response_processor = function(device_json, tracking_object) {
-		console.log(device_json);
-		for (var i = 0; i < tracking_object.devices.length; ++i) {
-			if (tracking_object.devices[i].differ(tracking_object.devices_updated[i])) {
-				console.log("Global poll found diff");
-				tracking_object.devices[i] = tracking_object.devices_updated[i].copy();
-			}
-		}
+		console.log("Implement device-specific response_processor");
 	}
 
-	start_global_poll = function(now = true) {
+	start_global_poll = function(now = true, period = 10000) {
 		if (this.global_poll) return;
 
-		var obj = this;
-		if (now) fetch_devices(obj, false, 0, this.device_type);
+		if (now) fetch_devices(this, 0, this.device_type, false);
 
 		this.global_poll = setInterval(function() {
-			fetch_devices(obj, false, 0, this.device_type);
-		}.bind(this), 10000);
+			fetch_devices(this, 0, this.device_type, false);
+		}.bind(this), period);
 	}
 
 	stop_global_poll = function() {
@@ -155,44 +154,60 @@ class Data_Tracker {
 
 	request_timeout(device_id) {
 		for (var i = 0; i < this.pending_requests.length; ++i) {
-			if (this.pending_requests[i].device_id = device_id) {
+			if (this.pending_requests[i].device_id == device_id) {
 				console.log("timeout on " + device_id.toString());
 				clearInterval(this.pending_requests[i].interval_handle);
 				clearTimeout(this.pending_requests[i].timeout_handle);
 				this.pending_requests.splice(i, 1);
+
 				//TODO: device.html_write pending flag failed 
+				var device = this.device_entry(device_id).device;
+				device.write_html("error");
 				
-				start_global_poll(false);
+				//this.start_global_poll(false);
 			}
 		}
 	}
 	
-	request_check(device_id /*, get vs set, notify_callback ?*/) {
-		console.log("request_check: " + device_id.toString());
+	request_check(seek_id /*, get vs set, notify_callback ?*/) {
+		console.log("request_check: " + seek_id.toString());
 
+		var current, after, index_pending;	
 		for (var i = 0; i < this.pending_requests.length; ++i) {
-			if (this.pending_requests[i].device_id = device_id) {
-				var current = this.device_entry(device_id, this.devices);
-				var after = this.device_entry(device_id, this.devices_updated);
-
-				if (current == null || after == null) {
-					console.log("request_check: device not found");
-					return;
-				}
-
-				if (current.device.differ(after.device)) {
-					console.log("Device update detected");
-					clearInterval(this.pending_requests[i].interval_handle);
-					clearTimeout(this.pending_requests[i].timeout_handle);
-					this.pending_requests.splice(i, 1);
-
-					//TODO: verify if copy is necessary
-					this.devices[current.index] = after.device.copy();
-					//TODO: set html pending flag inactive
-
-					start_global_poll(false);
-				}
+			if (this.pending_requests[i].device_id == seek_id) {
+				current = this.device_entry(seek_id, this.devices);
+				after = this.device_entry(seek_id, this.devices_updated);
+				index_pending = i;
 			}
+		}
+
+		if (current == null || after == null) {
+			console.log("request_check: device not found");
+			return;
+		}
+console.log("");
+console.log(current.device);
+console.log("vs");
+console.log(after.device);
+console.log("");
+
+		if (current.device.differ(after.device)) {
+			console.log("Device update detected");
+			clearInterval(this.pending_requests[index_pending].interval_handle);
+			clearTimeout(this.pending_requests[index_pending].timeout_handle);
+			this.pending_requests.splice(index_pending, 1);
+
+			//TODO: verify if copy is necessary
+			this.devices[current.index] = after.device.copy();
+			//TODO: set html pending flag inactive
+
+			this.devices[current.index].write_html();
+
+			//this.start_global_poll(false);
+
+		} else {
+			var obj = this;
+			fetch_devices(obj, seek_id, this.device_type, true);
 		}
 	}
 
@@ -200,31 +215,35 @@ class Data_Tracker {
 		this.stop_global_poll();
 
 		for (var i = 0; i < this.pending_requests.length; ++i) {
-			if (this.pending_requests[i].device_id = device_id) return;
+			if (this.pending_requests[i].device_id == device_id) return;
 		}
 
 		var device = this.device_entry(id).device;
 		if (device == null) return;
 
-		//TODO: device.write_html(pending_flag);
+		device.write_html("loading");
+
+		var obj = this;
+		fetch_devices(obj, id, this.device_type, true);
 
 		var request = {
 			device_id: id,
 
 			timeout_handle: setTimeout(function() {
 				this.request_timeout(id);
-			}.bind(this), 5000),
+			}.bind(this), 900),
 
 			interval_handle: setInterval(function() {
 				this.request_check(id);
-			}.bind(this), 300)
+			}.bind(this), 400)
 		}
 
 		this.pending_requests.push(request);
 	}
 }
 
-function fetch_devices(tracking_object, fast_poll = true, id = 0, type = SH_Device.SH_TYPE_NULL) {
+function fetch_devices(tracking_object, id = 0, type = SH_Device.SH_TYPE_NULL, fast_poll = true) {
+//TODO: if fast polling active just return?
 	console.log("fetching devices");
 
 	var category = "type";
@@ -245,12 +264,12 @@ function fetch_devices(tracking_object, fast_poll = true, id = 0, type = SH_Devi
 
 	xhr.onreadystatechange = function() {
 		if (xhr.readyState == XMLHttpRequest.DONE) {
-			console.log(xhr.responseText);
-			devices = JSON.parse(xhr.responseText);
+			//console.log(xhr.responseText);
+			fetch_json = JSON.parse(xhr.responseText);
 			if (fast_poll) {
-				tracking_object.request_response_processor(devices, tracking_object);
+				tracking_object.request_response_processor(fetch_json, tracking_object, id);
 			} else {
-				tracking_object.global_poll_response_processor(devices, tracking_object);
+				tracking_object.global_poll_response_processor(fetch_json, tracking_object);
 			}
 		}
 	}
@@ -258,3 +277,4 @@ function fetch_devices(tracking_object, fast_poll = true, id = 0, type = SH_Devi
 	xhr.open("GET", url, true);
 	xhr.send();
 }
+

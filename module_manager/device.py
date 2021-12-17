@@ -155,7 +155,9 @@ class SH_Device:
 
 #TODO: improve parsing robustness
 	def parse_message(self, packet_string):
+		print("DEVICE PARSEING " + packet_string)
 		words = [int(w, 16) for w in packet_string.split(',')]
+		print("WORDS " + str(words[0]) + " " + str(words[1]) + " " + str(words[2]) + " " + str(words[3]))
 
 		prev_msg_cmd = None
 		prev_words = None

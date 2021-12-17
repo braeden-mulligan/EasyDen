@@ -40,14 +40,12 @@ def debug():
 		
 @dashboard_app.route("/device/refresh", methods=["GET"])
 def device_refresh():
-#TODO: Could do more data validation
 	category = request.args.get("category", "")
 	query = "fetch " + category
 
 	if category == "type" or category == "id":
 		device_selector = request.args.get("selector")
 		if not device_selector:
-#TODO more comprehensive error handling.
 			return render_template("error.html", message = "Invalid query")
 		else:
 			query += " " + device_selector
@@ -64,10 +62,32 @@ def device_refresh():
 		devices = response
 	else:
 		return render_template("error.html", message = si.compose_error_log(label, si_response))
-	return json.dumps(devices)
+
+#TODO: Debugging for now
+	poweroutlets = []
+	for d in devices:
+		if d["type"] == SH_Device.type_id("SH_TYPE_POWEROUTLET"):
+			reg_state = 0
+			try: 
+				reg_state = d["registers"][str(SH_Device.register_id("POWEROUTLET_REG_STATE"))]
+			except KeyError:
+				print("KeyError")
+				pass
+			del d["registers"]
+			d["socket_states"] = poweroutlet_read_state(reg_state, 1)
+			print("READING state: " + str(poweroutlet_read_state(reg_state, 1)))
+			poweroutlets.append(d);
+
+	return json.dumps(poweroutlets)
 
 @dashboard_app.route("/device/command", methods=["POST"])
 def device_command():
+#TODO: Debugging for now
+	device_id = request.args.get("id")
+	socket_val = request.data.decode()
+	cmd = poweroutlet_set_state([int(socket_val)])
+	print("COMMAND: " + cmd);
+	si.data_transaction("command id " + str(device_id) + " " + cmd)
 	return "success"
 
 @dashboard_app.route("/device/irrigator")

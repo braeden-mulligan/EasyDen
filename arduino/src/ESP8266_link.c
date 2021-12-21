@@ -422,7 +422,6 @@ static uint8_t _ESP8266_ap_query(struct ESP8266_network_parameters* np) {
 		return ESP8266_CMD_CONTINUE;
 
 	} else if (strstr(ESP8266_line_incoming, "No AP") != NULL) {
-		ap_query_matched_ssid = 1;
 		np->lan_connection = 0;
 		np->ip_obtained = 0;
 		np->tcp_connection = 0;
@@ -439,7 +438,7 @@ uint8_t ESP8266_ap_query(struct ESP8266_network_parameters* np, uint32_t timeout
 	*matched_ssid = 0;
 
 	uint8_t result = run_cmd(_ESP8266_ap_query, cmd, np, timeout_ms);
-	if (result == ESP8266_CMD_SUCCESS) *matched_ssid = ap_query_matched_ssid;
+	*matched_ssid = ap_query_matched_ssid;
 	
 	ap_query_target_ssid = NULL;
 

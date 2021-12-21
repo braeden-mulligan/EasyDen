@@ -8,18 +8,26 @@
 
 #ifndef WIFI_SSID 
 	#error No wifi ssid defined.
+#else
+	char* wifi_ssid = WIFI_SSID;
 #endif
 
 #ifndef WIFI_PASS
 	#error No wifi password defined.
+#else
+	char* wifi_pass = WIFI_PASS;
 #endif
 
 #ifndef SOCKET_ADDR
 	#error No socket address defined.
+#else
+	char* socket_addr = SOCKET_ADDR;
 #endif
 
 #ifndef SOCKET_PORT
 	#error No socket port defined.
+#else
+	char* socket_port = SOCKET_PORT;
 #endif
 
 static struct ESP8266_network_parameters esp_params;
@@ -199,19 +207,19 @@ static uint8_t ssid_match = 0;
 
 static void socket_check(void){
 	if (!esp_params.lan_connection) {
-		ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, WIFI_SSID, WIFI_PASS);
+		ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, wifi_ssid, wifi_pass);
 
 	} else if (!esp_params.ip_obtained) {
 		// disconnect from AP to try reconnect?
 
 	} else if (!esp_params.tcp_connection) {
 		if (!ssid_match) {
-			uint8_t cmd_result = ESP8266_ap_query(&esp_params, config->command_timeout, WIFI_SSID, &ssid_match);
+			uint8_t cmd_result = ESP8266_ap_query(&esp_params, config->command_timeout, wifi_ssid, &ssid_match);
 			if (cmd_result == ESP8266_CMD_SUCCESS && !ssid_match) {
-				ESP8266_lan_disconnect(&esp_params, config->command_timeout);
+				ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, wifi_ssid, wifi_pass);
 			}
 		} else {
-			ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout, SOCKET_ADDR, SOCKET_PORT);
+			ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout, socket_addr, socket_port);
 		}
 	}
 }

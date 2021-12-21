@@ -29,7 +29,7 @@ uint8_t sh_parse_packet(struct sh_packet* p, char* msg_buf) {
 	if (end == NULL) return SH_PROTOCOL_ERROR;
 	++end;
 
-	p->val = (int32_t)strtol(end, &end, 16);
+	p->val = (uint32_t)strtol(end, &end, 16);
 	if (end == NULL) return SH_PROTOCOL_ERROR;
 	
 	return SH_PROTOCOL_SUCCESS;

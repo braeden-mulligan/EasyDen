@@ -405,18 +405,15 @@ uint8_t ESP8266_lan_connect(struct ESP8266_network_parameters* np, uint32_t time
 	return run_cmd(_ESP8266_lan_connect, cmd, np, timeout_ms);
 }
 
-/*
-// Diry hack for ap query to pass variables through run_cmd() without refactoring everything.
+// Hack for ap query to pass variables through run_cmd() without refactoring everything.
 static uint8_t ap_query_matched_ssid;
 static char* ap_query_target_ssid;
 
 static uint8_t _ESP8266_ap_query(struct ESP8266_network_parameters* np) { 
-	ap_query_matched_ssid = 0;
-
 	if (parse_ok()) {
 		return ESP8266_CMD_SUCCESS;
 
-	} else if (strstr(ESP8266_line_incoming, "CWJAP_CUR") != NULL) {
+	} else if (strstr(ESP8266_line_incoming, "CWJAP_CUR?") != NULL) {
 		return ESP8266_CMD_CONTINUE;
 
 	} else if (strstr(ESP8266_line_incoming, ap_query_target_ssid) != NULL) {
@@ -438,6 +435,7 @@ uint8_t ESP8266_ap_query(struct ESP8266_network_parameters* np, uint32_t timeout
 	char* cmd = "AT+CWJAP_CUR?\r\n";
 
 	ap_query_target_ssid = target_wifi_ssid;
+	ap_query_matched_ssid = 0;
 	*matched_ssid = 0;
 
 	uint8_t result = run_cmd(_ESP8266_ap_query, cmd, np, timeout_ms);
@@ -447,7 +445,6 @@ uint8_t ESP8266_ap_query(struct ESP8266_network_parameters* np, uint32_t timeout
 
 	return result;
 }
-*/
 
 static uint8_t _ESP8266_socket_connect(struct ESP8266_network_parameters* np) {
 	if (parse_ok()) {

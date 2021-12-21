@@ -65,9 +65,7 @@ uint8_t ESP8266_wifi_mode_set(struct ESP8266_network_parameters*, uint32_t);
 
 uint8_t ESP8266_lan_connect(struct ESP8266_network_parameters*, uint32_t, char* wifi_ssid, char* wifi_pass);
 
-/*
 uint8_t ESP8266_ap_query(struct ESP8266_network_parameters*, uint32_t, char* target_wifi_ssid, uint8_t* matched_ssid);
-*/
 
 uint8_t ESP8266_socket_connect(struct ESP8266_network_parameters*, uint32_t, char* socket_addr, char* socket_port);
 

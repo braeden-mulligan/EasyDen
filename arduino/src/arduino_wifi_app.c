@@ -195,6 +195,8 @@ uint8_t wifi_app_init(struct wifi_app_config* wac) {
 	return ARDUINO_APP_SUCCESS;
 }
 
+static uint8_t ssid_match = 0;
+
 static void socket_check(void){
 	if (!esp_params.lan_connection) {
 		ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, WIFI_SSID, WIFI_PASS);
@@ -203,17 +205,14 @@ static void socket_check(void){
 		// disconnect from AP to try reconnect?
 
 	} else if (!esp_params.tcp_connection) {
-		ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout, SOCKET_ADDR, SOCKET_PORT);
-		/*
-		if (cmd_result != ESP8266_CMD_SUCCESS) {
-			uint8_t ssid_match;
-			cmd_result = ESP8266_ap_query(&esp_params, config->command_timeout, WIFI_SSID, &ssid_match);
-
+		if (!ssid_match) {
+			uint8_t cmd_result = ESP8266_ap_query(&esp_params, config->command_timeout, WIFI_SSID, &ssid_match);
 			if (cmd_result == ESP8266_CMD_SUCCESS && !ssid_match) {
 				ESP8266_lan_disconnect(&esp_params, config->command_timeout);
 			}
+		} else {
+			ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout, SOCKET_ADDR, SOCKET_PORT);
 		}
-		*/
 	}
 }
 

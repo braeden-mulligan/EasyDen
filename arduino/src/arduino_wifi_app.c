@@ -207,7 +207,7 @@ static uint8_t ssid_match = 0;
 
 static void socket_check(void){
 	if (!esp_params.lan_connection) {
-		ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, wifi_ssid, wifi_pass);
+		//ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, wifi_ssid, wifi_pass);
 
 	} else if (!esp_params.ip_obtained) {
 		// disconnect from AP to try reconnect?
@@ -226,6 +226,8 @@ static void socket_check(void){
 
 void wifi_app_start(void) {
 	module_startup_procedure();
+
+	module_check();
 
 	socket_check();
 

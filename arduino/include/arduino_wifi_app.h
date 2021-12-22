@@ -12,7 +12,8 @@
 #define CMD_RETRIES_DEFAULT 2
 #define CMD_TIMEOUT_DEFAULT 1000
 #define SERVER_LATENCY_TIMEOUT_DEFAULT 3
-#define SERVER_BUF_SIZE_DEFAULT 0
+#define SERVER_MSG_SIZE_MAX 32
+
 
 /*
 	All timeouts/intervals are in units of seconds except command_timeout and 
@@ -29,9 +30,8 @@ struct wifi_app_config {
 	uint16_t command_retries;
 	uint16_t command_timeout;
 	uint8_t server_latency_timeout;
-	uint8_t server_buf_size;
-	char* server_message_buf;
-	void (* server_message_callback)(void);
+	uint32_t (* server_message_get_callback)(uint16_t reg);
+	uint32_t (* server_message_set_callback)(uint16_t reg, uint32_t val);
 	void (* app_main_callback)(void);
 };
 

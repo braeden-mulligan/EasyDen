@@ -2,6 +2,9 @@
 #include "ESP8266_link.h"
 #include "avr_timer_util.h"
 #include "avr_utilities.h"
+#include "device_definition.h"
+#include "protocol.h"
+#include "project_utilities.h"
 
 #include <stddef.h>
 #include <string.h>
@@ -30,12 +33,50 @@
 	char* socket_port = SOCKET_PORT;
 #endif
 
+static struct sh_device_metadata metadata;
+
 static struct ESP8266_network_parameters esp_params;
 static struct wifi_app_config* config;
 
-static void process_server_message(void) {
+char server_message_buf[SERVER_MSG_SIZE_MAX];
+
+void process_server_message(void) {
 	if (server_message_available()) {
-		if (config->server_message_callback != NULL) config->server_message_callback();
+		char send_buf[SERVER_MSG_SIZE_MAX];
+		struct sh_packet msg_packet;
+
+		if (sh_parse_packet(&msg_packet, server_message_buf) != SH_PROTOCOL_SUCCESS) return;
+
+		msg_packet.cmd = CMD_RSP;
+
+		switch (msg_packet.cmd) {
+		case CMD_GET:
+			if (config->server_message_get_callback != NULL) {
+				msg_packet.val = config->server_message_get_callback(msg_packet.reg);
+			}
+			break;
+
+		case CMD_SET:
+			if (config->server_message_set_callback != NULL) {
+				msg_packet.val = config->server_message_set_callback(msg_packet.reg, msg_packet.val);
+			}
+			break;
+
+		case CMD_IDY:
+			msg_packet.cmd = CMD_IDY;
+			msg_packet.reg = metadata.type;
+			msg_packet.val = metadata.id;
+			break;
+
+		default:
+			msg_packet.cmd = CMD_RSP;
+			msg_packet.reg = GENERIC_REG_NULL;
+			break;
+		}
+
+		if (sh_build_packet(&msg_packet, send_buf) != SH_PROTOCOL_SUCCESS) return;
+		if (wifi_send(send_buf) != ARDUINO_APP_SUCCESS) { };
+
 		server_message_dequeue();
 	}
 }
@@ -174,9 +215,8 @@ struct wifi_app_config wifi_app_config_create(void) {
 		.command_retries = CMD_RETRIES_DEFAULT,
 		.command_timeout = CMD_TIMEOUT_DEFAULT,
 		.server_latency_timeout = SERVER_LATENCY_TIMEOUT_DEFAULT,
-		.server_buf_size = SERVER_BUF_SIZE_DEFAULT,
-		.server_message_buf = NULL,
-		.server_message_callback = NULL,
+		.server_message_get_callback = NULL,
+		.server_message_set_callback = NULL,
 		.app_main_callback = NULL
 	};
 
@@ -189,6 +229,8 @@ static uint16_t wifi_conn_clock_s;
 static uint16_t wifi_app_clock_s;
 
 uint8_t wifi_app_init(struct wifi_app_config* wac) {
+	load_metadata(&metadata);
+
 	config = wac;
 
 	wifi_conn_clock_s = 0;
@@ -196,7 +238,7 @@ uint8_t wifi_app_init(struct wifi_app_config* wac) {
 
 	if (!wifi_app_initialized) {
 		if (timer8_init(1000, 1) == TIMER_INIT_ERROR) return ARDUINO_APP_ERROR;
-		ESP8266_link_init(&esp_params, config->server_message_buf, config->server_buf_size, config->server_latency_timeout);
+		ESP8266_link_init(&esp_params, server_message_buf, SERVER_MSG_SIZE_MAX, config->server_latency_timeout);
 		wifi_app_initialized = 1;
 	}
 

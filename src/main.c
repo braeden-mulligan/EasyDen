@@ -1,7 +1,5 @@
 #include "arduino_wifi_app.h"
 #include "device_definition.h"
-//#include "protocol.h"
-//#include "project_utilities.h"
 #include "avr_utilities.h"
 
 #include <avr/eeprom.h>
@@ -152,7 +150,7 @@ void outlet_init(void) {
 
 	uint32_t status_mask = 0x0000FF00;
 	status_mask |= outlet0 | (outlet1 << 1) | (outlet2 << 2) | (outlet3 << 3);
-	status_mask |= (outlet4 << 4) | (outlet5 << 5) | (outlet5 << 6) | (outlet6 << 7);
+	status_mask |= (outlet4 << 4) | (outlet5 << 5) | (outlet6 << 6) | (outlet7 << 7);
 	outlet_set(status_mask);
 }
 

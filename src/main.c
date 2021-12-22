@@ -1,7 +1,7 @@
 #include "arduino_wifi_app.h"
 #include "device_definition.h"
-#include "protocol.h"
-#include "project_utilities.h"
+//#include "protocol.h"
+//#include "project_utilities.h"
 #include "avr_utilities.h"
 
 #include <avr/eeprom.h>
@@ -9,8 +9,6 @@
 #include <stdio.h>
 #include <string.h>
 #include <util/delay.h>
-
-#define SERVER_MSG_SIZE_MAX 32
 
 #define OUTLET_0_STATE !!(PORTD & (1 << PD4))
 #define OUTLET_1_STATE !!(PORTD & (1 << PD5))
@@ -33,10 +31,6 @@
 #define EEPROM_ADDR_OUTLET_7_MEM 519
 
 uint8_t socket_count;
-
-struct sh_device_metadata metadata;
-
-char server_message[SERVER_MSG_SIZE_MAX];
 
 uint32_t outlet_get(void) {
 	uint32_t status_mask = 0;
@@ -120,43 +114,18 @@ void outlet_set(uint32_t status_mask) {
 	eeprom_update_byte((uint8_t*)EEPROM_ADDR_OUTLET_7_MEM, OUTLET_7_STATE);
 }
 
-void handle_server_message(void) {
-	char send_buf[SERVER_MSG_SIZE_MAX];
-	struct sh_packet msg_packet;
+uint32_t handle_server_get(uint16_t reg) {
+	if (reg == POWEROUTLET_REG_STATE) return outlet_get();
+	if (reg == POWEROUTLET_REG_SOCKET_COUNT) return socket_count;
+	return 0;
+}
 
-	if (sh_parse_packet(&msg_packet, server_message) != SH_PROTOCOL_SUCCESS) return;
-
-	switch (msg_packet.cmd) {
-	case CMD_GET:
-		//TODO: check_and_handle_common_registers() else { application specific
-		msg_packet.cmd = CMD_RSP;
-		if (msg_packet.reg == POWEROUTLET_REG_STATE) msg_packet.val = outlet_get();
-		if (msg_packet.reg == POWEROUTLET_REG_SOCKET_COUNT) msg_packet.val = socket_count;
-		break;
-
-	case CMD_SET:
-		//TODO: check_and_handle_common_registers() else { application specific
-		msg_packet.cmd = CMD_RSP;
-		if (msg_packet.reg == POWEROUTLET_REG_STATE) {
-			outlet_set(msg_packet.val);
-			msg_packet.val = outlet_get();
-		}
-		break;
-
-	case CMD_IDY:
-		msg_packet.cmd = CMD_IDY;
-		msg_packet.reg = metadata.type;
-		msg_packet.val = metadata.id;
-		break;
-
-	default:
-		msg_packet.cmd = CMD_RSP;
-		msg_packet.reg = GENERIC_REG_NULL;
-		break;
+uint32_t handle_server_set(uint16_t reg, uint32_t val) {
+	if (reg == POWEROUTLET_REG_STATE) {
+		outlet_set(val);
+		return outlet_get();
 	}
-
-	if (sh_build_packet(&msg_packet, send_buf) != SH_PROTOCOL_SUCCESS) return;
-	if (wifi_send(send_buf) != ARDUINO_APP_SUCCESS) { };
+	return 0;
 }
 
 void outlet_init(void) {
@@ -188,17 +157,14 @@ void outlet_init(void) {
 }
 
 int main(void) {
-	load_metadata(&metadata);
-
 	outlet_init();
 
 	struct wifi_app_config app_conf = wifi_app_config_create();
 
 	app_conf.wifi_startup_timeout = 7;
 	app_conf.connection_interval = 20;
-	app_conf.server_buf_size = SERVER_MSG_SIZE_MAX;
-	app_conf.server_message_buf = server_message;
-	app_conf.server_message_callback = handle_server_message;
+	app_conf.server_message_get_callback = handle_server_get;
+	app_conf.server_message_set_callback = handle_server_set;
 	
 	wifi_app_init(&app_conf);
 

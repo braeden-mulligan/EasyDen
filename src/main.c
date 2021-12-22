@@ -16,26 +16,42 @@
 #define OUTLET_1_STATE !!(PORTD & (1 << PD5))
 #define OUTLET_2_STATE !!(PORTD & (1 << PD6))
 #define OUTLET_3_STATE !!(PORTD & (1 << PD7))
+#define OUTLET_4_STATE !!(PORTD & (1 << PB0))
+#define OUTLET_5_STATE !!(PORTD & (1 << PB1))
+#define OUTLET_6_STATE !!(PORTD & (1 << PB2))
+#define OUTLET_7_STATE !!(PORTD & (1 << PB3))
 
-#define OUTLET_0_MEM 256
-#define OUTLET_1_MEM 257
-#define OUTLET_2_MEM 258
-#define OUTLET_3_MEM 259
+#define EEPROM_ADDR_SOCKET_COUNT 256
+
+#define EEPROM_ADDR_OUTLET_0_MEM 512
+#define EEPROM_ADDR_OUTLET_1_MEM 513
+#define EEPROM_ADDR_OUTLET_2_MEM 514
+#define EEPROM_ADDR_OUTLET_3_MEM 515
+#define EEPROM_ADDR_OUTLET_4_MEM 516
+#define EEPROM_ADDR_OUTLET_5_MEM 517
+#define EEPROM_ADDR_OUTLET_6_MEM 518
+#define EEPROM_ADDR_OUTLET_7_MEM 519
+
+uint8_t socket_count;
 
 struct sh_device_metadata metadata;
 
 char server_message[SERVER_MSG_SIZE_MAX];
 
-int32_t outlet_get(void) {
-	int32_t status_mask = 0;
+uint32_t outlet_get(void) {
+	uint32_t status_mask = 0;
 	status_mask |= (OUTLET_0_STATE) << 0;
 	status_mask |= (OUTLET_1_STATE) << 1;
 	status_mask |= (OUTLET_2_STATE) << 2;
 	status_mask |= (OUTLET_3_STATE) << 3;
+	status_mask |= (OUTLET_4_STATE) << 4;
+	status_mask |= (OUTLET_5_STATE) << 5;
+	status_mask |= (OUTLET_6_STATE) << 6;
+	status_mask |= (OUTLET_7_STATE) << 7;
 	return status_mask;
 }
 
-void outlet_set(int32_t status_mask) {
+void outlet_set(uint32_t status_mask) {
 	if (status_mask & (1 << 8)) {
 		if (status_mask & (1 << 0)) {
 			PORTD |= (1 << PD4); 
@@ -65,10 +81,43 @@ void outlet_set(int32_t status_mask) {
 		}
 	}
 
-	eeprom_update_byte((uint8_t*)OUTLET_0_MEM, OUTLET_0_STATE);
-	eeprom_update_byte((uint8_t*)OUTLET_1_MEM, OUTLET_1_STATE);
-	eeprom_update_byte((uint8_t*)OUTLET_2_MEM, OUTLET_2_STATE);
-	eeprom_update_byte((uint8_t*)OUTLET_3_MEM, OUTLET_3_STATE);
+	if (status_mask & (1 << 12)) {
+		if (status_mask & (1 << 4)) {
+			PORTB |= (1 << PB0); 
+		} else {
+			PORTB &= ~(1 << PB0);
+		}
+	}
+	if (status_mask & (1 << 13)) {
+		if (status_mask & (1 << 5)) {
+			PORTB |= (1 << PB1); 
+		} else {
+			PORTB &= ~(1 << PB1);
+		}
+	}
+	if (status_mask & (1 << 14)) {
+		if (status_mask & (1 << 6)) {
+			PORTB |= (1 << PB2); 
+		} else {
+			PORTB &= ~(1 << PB2);
+		}
+	}
+	if (status_mask & (1 << 15)) {
+		if (status_mask & (1 << 7)) {
+			PORTB |= (1 << PB3); 
+		} else {
+			PORTB &= ~(1 << PB1);
+		}
+	}
+
+	eeprom_update_byte((uint8_t*)EEPROM_ADDR_OUTLET_0_MEM, OUTLET_0_STATE);
+	eeprom_update_byte((uint8_t*)EEPROM_ADDR_OUTLET_1_MEM, OUTLET_1_STATE);
+	eeprom_update_byte((uint8_t*)EEPROM_ADDR_OUTLET_2_MEM, OUTLET_2_STATE);
+	eeprom_update_byte((uint8_t*)EEPROM_ADDR_OUTLET_3_MEM, OUTLET_3_STATE);
+	eeprom_update_byte((uint8_t*)EEPROM_ADDR_OUTLET_4_MEM, OUTLET_4_STATE);
+	eeprom_update_byte((uint8_t*)EEPROM_ADDR_OUTLET_5_MEM, OUTLET_5_STATE);
+	eeprom_update_byte((uint8_t*)EEPROM_ADDR_OUTLET_6_MEM, OUTLET_6_STATE);
+	eeprom_update_byte((uint8_t*)EEPROM_ADDR_OUTLET_7_MEM, OUTLET_7_STATE);
 }
 
 void handle_server_message(void) {
@@ -82,12 +131,16 @@ void handle_server_message(void) {
 		//TODO: check_and_handle_common_registers() else { application specific
 		msg_packet.cmd = CMD_RSP;
 		if (msg_packet.reg == POWEROUTLET_REG_STATE) msg_packet.val = outlet_get();
+		if (msg_packet.reg == POWEROUTLET_REG_SOCKET_COUNT) msg_packet.val = socket_count;
 		break;
 
 	case CMD_SET:
 		//TODO: check_and_handle_common_registers() else { application specific
 		msg_packet.cmd = CMD_RSP;
-		if (msg_packet.reg == POWEROUTLET_REG_STATE) outlet_set(msg_packet.val);
+		if (msg_packet.reg == POWEROUTLET_REG_STATE) {
+			outlet_set(msg_packet.val);
+			msg_packet.val = outlet_get();
+		}
 		break;
 
 	case CMD_IDY:
@@ -112,13 +165,25 @@ void outlet_init(void) {
 	DDRD |= (1 << PD6);
 	DDRD |= (1 << PD7);
 
-	uint8_t outlet0 = eeprom_read_byte((uint8_t*)OUTLET_0_MEM);
-	uint8_t outlet1 = eeprom_read_byte((uint8_t*)OUTLET_1_MEM);
-	uint8_t outlet2 = eeprom_read_byte((uint8_t*)OUTLET_2_MEM);
-	uint8_t outlet3 = eeprom_read_byte((uint8_t*)OUTLET_3_MEM);
+	DDRB |= (1 << PB0);
+	DDRB |= (1 << PB1);
+	DDRB |= (1 << PB2);
+	DDRB |= (1 << PB3);
 
-	int32_t status_mask = 0x0000FF00;
+	socket_count = eeprom_read_byte((uint8_t*)EEPROM_ADDR_SOCKET_COUNT);
+
+	uint8_t outlet0 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_0_MEM);
+	uint8_t outlet1 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_1_MEM);
+	uint8_t outlet2 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_2_MEM);
+	uint8_t outlet3 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_3_MEM);
+	uint8_t outlet4 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_4_MEM);
+	uint8_t outlet5 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_5_MEM);
+	uint8_t outlet6 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_6_MEM);
+	uint8_t outlet7 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_7_MEM);
+
+	uint32_t status_mask = 0x0000FF00;
 	status_mask |= outlet0 | (outlet1 << 1) | (outlet2 << 2) | (outlet3 << 3);
+	status_mask |= (outlet4 << 4) | (outlet5 << 5) | (outlet5 << 6) | (outlet6 << 7);
 	outlet_set(status_mask);
 }
 
@@ -139,7 +204,7 @@ int main(void) {
 
 	wifi_app_start();
 
-	// If here is reached error occurred
+	// If here is reached, error occurred
 	blink_led(-1, 1000);
 	
 	return 0;

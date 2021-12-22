@@ -45,7 +45,6 @@ void ESP8266_reset_serial(void) {
 	_delay_ms(500);
 }
 
-
 uint8_t ESP8266_recv(void) {
 	char c;
 
@@ -154,6 +153,8 @@ static uint8_t check_module_notification(struct ESP8266_network_parameters* np) 
 
 	} else if (strstr(ESP8266_line_incoming, "WIFI DISCONNECT") != NULL) {
 		np->lan_connection = 0;
+		np->ip_obtained = 0;
+		np->tcp_connection = 0;
 		return ESP8266_MODULE_NOTIFICATION;
 
 	} else if (strstr(ESP8266_line_incoming, "WIFI GOT IP") != NULL) {
@@ -161,7 +162,7 @@ static uint8_t check_module_notification(struct ESP8266_network_parameters* np) 
 		return ESP8266_MODULE_NOTIFICATION;
 
 	} else if (strstr(ESP8266_line_incoming, "CONNECT") != NULL) {
-		np->tcp_connection= 1;
+		np->tcp_connection = 1;
 		return ESP8266_MODULE_NOTIFICATION;
 
 	} else if (strstr(ESP8266_line_incoming, "CLOSED") != NULL) {

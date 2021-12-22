@@ -3,11 +3,6 @@
 
 #include <stdint.h>
 
-#if defined (__AVR_ATmega328P__)
-	#define EEPROM_ADDR_TYPE 8
-	#define EEPROM_ADDR_ID 9
-#endif
-
 struct sh_device_metadata {
 	uint8_t type;
 	uint8_t id;

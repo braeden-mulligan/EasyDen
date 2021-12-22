@@ -2,6 +2,9 @@
 #include "device_definition.h"
 
 #if defined (__AVR_ATmega328P__)
+	#define EEPROM_ADDR_TYPE 8
+	#define EEPROM_ADDR_ID 9
+
 	#include "avr_utilities.h"
 
 	#include <avr/eeprom.h>
@@ -16,5 +19,6 @@
 		md->id = eeprom_read_byte((uint8_t*)EEPROM_ADDR_ID);
 	}
 #else
+	#error load_metadata not implemented.
 	void load_metadata(struct sh_metadata* md) { }
 #endif

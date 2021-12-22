@@ -36,27 +36,28 @@
 static struct sh_device_metadata metadata;
 
 static struct ESP8266_network_parameters esp_params;
+
 static struct wifi_app_config* config;
 
-char server_message_buf[SERVER_MSG_SIZE_MAX];
+static char server_message_buf[SERVER_MSG_SIZE_MAX];
 
-void process_server_message(void) {
+static void process_server_message(void) {
 	if (server_message_available()) {
 		char send_buf[SERVER_MSG_SIZE_MAX];
 		struct sh_packet msg_packet;
 
 		if (sh_parse_packet(&msg_packet, server_message_buf) != SH_PROTOCOL_SUCCESS) return;
 
-		msg_packet.cmd = CMD_RSP;
-
 		switch (msg_packet.cmd) {
 		case CMD_GET:
+			msg_packet.cmd = CMD_RSP;
 			if (config->server_message_get_callback != NULL) {
 				msg_packet.val = config->server_message_get_callback(msg_packet.reg);
 			}
 			break;
 
 		case CMD_SET:
+			msg_packet.cmd = CMD_RSP;
 			if (config->server_message_set_callback != NULL) {
 				msg_packet.val = config->server_message_set_callback(msg_packet.reg, msg_packet.val);
 			}
@@ -75,7 +76,7 @@ void process_server_message(void) {
 		}
 
 		if (sh_build_packet(&msg_packet, send_buf) != SH_PROTOCOL_SUCCESS) return;
-		if (wifi_send(send_buf) != ARDUINO_APP_SUCCESS) { };
+		if (wifi_send(send_buf) != ARDUINO_APP_SUCCESS) { }
 
 		server_message_dequeue();
 	}
@@ -113,9 +114,9 @@ static void module_startup_procedure(void) {
 			esp_params.module_ready = 1;
 		}
 	}
-
-	blink_led(5, 200);
 }
+
+static uint8_t ssid_match = 0;
 
 static uint8_t module_check(void) {
 	if (esp_params.command_echo) try_command(ESP8266_echo_disable, config->command_timeout, config->command_retries); 
@@ -124,75 +125,34 @@ static uint8_t module_check(void) {
 
 	if (esp_params.wifi_mode != ESP8266_MODE_STATION) try_command(ESP8266_wifi_mode_set, config->command_timeout, config->command_retries);
 
-	ESP8266_status(&esp_params, config->command_timeout);
+	while (!ssid_match) {
+		uint8_t cmd_result = ESP8266_ap_query(&esp_params, config->command_timeout, wifi_ssid, &ssid_match);
 
-	process_server_message();
-
-	return 0;
-}
-
-static uint8_t module_poll(void) {
-	uint8_t result;
-	if ((result = ESP8266_poll(&esp_params, 100))) {
-#if defined (DEBUG_MODE)
-		if (result == ESP8266_RECV_SERVER) {
-			blink_led(5, 250);
-		} else if (result == MODULE_NOTIFICATION) {
-			blink_led(2, 250);
+		if (cmd_result == ESP8266_CMD_SUCCESS && !ssid_match) {
+			ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, wifi_ssid, wifi_pass);
 		}
-#endif
 	}
 
+	try_command(ESP8266_status, config->command_timeout, config->command_retries);
+
+	if (!esp_params.lan_connection) {
+		return 0;
+
+	} else if (!esp_params.ip_obtained) {
+		return 0;
+
+	} else if (!esp_params.tcp_connection) {
+		ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout, socket_addr, socket_port);
+	} 
+
 	process_server_message();
 
 	return 0;
 }
-
 
 /*
 	Start of public funcitons
 */
-
-void app_error_check(uint8_t retval) {
-	switch(retval) {
-	case ARDUINO_APP_SUCCESS:
-		return;
-#if defined (DEGUB_MODE)
-	case ARDUINO_APP_ERROR:
-		blink_led(-1, 1000);
-		break;
-#else 
-	case ARDUINO_APP_ERROR:
-		blink_led(3, 1000);
-		break;
-#endif
-
-#if defined (DEBUG_MODE)
-	case ESP8266_CMD_SUCCESS:
-		blink_led(5, 200);
-		break;
-	case ESP8266_CMD_TIMEOUT:
-		blink_led(1, 1000);
-		break;
-	case ESP8266_CMD_FAILURE:
-		blink_led(2, 1000);
-		break;
-	case ESP8266_RECV_BUFOVERFLOW:
-		blink_led(3, 1000);
-		break;
-	case ESP8266_CMD_SENDREADY:
-		blink_led(4, 1000);
-		break;
-	case ESP8266_ERROR_UNKNOWN:
-		blink_led(5, 1000);
-		break;
-#endif
-	default:
-		blink_led(-1, 300);
-		break;
-	}
-}
-
 uint8_t wifi_send(char* message) {
 	uint8_t result = ARDUINO_APP_ERROR;
 
@@ -201,9 +161,7 @@ uint8_t wifi_send(char* message) {
 	}
 
 	if (result == ESP8266_CMD_SUCCESS) return ARDUINO_APP_SUCCESS;
-#if defined (DEBUG_MODE)
-	return result;
-#endif
+
 	return ARDUINO_APP_ERROR;
 }
 
@@ -245,33 +203,10 @@ uint8_t wifi_app_init(struct wifi_app_config* wac) {
 	return ARDUINO_APP_SUCCESS;
 }
 
-static uint8_t ssid_match = 0;
-
-static void socket_check(void){
-	if (!esp_params.lan_connection) {
-		//ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, wifi_ssid, wifi_pass);
-
-	} else if (!esp_params.ip_obtained) {
-		// disconnect from AP to try reconnect?
-
-	} else if (!esp_params.tcp_connection) {
-		if (!ssid_match) {
-			uint8_t cmd_result = ESP8266_ap_query(&esp_params, config->command_timeout, wifi_ssid, &ssid_match);
-			if (cmd_result == ESP8266_CMD_SUCCESS && !ssid_match) {
-				ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, wifi_ssid, wifi_pass);
-			}
-		} else {
-			ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout, socket_addr, socket_port);
-		}
-	}
-}
-
 void wifi_app_start(void) {
 	module_startup_procedure();
 
 	module_check();
-
-	socket_check();
 
 	timer8_init(1000, 1);
 	timer8_start();
@@ -285,9 +220,6 @@ void wifi_app_start(void) {
 
 		if (wifi_conn_clock_s >= config->connection_interval) {
 			module_check();
-
-			socket_check();
-	
 			wifi_conn_clock_s = 0;
 		}
 
@@ -296,6 +228,8 @@ void wifi_app_start(void) {
 			wifi_app_clock_s = 0;
 		}
 
-		module_poll();
+		ESP8266_poll(&esp_params, 100);
+
+		process_server_message();
 	}
 }

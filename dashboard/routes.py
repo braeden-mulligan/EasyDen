@@ -85,7 +85,8 @@ def device_command():
 #TODO: Debugging for now
 	device_id = request.args.get("id")
 	socket_val = request.data.decode()
-	cmd = poweroutlet_set_state([int(socket_val)])
+	#cmd = poweroutlet_set_state([int(socket_val)])
+	cmd = poweroutlet_set_state([int(socket_val), int(socket_val), int(socket_val), int(socket_val)])
 	print("COMMAND: " + cmd);
 	si.data_transaction("command id " + str(device_id) + " " + cmd)
 	return "success"

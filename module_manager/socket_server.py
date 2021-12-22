@@ -141,8 +141,7 @@ def handle_dashboard_message(dash_conn, msg):
 		response = "SUCCESS: null"
 
 		if "id" in words[1]:
-			d_id = int(words[2])
-			d = device_from_attr(device_id = d_id);
+			d = device_from_attr(device_id = int(words[2]));
 			if d:
 				d.device_send(words[3])
 			else:
@@ -161,8 +160,9 @@ def handle_dashboard_message(dash_conn, msg):
 				response = "ERROR: No devices found"
 
 		elif "server" in words[1]:
-			# set <device id> name <name>
-			response = "FAILURE: Unimplemented feature"
+			if "rename" in words[2]:
+				device = device_from_attr(device_id = int(words[3]))
+				device.name = " ".join(words[4:])
 
 # info [id x <specifier> | server <specifier>]
 	elif "info" in words[0]:

@@ -1,31 +1,9 @@
 from . import config
-import datetime, json, re, socket, sys, time, os
-
-def read_device_defs():
-# TODO: use absolute path?
-	device_defs = os.path.dirname(__file__) + "/../../libraries/common/device_definition.h"
-	defs_file = open(device_defs, "r")
-	contents = defs_file.read()
-	defs_file.close()
-	contents = re.sub("//.*?\n|/\*.*?\*/", "", contents, flags=re.S)
-	contents = contents.split("\n")
-	contents = [line.removeprefix("#define").strip() for line in contents if line.strip()]
-	return contents
-
-def build_definition_mapping(search_term):
-	defs = read_device_defs()
-	def_map = []
-	for definition in defs:
-		if search_term in definition:
-			def_pair = definition.split(" ")
-			reg = def_pair[0]
-			index = def_pair[-1] # In case of multple spaces in line.
-			def_map.append((reg, int(index)))
-	return def_map
+import datetime, json, socket, sys, time, os
 
 class SH_Device:
-	TYPE_MAP = build_definition_mapping("SH_TYPE_")
-	REGISTER_MAP = build_definition_mapping("_REG_")
+	TYPE_MAP = config.build_definition_mapping("SH_TYPE_")
+	REGISTER_MAP = config.build_definition_mapping("_REG_")
 
 	CMD_NUL = 0
 	CMD_GET = 1
@@ -114,7 +92,6 @@ class SH_Device:
 		device_obj["id"] = self.device_id
 		device_obj["name"] = self.name
 		device_obj["online"] = self.online_status
-		#device_obj["last-contact"] = self.last_contact
 		device_obj["registers"] = self.device_attrs
 		return device_obj
 

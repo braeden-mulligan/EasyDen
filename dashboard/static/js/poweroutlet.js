@@ -1,5 +1,5 @@
 // TODO: unhardcode this stuff
-let server_addr = "192.168.1.69";
+let server_addr = "192.168.1.80";
 
 class Poweroutlet extends SH_Device {
 	static elem_tag_socket_count = "div";

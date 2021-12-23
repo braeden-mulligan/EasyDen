@@ -27,16 +27,19 @@ def listener_init(dashboard = False):
 	soc.listen(max_conn)
 	return soc
 
+def socket_close(soc, poll_obj):
+	print("Unregister fd " + str(soc.fileno()))
+	poll_obj.unregister(soc)
+	try:
+		soc.shutdown(socket.SHUT_RDWR)
+	except Exception as err:
+		print(err)
+	soc.close()
+	return True
+
 def socket_error(soc, event, poll_obj):
 	if event & select.POLLHUP or event & select.POLLERR: 
-		print("Unregister fd " + str(soc.fileno()))
-		poll_obj.unregister(soc)
-		try:
-			soc.shutdown(socket.SHUT_RDWR)
-		except Exception as err:
-			print(err)
-		soc.close()
-		return True
+		return socket_close(soc, poll_obj)
 	return False
 
 # --- ---
@@ -177,6 +180,8 @@ def handle_dashboard_message(dash_conn, msg):
 				response = "PARAMETER: " + str(device.last_contact)
 			elif "reconnections" in words[3]:
 				response = "PARAMETER: " + str(device.reconnect_count)
+			elif "fully_initialized" in words[3]:
+				response = "PARAMETER: " + str(device.fully_initialized).lower()
 
 		elif "server" in words[1]:
 			response = "FAILURE: Unimplemented feature"
@@ -205,7 +210,10 @@ def run():
 		for d in device_list:
 			if not d.device_id and d.pending_response is None:
 				print("New device detected, requesting ID")
-				d.device_send(generic_request_identity())
+				if not d.device_send(generic_request_identity()):
+					print("New device failed to respond")
+					socket_close(d.soc_connection, poller)
+					device_list.remove(d)
 
 		poll_result = poller.poll(config.POLL_TIMEOUT)
 
@@ -243,6 +251,7 @@ def run():
 					print("Device operation fd: " + str(device.soc_fd))
 					if socket_error(device.soc_connection, event, poller):
 						print("Device disconnected.")
+						# Socket now closed so set device to disconnected. 
 						device.disconnect() # But do not remove device from list.
 					else:
 						handle_device_message(device, device.device_recv())
@@ -255,10 +264,8 @@ def run():
 				d.disconnect()
 
 		for d in device_list:
-			d.check_heartbeat()
-
-		#for d in device_list:
-			#d.initial_connection_task()			
+			if d.initialization_task():
+				d.check_heartbeat()
 
 		# other routine checks.
 		# ...

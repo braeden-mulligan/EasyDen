@@ -98,7 +98,7 @@ class SH_Device:
 	def update_pending(self):
 		if self.pending_response:
 			packet, timestamp, retries = self.pending_response 
-			print("waiting on message [" + packet + "] retries remaining: " + str(retries))
+			#print("waiting on message [" + packet + "] retries remaining: " + str(retries))
 
 			if time.time() > timestamp + self.msg_timeout:
 				self.pending_response = None
@@ -112,7 +112,7 @@ class SH_Device:
 
 		elif self.pending_send:
 			p, r = self.pending_send.pop(0)
-			print("Transmitting: [" + str(p) + "] retries " + str(r))
+			print("Transmitting: [" + str(p) + "] retries " + str(r) + "...")
 			#try:
 			#TODO: except close broken connections 
 			if self.soc_connection:
@@ -234,4 +234,22 @@ class SH_Device:
 				self.device_send("{:02X},{:02X},{:08X}".format(SH_Device.CMD_GET, SH_Device.register_id("GENERIC_REG_PING"), 0), retries = 1)
 				self.soc_last_heartbeat = time.time()
 
+	def initialization_task(self):
+		if self.fully_initialized or not self.device_id or self.pending_response:
+			return self.fully_initialized
+
+		necessary_attributes = []
+		if self.device_type == SH_Device.type_id("SH_TYPE_POWEROUTLET"):
+			necessary_attributes = [SH_Device.register_id("POWEROUTLET_REG_SOCKET_COUNT"), SH_Device.register_id("POWEROUTLET_REG_STATE")]
+		elif self.device_type == SH_Device.type_id("SH_TYPE_THERMOSTAT"):
+			pass
+		else:
+			return self.fully_initialized
+
+		self.fully_initialized = True
+		for reg in necessary_attributes:
+			if reg not in self.device_attrs:
+				self.fully_initialized = False
+				self.device_send("{:02X},{:02X},{:08X}".format(SH_Device.CMD_GET, reg, 0), retries = 1)
+		return self.fully_initialized
 

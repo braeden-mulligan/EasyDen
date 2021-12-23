@@ -9,8 +9,11 @@ template = "{:02X},{:02X},{:08X}"
 def generic_request_identity():
 	return template.format(SH_Device.CMD_IDY, 0, 0)
 
+def generic_ping():
+	return template.format(_get, _reg("GENERIC_REG_PING"), 0)
+
 def poweroutlet_get_count():
-	return template.format(_get, _reg("POWEROUTLET_REG_OUTLET_COUNT"), 0)
+	return template.format(_get, _reg("POWEROUTLET_REG_SOCKET_COUNT"), 0)
 
 def poweroutlet_get_state():
 	return template.format(_get, _reg("POWEROUTLET_REG_STATE"), 0)

@@ -41,6 +41,23 @@ static struct wifi_app_config* config;
 
 static char server_message_buf[SERVER_MSG_SIZE_MAX];
 
+static void error_check(uint8_t cmd_result) {
+	switch (cmd_result) {
+	case ESP8266_CMD_SUCCESS: return;
+	case ESP8266_CMD_FAILURE:
+	case ESP8266_CMD_TIMEOUT:
+	case ESP8266_CMD_ERROR:
+	default:
+		for (uint32_t i = 0; i < config->command_timeout; i += 100) {
+			ESP8266_poll(&esp_params, 100);
+		}
+
+		//blink_led(5, 500);
+
+		break;
+	}
+}
+
 static void process_server_message(void) {
 	if (server_message_available()) {
 		char send_buf[SERVER_MSG_SIZE_MAX];
@@ -76,7 +93,9 @@ static void process_server_message(void) {
 		}
 
 		if (sh_build_packet(&msg_packet, send_buf) != SH_PROTOCOL_SUCCESS) return;
-		if (wifi_send(send_buf) != ARDUINO_APP_SUCCESS) { }
+		if (wifi_send(send_buf) != ARDUINO_APP_SUCCESS) {
+			//config->server_message_error_callback();
+		}
 
 		server_message_dequeue();
 	}
@@ -88,6 +107,7 @@ static uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_param
 	for (uint8_t i = 0; i < retries; ++i) {
 		if ((result = command_func(&esp_params, timeout_ms)) == ESP8266_CMD_SUCCESS) break;
 	}
+	error_check(result);
 
 	process_server_message();
 
@@ -97,7 +117,6 @@ static uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_param
 // Allow time for WiFi module startup.
 static void module_startup_procedure(void) {
 	timer8_deinit();
-//TODO check for existing init? unlikely.
 	timer8_init(config->wifi_startup_timeout * 1000, 1);
 	timer8_start();
 
@@ -118,49 +137,54 @@ static void module_startup_procedure(void) {
 
 static uint8_t ssid_match = 0;
 
-static uint8_t module_check(void) {
+static void module_check(void) {
+	uint8_t cmd_result;
+
 	if (esp_params.command_echo) try_command(ESP8266_echo_disable, config->command_timeout, config->command_retries); 
 
 	if (!esp_params.wifi_mode) try_command(ESP8266_wifi_mode_get, config->command_timeout, config->command_retries);
 
-	if (esp_params.wifi_mode != ESP8266_MODE_STATION) try_command(ESP8266_wifi_mode_set, config->command_timeout, config->command_retries);
+	if (esp_params.wifi_mode != ESP8266_MODE_STATION) {
+		if (try_command(ESP8266_wifi_mode_set, config->command_timeout, config->command_retries) != ESP8266_CMD_SUCCESS) return;
+	}
 
-	while (!ssid_match) {
-		uint8_t cmd_result = ESP8266_ap_query(&esp_params, config->command_timeout, wifi_ssid, &ssid_match);
+	for (uint8_t i = 0; (i < 3) && (!ssid_match); ++i) {
+		cmd_result = ESP8266_ap_query(&esp_params, config->command_timeout, wifi_ssid, &ssid_match);
+		error_check(cmd_result);
 
 		if (cmd_result == ESP8266_CMD_SUCCESS && !ssid_match) {
-			ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout, wifi_ssid, wifi_pass);
+			error_check(ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout * 1000, wifi_ssid, wifi_pass)); 
 		}
 	}
 
 	try_command(ESP8266_status, config->command_timeout, config->command_retries);
 
 	if (!esp_params.lan_connection) {
-		return 0;
+		return;
 
 	} else if (!esp_params.ip_obtained) {
-		return 0;
+		return;
 
 	} else if (!esp_params.tcp_connection) {
-		ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout, socket_addr, socket_port);
+		error_check(ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout * 1000, socket_addr, socket_port));
 	} 
 
 	process_server_message();
-
-	return 0;
 }
 
 /*
 	Start of public funcitons
 */
 uint8_t wifi_send(char* message) {
-	uint8_t result = ARDUINO_APP_ERROR;
+	uint8_t result = ESP8266_CMD_SUCCESS;
 
 	if (esp_params.tcp_connection) {
 		result = ESP8266_socket_send(&esp_params, config->command_timeout, message);
 	}
 
 	if (result == ESP8266_CMD_SUCCESS) return ARDUINO_APP_SUCCESS;
+
+	error_check(result);
 
 	return ARDUINO_APP_ERROR;
 }

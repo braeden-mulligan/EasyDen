@@ -247,16 +247,17 @@ static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*),
 
 		switch (retval) {
 		case ESP8266_RECV_FALSE:
-			break;
+			_delay_us(1);
+			continue;
 
 		case ESP8266_RECV_TRUE:
 			module_message = check_module_notification(np);
-			if (module_message == ESP8266_MODULE_NOTIFICATION) break;
-			if (module_message == ESP8266_MODULE_BUSY) break;
+			if (module_message == ESP8266_MODULE_NOTIFICATION) continue;
+			if (module_message == ESP8266_MODULE_BUSY) continue;
 			if (module_message == ESP8266_ERROR_UNKNOWN) return ESP8266_CMD_ERROR;
 
 			cmd_status = cmd_proc(np);
-			if (cmd_status == ESP8266_CMD_CONTINUE) break;
+			if (cmd_status == ESP8266_CMD_CONTINUE) continue;
 			if (cmd_status == ESP8266_CMD_SUCCESS) return ESP8266_CMD_SUCCESS;
 			if (cmd_status == ESP8266_CMD_FAILURE) return ESP8266_CMD_FAILURE;
 			if (cmd_status == ESP8266_CMD_SENDREADY) return ESP8266_CMD_SENDREADY;
@@ -264,15 +265,13 @@ static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*),
 
 		case ESP8266_RECV_SERVER:
 			server_message_enqueue();
-			break;
+			continue;
 
 		case ESP8266_RECV_BUFOVERFLOW:
 		case ESP8266_RECV_SERVERTIMEOUT:
 		default:
 			return ESP8266_CMD_ERROR;
 		}
-
-		_delay_us(1);
 	}
 
 	return ESP8266_CMD_TIMEOUT;
@@ -325,6 +324,7 @@ static uint8_t _ESP8266_status(struct ESP8266_network_parameters* np) {
 	} else if (strstr(ESP8266_line_incoming, "STATUS:2") != NULL) {
 		np->lan_connection = 1;
 		np->ip_obtained = 1;
+		np->tcp_connection = 0;
 		return ESP8266_CMD_CONTINUE;
 
 	} else if (strstr(ESP8266_line_incoming, "STATUS:3") != NULL) {
@@ -396,6 +396,9 @@ static uint8_t _ESP8266_lan_connect(struct ESP8266_network_parameters* np) {
 
 	} else if (strstr(ESP8266_line_incoming, "CWJAP_DEF") != NULL) {
 		return ESP8266_CMD_CONTINUE;
+
+	} else if (strstr(ESP8266_line_incoming, "CWJAP:") != NULL) {
+		return ESP8266_CMD_CONTINUE;
 	}
 
 	return ESP8266_CMD_FAILURE;
@@ -417,9 +420,8 @@ static uint8_t _ESP8266_ap_query(struct ESP8266_network_parameters* np) {
 	} else if (strstr(ESP8266_line_incoming, "CWJAP_CUR?") != NULL) {
 		return ESP8266_CMD_CONTINUE;
 
-	} else if (strstr(ESP8266_line_incoming, ap_query_target_ssid) != NULL) {
-		ap_query_matched_ssid = 1;
-
+	} else if (strstr(ESP8266_line_incoming, "CWJAP_CUR:") != NULL) {
+		if (strstr(ESP8266_line_incoming, ap_query_target_ssid) != NULL) ap_query_matched_ssid = 1;
 		return ESP8266_CMD_CONTINUE;
 
 	} else if (strstr(ESP8266_line_incoming, "No AP") != NULL) {

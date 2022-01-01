@@ -1,10 +1,10 @@
-#ifndef ARDUINO_WIFI_APP_H
-#define ARDUINO_WIFI_APP_H
+#ifndef ARDUINO_WIFI_FRAMEWORK_H
+#define ARDUINO_WIFI_FRAMEWORK_H
 
 #include <stdint.h>
 
-#define ARDUINO_APP_SUCCESS 0
-#define ARDUINO_APP_ERROR 1
+#define ARDUINO_WIFI_SUCCESS 0
+#define ARDUINO_WIFI_ERROR 1
 
 #define WIFI_STARTUP_TIMEOUT_DEFAULT 10
 #define APPLICATION_INTERVAL_DEFAULT 30
@@ -21,7 +21,7 @@
 	Wifi app can be re-initialized at any time and will respect changes to any parameter
 	  that differes from the original init arguments except server_latency_timeout.
 */
-struct wifi_app_config {
+struct wifi_framework_config {
 	uint16_t wifi_startup_timeout; // Keep under 60s to maintain system timing integrity.
 	uint16_t application_interval;
 	uint16_t connection_interval;
@@ -30,14 +30,15 @@ struct wifi_app_config {
 	uint8_t server_latency_timeout;
 	uint32_t (* server_message_get_callback)(uint16_t reg);
 	uint32_t (* server_message_set_callback)(uint16_t reg, uint32_t val);
+	void (* app_init_callback)(void);
 	void (* app_main_callback)(void);
 };
 
-struct wifi_app_config wifi_app_config_create(void);
+struct wifi_framework_config wifi_framework_config_create(void);
 
-uint8_t wifi_app_init(struct wifi_app_config*);
+uint8_t wifi_framework_init(struct wifi_framework_config*);
 
-void wifi_app_start(void);
+void wifi_framework_start(void);
 
 uint8_t wifi_send(char*);
 

@@ -1,4 +1,4 @@
-#include "arduino_wifi_app.h"
+#include "arduino_wifi_framework.h"
 #include "ESP8266_link.h"
 #include "avr_timer_util.h"
 #include "avr_utilities.h"
@@ -37,7 +37,7 @@ static struct sh_device_metadata metadata;
 
 static struct ESP8266_network_parameters esp_params;
 
-static struct wifi_app_config* config;
+static struct wifi_framework_config* config;
 
 static char server_message_buf[SERVER_MSG_SIZE_MAX];
 
@@ -93,7 +93,7 @@ static void process_server_message(void) {
 		}
 
 		if (sh_build_packet(&msg_packet, send_buf) != SH_PROTOCOL_SUCCESS) return;
-		if (wifi_send(send_buf) != ARDUINO_APP_SUCCESS) {
+		if (wifi_send(send_buf) != ARDUINO_WIFI_SUCCESS) {
 			//config->server_message_error_callback();
 		}
 
@@ -182,15 +182,15 @@ uint8_t wifi_send(char* message) {
 		result = ESP8266_socket_send(&esp_params, config->command_timeout, message);
 	}
 
-	if (result == ESP8266_CMD_SUCCESS) return ARDUINO_APP_SUCCESS;
+	if (result == ESP8266_CMD_SUCCESS) return ARDUINO_WIFI_SUCCESS;
 
 	error_check(result);
 
-	return ARDUINO_APP_ERROR;
+	return ARDUINO_WIFI_ERROR;
 }
 
-struct wifi_app_config wifi_app_config_create(void) {
-	struct wifi_app_config config_default = {
+struct wifi_framework_config wifi_framework_config_create(void) {
+	struct wifi_framework_config config_default = {
 		.wifi_startup_timeout = WIFI_STARTUP_TIMEOUT_DEFAULT,
 		.application_interval = APPLICATION_INTERVAL_DEFAULT,
 		.connection_interval = CONNECTION_INTERVAL_DEFAULT,
@@ -199,36 +199,39 @@ struct wifi_app_config wifi_app_config_create(void) {
 		.server_latency_timeout = SERVER_LATENCY_TIMEOUT_DEFAULT,
 		.server_message_get_callback = NULL,
 		.server_message_set_callback = NULL,
+		.app_init_callback = NULL,
 		.app_main_callback = NULL
 	};
 
 	return config_default;
 }
 
-static uint8_t wifi_app_initialized = 0;
+static uint8_t wifi_framework_initialized = 0;
 
 static uint16_t wifi_conn_clock_s;
-static uint16_t wifi_app_clock_s;
+static uint16_t application_clock_s;
 
-uint8_t wifi_app_init(struct wifi_app_config* wac) {
+uint8_t wifi_framework_init(struct wifi_framework_config* wac) {
 	load_metadata(&metadata);
 
 	config = wac;
 
 	wifi_conn_clock_s = 0;
-	wifi_app_clock_s = 0;
+	application_clock_s = 0;
 
-	if (!wifi_app_initialized) {
-		if (timer8_init(1000, 1) == TIMER_INIT_ERROR) return ARDUINO_APP_ERROR;
+	if (!wifi_framework_initialized) {
+		if (timer8_init(1000, 1) == TIMER_INIT_ERROR) return ARDUINO_WIFI_ERROR;
 		ESP8266_link_init(&esp_params, server_message_buf, SERVER_MSG_SIZE_MAX, config->server_latency_timeout);
-		wifi_app_initialized = 1;
+		wifi_framework_initialized = 1;
 	}
 
-	return ARDUINO_APP_SUCCESS;
+	return ARDUINO_WIFI_SUCCESS;
 }
 
-void wifi_app_start(void) {
+void wifi_framework_start(void) {
 	module_startup_procedure();
+
+	if (config->app_init_callback != NULL) config->app_init_callback();
 
 	module_check();
 
@@ -238,7 +241,7 @@ void wifi_app_start(void) {
 	for (;;) {
 		if (timer8_flag) {
 			wifi_conn_clock_s += timer8_flag;
-			wifi_app_clock_s += timer8_flag;
+			application_clock_s += timer8_flag;
 			timer8_restart();
 		}
 
@@ -247,9 +250,9 @@ void wifi_app_start(void) {
 			wifi_conn_clock_s = 0;
 		}
 
-		if (wifi_app_clock_s >= config->application_interval) {
+		if (application_clock_s >= config->application_interval) {
 			if (config->app_main_callback != NULL) config->app_main_callback();
-			wifi_app_clock_s = 0;
+			application_clock_s = 0;
 		}
 
 		ESP8266_poll(&esp_params, 100);

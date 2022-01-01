@@ -45,12 +45,12 @@ build/%.o: ../libraries/common/src/%.c | build_dir
 	@echo "Compiling libraries..."
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-build/%.o: ../libraries/avr-ds18b20/src/%.c | build_dir
+build/%.o: ../libraries/arduino/avr-ds18b20/src/%.c | build_dir
 	@echo "Compiling ds18b20 libraries..."
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 upload: 
-	sudo avrdude -F -V -c arduino -p m328p -P /dev/ttyUSB0 -b 115200 -U flash:w:./bin/$(TARGET).hex:i
+	sudo avrdude -F -V -c arduino -p m328p -P /dev/ttyACM0 -b 115200 -U flash:w:./bin/$(TARGET).hex:i
 
 .PHONY: build_dir
 build_dir:

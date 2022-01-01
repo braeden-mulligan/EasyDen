@@ -1,13 +1,17 @@
 {% extends "base.html" %}
 
 {% block content %}
-<div class="feature-list">
-	<h2>Components</h2>
+<h3>Info</h3>
+<div class="info-pane">
+	<p>Info pane</p>
+</div>
+
+<div class="device-select">
+	<h4>Device Control</h4>
 	<ul>
 		<li><a href="{{ url_for('thermostat') }}">Thermostat</a></li>
 		<li><a href="{{ url_for('irrigator') }}">Plant Irrigator</a></li>
 		<li><a href="{{ url_for('poweroutlet') }}">Smart Outlets</a></li>
 	</ul>
 </div>
-
 {% endblock %}

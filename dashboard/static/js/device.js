@@ -235,18 +235,18 @@ class Data_Tracker {
 	}
 }
 
-function fetch_devices(tracker, id = 0, type = SH_Device.SH_TYPE_NULL, fast_poll = true) {
+function fetch_devices(tracker, id = 0, type = null, fast_poll = true) {
 //TODO: if fast polling active just return?
 	console.log("fetching devices via " + (fast_poll ? "fast poll" : "global poll"));
 
-	var category = "type";
-	var selector = type.toString();
-	if (id) {
-		category = "id";
-		selector = id.toString();
+	var type_label;
+	switch (type) {
+		case SH_Device.SH_TYPE_POWEROUTLET: type_label = "poweroutlet"; break;
+		case SH_Device.SH_TYPE_THERMOSTAT: type_label = "thermostat"; break;
+		default: return;
 	}
 
-	var url = "http://" + server_addr + "/device/refresh?category=" + category + "&selector=" + selector;
+	var url = "http://" + SERVER_ADDR + "/device/" + type_label + "/refresh" + (id ? "?id=" + id.toString() : "");
 
 	try {
 		var xhr = new XMLHttpRequest();
@@ -257,7 +257,8 @@ function fetch_devices(tracker, id = 0, type = SH_Device.SH_TYPE_NULL, fast_poll
 
 	xhr.onreadystatechange = function() {
 		if (xhr.readyState == XMLHttpRequest.DONE) {
-			//console.log(xhr.responseText);
+			console.log("Raw response:");
+			console.log(xhr.responseText);
 			fetch_json = JSON.parse(xhr.responseText);
 			if (fast_poll) {
 				tracker.request_response_processor(fetch_json, tracker, id);
@@ -271,3 +272,24 @@ function fetch_devices(tracker, id = 0, type = SH_Device.SH_TYPE_NULL, fast_poll
 	xhr.send();
 }
 
+function send_command(id, command, device_url_snippet) {
+	console.log("Sending...");
+	console.log(command);
+	var url = "http://" + SERVER_ADDR + "/device/"+ device_url_snippet + "/command?id=" + id;
+
+	try {
+		var xhr = new XMLHttpRequest();
+	} catch (e) {
+		alert("Something went wrong!");
+		return false;
+	}
+
+	xhr.onreadystatechange = function() {
+		if (xhr.readyState == XMLHttpRequest.DONE) {
+			console.log(xhr.responseText);
+		}
+	}
+
+	xhr.open("POST", url, true);
+	xhr.send(command);
+}

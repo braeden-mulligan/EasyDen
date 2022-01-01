@@ -1,11 +1,11 @@
 from flask import redirect, render_template, request, url_for
 from . import dashboard_app
 
+import module_manager.device_definitions as SH_defs
 from . import server_interconnect as si 
-from module_manager.device import SH_Device
 from module_manager.messaging import *
 
-import json, os
+import json, os 
  
 # Circumvent browser caching 
 def timestamped_url_for(endpoint, **values):
@@ -37,22 +37,16 @@ def debug():
 		debug_text = request.form["debug-input"]
 		response = si.data_transaction(debug_text)
 		return render_template("debug.html", response = response)
-		
-@dashboard_app.route("/device/refresh", methods=["GET"])
-def device_refresh():
-	category = request.args.get("category", "")
-	query = "fetch " + category
 
-	if category == "type" or category == "id":
-		device_selector = request.args.get("selector")
-		if not device_selector:
-			return render_template("error.html", message = "Invalid query")
-		else:
-			query += " " + device_selector
-	elif category == "all":
-		pass
+
+def device_fetch(device_id = None, device_type = None):
+	query = "fetch "
+	if device_id:
+		query += "id " + str(device_id)
+	elif device_type:
+		query += "type " + str(device_type)
 	else:
-		return render_template("error.html", message = "Invalid query")
+		query += "all"
 
 	si_response = si.data_transaction(query)
 	label, response = si.parse_response(si_response)
@@ -61,35 +55,15 @@ def device_refresh():
 	if label == si.RESPONSE_JSON:
 		devices = response
 	else:
-		return render_template("error.html", message = si.compose_error_log(label, si_response))
+		devices = None
 
-#TODO: Debugging for now
-	poweroutlets = []
-	for d in devices:
-		if d["type"] == SH_Device.type_id("SH_TYPE_POWEROUTLET"):
-			reg_state = 0
-			try: 
-				reg_state = d["registers"][str(SH_Device.register_id("POWEROUTLET_REG_STATE"))]
-			except KeyError:
-				print("KeyError")
-				pass
-			del d["registers"]
-			d["socket_states"] = poweroutlet_read_state(reg_state, 1)
-			print("READING state: " + str(poweroutlet_read_state(reg_state, 1)))
-			poweroutlets.append(d);
+	return devices
 
-	return json.dumps(poweroutlets)
-
-@dashboard_app.route("/device/command", methods=["POST"])
-def device_command():
-#TODO: Debugging for now
-	device_id = request.args.get("id")
-	socket_val = request.data.decode()
-	#cmd = poweroutlet_set_state([int(socket_val)])
-	cmd = poweroutlet_set_state([int(socket_val), int(socket_val), int(socket_val), int(socket_val)])
-	print("COMMAND: " + cmd);
-	si.data_transaction("command id " + str(device_id) + " " + cmd)
-	return "success"
+def prune_device_obj(device):
+	del device["type"]
+	del device["initialized"]
+	del device["registers"]
+	return
 
 @dashboard_app.route("/device/irrigator")
 def irrigator():
@@ -97,10 +71,83 @@ def irrigator():
 
 @dashboard_app.route("/device/thermostat")
 def thermostat():
-	return str(SH_Device.SH_TYPE_THERMOSTAT)
-	#return "Thermostat not yet available."
+	return render_template("thermostat.html", title="Thermostat")
 
+@dashboard_app.route("/device/thermostat/refresh", methods=["GET"])
+def thermostat_fetch():
+	device_id = request.args.get("id")
+	thermostats = device_fetch(device_type = SH_defs.type_id("SH_TYPE_THERMOSTAT"))
+
+	temperature = None
+	humidity = None
+	if thermostats is None:
+		return "{\"result\": \"ERROR\"}"
+
+	for t in thermostats:
+		if not t["initialized"]:
+			continue
+
+		temperature = reg_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
+		humidity = reg_to_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
+
+		prune_device_obj(t)
+
+	return str([temperature, humidity])
+
+@dashboard_app.route("/device/thermostat/command", methods=["POST"])
+def thermostat_command():
+#TODO: Debugging for now
+	device_id = request.args.get("id")
+	cmd = "null"
+	print("Issue command: " + cmd);
+	#si.data_transaction(si.device_command(device_id, cmd))
+	return "success"
+# --- ---
+
+
+# --- Power ouetlet section ---
 @dashboard_app.route("/device/poweroutlet", methods=["GET"])
 def poweroutlet():
-	return render_template("poweroutlet.html", title="Smart Outlet")
+	return render_template("poweroutlet.html", title="Outlets")
+
+@dashboard_app.route("/device/poweroutlet/refresh", methods=["GET"])
+def poweroutlet_fetch():
+	device_id = request.args.get("id")
+	poweroutlets = device_fetch(device_id, SH_defs.type_id("SH_TYPE_POWEROUTLET"))
+
+	if poweroutlets is None:
+		return "{\"result\": \"ERROR\"}"
+
+	valid_devices = []
+	for p in poweroutlets:
+		if not p["initialized"]:
+			continue
+
+		socket_count = reg_to_int(p["registers"], "POWEROUTLET_REG_SOCKET_COUNT")
+		if not socket_count:
+			socket_count = 0
+			continue
+
+		outlet_state = reg_to_int(p["registers"], "POWEROUTLET_REG_STATE")
+		if not outlet_state:
+			outlet_state = 0
+			continue
+
+		prune_device_obj(p)
+
+		p["socket_states"] = poweroutlet_read_state(outlet_state, socket_count)
+		valid_devices.append(p);
+
+	return json.dumps(valid_devices)
+
+@dashboard_app.route("/device/poweroutlet/command", methods=["POST"])
+def poweroutlet_command():
+#TODO: Debugging for now
+	device_id = request.args.get("id")
+	socket_vals = [int(val) for val in request.data.decode().split(',')]
+	cmd = poweroutlet_set_state(socket_vals)
+	print("Issue command: " + cmd);
+	si.data_transaction(si.device_command(device_id, cmd))
+	return "success"
+# --- ---
 

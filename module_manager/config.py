@@ -1,5 +1,3 @@
-import re, sys, os
-
 ENV = "development"
 
 SERVER_ADDR = "0.0.0.0"
@@ -27,25 +25,4 @@ elif ENV == "development":
 
 else:
 	raise ValueError("ENV not a valid option.")
-
-def read_device_defs():
-	device_defs = os.path.dirname(__file__) + DEVICE_DEFINITIONS_PATH
-	defs_file = open(device_defs, "r")
-	contents = defs_file.read()
-	defs_file.close()
-	contents = re.sub("//.*?\n|/\*.*?\*/", "", contents, flags=re.S)
-	contents = contents.split("\n")
-	contents = [line.removeprefix("#define").strip() for line in contents if line.strip()]
-	return contents
-
-def build_definition_mapping(search_term):
-	defs = read_device_defs()
-	def_map = []
-	for definition in defs:
-		if search_term in definition:
-			def_pair = definition.split(" ")
-			reg = def_pair[0]
-			index = def_pair[-1] # In case of multple spaces in line.
-			def_map.append((reg, int(index)))
-	return def_map
 

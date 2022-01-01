@@ -110,6 +110,9 @@ def dashboard_message_validate(msg):
 
 	return True
 		
+def reg_val_to_hex(json_device_list):
+	return
+
 # Should always return something to dashboard.
 def handle_dashboard_message(dash_conn, msg):
 	response = "ERROR: Malformed request"
@@ -123,20 +126,26 @@ def handle_dashboard_message(dash_conn, msg):
 
 # fetch [all | type x | id x]
 	if "fetch" in words[0]:
-		json_obj_list = []
+		json_obj_list = None
 
 		if "all" in words[1]:
 			json_obj_list = [d.get_obj_json() for d in device_list if d.device_id]
-			response = "JSON: " + json.dumps(json_obj_list)
 		elif "type" in words[1]:
 			#TODO: validate
 			num = int(words[2])
 			json_obj_list = [d.get_obj_json() for d in device_list if d.device_type == num]
-			response = "JSON: " + json.dumps(json_obj_list)
 		elif "id" in words[1]:
 			#TODO: validate
 			num = int(words[2])
 			json_obj_list = [d.get_obj_json() for d in device_list if d.device_id == num]
+		
+		for entry in json_obj_list:
+			if "registers" not in entry:
+				continue
+			for reg in entry["registers"]:
+				entry["registers"][reg] = "0x{:08X}".format(entry["registers"][reg])
+
+		if isinstance(json_obj_list, list):
 			response = "JSON: " + json.dumps(json_obj_list)
 
 # command [id x <raw message> | server <specifier>]

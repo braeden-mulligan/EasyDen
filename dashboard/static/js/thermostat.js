@@ -1,4 +1,8 @@
+/*
 class Poweroutlet extends SH_Device {
+	static elem_tag_socket_count = "div";
+
+	static class_label_socket_count = "poweroutlet-attr-socket-count";
 	static class_label_socket_list = "poweroutlet-attr-socket-list";
 	static class_label_socket_item = "poweroutlet-attr-socket-item";
 	static class_label_socket_state = "poweroutlet-attr-socket-state";
@@ -74,6 +78,10 @@ class Poweroutlet extends SH_Device {
 
 		device_elem = super.write_html();
 
+		var p = document.createElement(Poweroutlet.elem_tag_socket_count);
+		p.innerHTML = "Socket count: " + this.socket_count;
+		device_elem.append(p);
+
 		var outlet_list = document.createElement("ul");
 		outlet_list.setAttribute("class", Poweroutlet.class_label_socket_list);
 		for (var i = 0; i < this.socket_states.length; ++i) {
@@ -124,6 +132,7 @@ class Poweroutlet_Tracker extends Data_Tracker {
 		}
 	}
 
+//TODO: Move to generic. Parse and pass specific device 
 	global_poll_response_processor = function(device_json, tracker) {
 		// Check in case active tracking was started between the originating request and this callback.
 		//   We don't want the active tracking to miss an update.
@@ -146,7 +155,7 @@ class Poweroutlet_Tracker extends Data_Tracker {
 				tracker.devices[i] = tracker.devices_updated[i].copy();
 
 			} else {
-				console.log("Global poll found new device");
+		console.log("Adding new device");
 				append_device_node(poweroutlet.write_html());
 				tracker.device_add(poweroutlet);
 			}
@@ -160,16 +169,7 @@ function append_device_node(node) {
 	device_panel.append(document.createElement("br"));
 }
 
-tracker = new Poweroutlet_Tracker();
-
-//TODO: This is debug only
-function toggle_action(evt) {
-	outlet_data = tracker.device_entry(evt.target.device_id).device.socket_states.slice();
-	outlet_data[evt.target.socket_index] = +(!outlet_data[evt.target.socket_index]);
-	send_command(evt.target.device_id, outlet_data, "poweroutlet");
-	tracker.submit_tracking(evt.target.device_id);
-}
-
 // Main ----
 
 tracker.start_global_poll(true);
+*/

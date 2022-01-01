@@ -1,74 +1,33 @@
 from . import config
-import datetime, json, socket, sys, time, os
+from . import device_definitions as SH_defs
+from . import messaging
+import copy, datetime, json, socket, sys, time, os
 
 class SH_Device:
-	TYPE_MAP = config.build_definition_mapping("SH_TYPE_")
-	REGISTER_MAP = config.build_definition_mapping("_REG_")
-
-	CMD_NUL = 0
-	CMD_GET = 1
-	CMD_SET = 2
-	CMD_RSP = 3
-	CMD_PSH = 4
-	CMD_IDY = 5
-	#CMD_DAT = 6
-
 	STATUS_OK = 0
 	STATUS_UNRESPONSIVE = 1
 	STATUS_ERROR = 2
 
-	def type_id(type_name):
-		for t in SH_Device.TYPE_MAP:
-			if (type_name == t[0]):
-				return t[1]
-		return None
-
-	def type_label(type_id):
-		for t in SH_Device.TYPE_MAP:
-			if type_id == t[1]:
-				return t[0]
-		return None
-
-	def register_id(reg_name):
-		for reg in SH_Device.REGISTER_MAP:
-			if reg_name == reg[0]:
-				return reg[1]
-		return None
-	
-	# Because the register mapping is not one-to-one we need device type
-	# Type can be passed as either string or int
-	def register_label(reg_id, device_type):
-		if isinstance(device_type, int):
-			device_type = SH_Device.type_label(device_type)
-		if not device_type:
-			return None
-		type_name = device_type.removeprefix("SH_TYPE_")
-
-		for reg_label, reg_num in SH_Device.REGISTER_MAP:
-			if reg_id == reg_num:
-				if "GENERIC" in reg_label or type_name in reg_label:
-					return reg_label
-		return None
-
 	def __init__(self, socket_connection = None):
+		# Attributes returned on device query.
 		self.device_type = 0
 		self.device_id = 0
 		self.device_attrs = {} #(reg, val)
 		self.name = "Default Name"
+		self.online_status = False 
+		self.fully_initialized = False
+
+		# Attributes available for info query
+		self.last_contact = None
+		self.reconnect_count = -1 # For debugging
 
 		self.msg_timeout = 3.0
 		self.msg_retries = 1
 		self.msg_seq = 1
-
 		self.soc_connection = None
 		self.soc_fd = None
 		self.soc_heartbeat = config.DEVICE_KEEPALIVE
 		self.soc_last_heartbeat = None
-		self.online_status = False 
-		self.last_contact = None
-		self.reconnect_count = -1
-		self.fully_initialized = False
-
 # pending response triple of (packet_string, timeout, retry_count) 
 		self.pending_response = None
 # pending send list of double of (packet_string, retry_count) 
@@ -92,7 +51,8 @@ class SH_Device:
 		device_obj["id"] = self.device_id
 		device_obj["name"] = self.name
 		device_obj["online"] = self.online_status
-		device_obj["registers"] = self.device_attrs
+		device_obj["initialized"] = self.fully_initialized
+		device_obj["registers"] = copy.deepcopy(self.device_attrs)
 		return device_obj
 
 	def update_pending(self):
@@ -112,7 +72,7 @@ class SH_Device:
 
 		elif self.pending_send:
 			p, r = self.pending_send.pop(0)
-			print("Transmitting: [" + str(p) + "] retries " + str(r) + "...")
+			print("Transmitting: [" + str(p) + "]. " + str(r) + " retries available...")
 			#try:
 			#TODO: except close broken connections 
 			if self.soc_connection:
@@ -122,9 +82,9 @@ class SH_Device:
 		return SH_Device.STATUS_OK
 
 	def update_attributes(self, reg, val):
-		if reg == SH_Device.register_id("GENERIC_REG_NULL"):
+		if reg == SH_defs.register_id("GENERIC_REG_NULL"):
 			return
-		elif reg == SH_Device.register_id("GENERIC_REG_PING"):
+		elif reg == SH_defs.register_id("GENERIC_REG_PING"):
 			return
 		else: 
 			self.device_attrs[reg] = val
@@ -132,9 +92,7 @@ class SH_Device:
 
 #TODO: improve parsing robustness
 	def parse_message(self, packet_string):
-		print("DEVICE PARSEING " + packet_string)
 		words = [int(w, 16) for w in packet_string.split(',')]
-		print("WORDS " + str(words[0]) + " " + str(words[1]) + " " + str(words[2]) + " " + str(words[3]))
 
 		prev_msg_cmd = None
 		prev_words = None
@@ -156,17 +114,16 @@ class SH_Device:
 					prev_msg_cmd = prev_words[1]
 
 		else:
-			print("parse_message() error. Recv does not correspond to anything pending.")
+			print("parse_message error. Recv does not correspond to anything pending.")
 			return None
 
-		if words[1] == SH_Device.CMD_RSP and prev_msg_cmd == SH_Device.CMD_GET:
+		if words[1] == SH_defs.CMD_RSP and prev_msg_cmd == SH_defs.CMD_GET:
 			self.update_attributes(words[2], words[3])
 
-		elif words[1] == SH_Device.CMD_RSP and prev_msg_cmd == SH_Device.CMD_SET: 
+		elif words[1] == SH_defs.CMD_RSP and prev_msg_cmd == SH_defs.CMD_SET: 
 			self.update_attributes(prev_words[2], prev_words[3])
-			#TODO: confirm success or failure to inform web app?
 
-		elif words[1] == SH_Device.CMD_IDY:
+		elif words[1] == SH_defs.CMD_IDY:
 			self.device_type = words[2]
 			self.device_id = words[3]
 			return self.device_id
@@ -185,7 +142,7 @@ class SH_Device:
 				if self.msg_seq >= 65535:
 					self.msg_seq = 1;
 
-			print("Device " + str(self.device_id) + " submit: [" + m + "] retries = " + str(r))
+			print("\nDevice " + str(self.device_id) + " submit: [" + m + "] retries = " + str(r))
 
 			if len(self.pending_send) >= self.max_pending_messages:
 				print("Device send buffer full")
@@ -197,9 +154,10 @@ class SH_Device:
 			return True 
 		return False
 
+# This should always return bytes because we use i/o poll mechanism.
 	def device_recv(self):
 		if self.soc_connection is not None:
-			#try: except
+			#TODO: try: except to prevent potential for crashes
 			msg = self.soc_connection.recv(32).decode()
 			print("Device " + str(self.device_id) + " recv: [" + msg + "]")
 
@@ -221,17 +179,19 @@ class SH_Device:
 			self.online_status = True
 			self.no_response = 0
 			self.reconnect_count += 1
+			self.update_last_contact()
 		return 
 
 	def check_heartbeat(self):
 		if self.pending_response:
 			words = [int(w, 16) for w in self.pending_response[0].split(',')]
-			if words[2] == SH_Device.register_id("GENERIC_REG_PING"):
+			if words[2] == SH_defs.register_id("GENERIC_REG_PING"):
 				# Already waiting on a heartbeat check.
 				return
 		if self.online_status:
 			if time.time() > self.soc_last_heartbeat + config.DEVICE_KEEPALIVE:
-				self.device_send("{:02X},{:02X},{:08X}".format(SH_Device.CMD_GET, SH_Device.register_id("GENERIC_REG_PING"), 0), retries = 1)
+				#self.device_send("{:02X},{:02X},{:08X}".format(SH_defs.CMD_GET, SH_defs.register_id("GENERIC_REG_PING"), 0), retries = 1)
+				self.device_send(messaging.generic_ping(), retries = 1)
 				self.soc_last_heartbeat = time.time()
 
 	def initialization_task(self):
@@ -239,10 +199,14 @@ class SH_Device:
 			return self.fully_initialized
 
 		necessary_attributes = []
-		if self.device_type == SH_Device.type_id("SH_TYPE_POWEROUTLET"):
-			necessary_attributes = [SH_Device.register_id("POWEROUTLET_REG_SOCKET_COUNT"), SH_Device.register_id("POWEROUTLET_REG_STATE")]
-		elif self.device_type == SH_Device.type_id("SH_TYPE_THERMOSTAT"):
-			pass
+
+		if self.device_type == SH_defs.type_id("SH_TYPE_POWEROUTLET"):
+			necessary_attributes.append(SH_defs.register_id("POWEROUTLET_REG_SOCKET_COUNT"))
+			necessary_attributes.append(SH_defs.register_id("POWEROUTLET_REG_STATE"))
+
+		elif self.device_type == SH_defs.type_id("SH_TYPE_THERMOSTAT"):
+			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_TEMPERATURE"))
+
 		else:
 			return self.fully_initialized
 
@@ -250,6 +214,6 @@ class SH_Device:
 		for reg in necessary_attributes:
 			if reg not in self.device_attrs:
 				self.fully_initialized = False
-				self.device_send("{:02X},{:02X},{:08X}".format(SH_Device.CMD_GET, reg, 0), retries = 1)
+				self.device_send(messaging.template.format(SH_defs.CMD_GET, reg, 0), retries = 1)
 		return self.fully_initialized
 

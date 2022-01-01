@@ -26,7 +26,7 @@ def strerror(errno):
 	elif errno == RESPONSE_PARAMETER:
 		return "RESPONSE_PARAMETER"
 
-	return "UNKNOWN"
+	return "UNKNOWN_ERROR"
 
 def data_transaction(msg, timeout = 1.0):
 	soc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -86,12 +86,12 @@ def compose_error_log(response_label, response_message):
 	error_log = "Module Manager response " + strerror(response_label) + ": " + str(response_message)
 	return error_log
 
-def device_command(message, device_id):
+def device_command(device_id, message):
 	return "command id " + str(device_id) + " " + message
 
-def group_command(message, device_type):
+def group_command(device_type, message):
 	return "command type " + str(device_type) + " " + message
 
-def build_command(message):
+def server_command(message):
 	return "command server " + message
 

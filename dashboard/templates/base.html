@@ -12,13 +12,13 @@
 </head>
 <body>
 	<div class="header">
-		<h1>SmartHome Control Dashboard</h1>
+		<h1>SmartHome Dashboard</h1>
 		<a href="{{ url_for('index') }}">Home</a>
 		<a href="#">About</a>
 	</div>
 	<hr>
 	
 	{% block content %}	{% endblock %}
-
+	{% block scripts %} {% endblock %}
 </body>
 </html>

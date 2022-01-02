@@ -27,36 +27,17 @@ class Poweroutlet extends SH_Device {
 	}
 
 	write_html(loading_flag = null) {
-		var device_elem = document.getElementById("device-" + this.id.toString());
+		var device_elem = super.write_html(loading_flag);
 
-		if (device_elem != null) {
+		var existing_elem = document.getElementById("device-" + this.id.toString());
+
+		if (existing_elem != null) {
 			// Update all attributes that are mutable.
 			var socket_list;
 
-//TODO: Put block into generic function?
 			for (var i = 0; i < device_elem.children.length; ++i) {
 				var attr = device_elem.children[i];
-				if (attr.className == SH_Device.class_label_name) {
-					attr.innerHTML = this.name;
-
-				} else if (attr.className == SH_Device.class_label_online) {
-					attr.innerHTML = this.online.toString();
-
-				} else if (attr.className == Poweroutlet.class_label_socket_list) {
-					socket_list = attr;
-
-//TODO Make this better.
-				} else if (attr.className == "sh-device-waiting-flag") {
-					if (loading_flag == "loading") {
-						attr.style.display = "block";
-						attr.innerHTML = "Loading...";
-					} else if (loading_flag == "error") {
-						attr.style.display = "block";
-						attr.innerHTML = "Error communicating with device";
-					} else {
-						attr.style.display = "none";
-					}	
-				}
+				if (attr.className == Poweroutlet.class_label_socket_list) socket_list = attr;
 			}
 
 			//each item should have a button and a state value
@@ -68,11 +49,9 @@ class Poweroutlet extends SH_Device {
 					}
 				}
 			}
-	
+
 			return null;
 		}
-
-		device_elem = super.write_html();
 
 		var outlet_list = document.createElement("ul");
 		outlet_list.setAttribute("class", Poweroutlet.class_label_socket_list);
@@ -98,7 +77,7 @@ class Poweroutlet extends SH_Device {
 
 		device_elem.append(outlet_list);
 
-console.log(device_elem);
+//console.log(device_elem);
 		return device_elem;
 	}
 }
@@ -112,11 +91,9 @@ class Poweroutlet_Tracker extends Data_Tracker {
 		for (var i = 0; i < device_json.length; ++i) {
 			var d = device_json[i];
 			if (d.id == device_id) {
-				var poweroutlet = new Poweroutlet(d.id, d.name, d.online, d.socket_states.length, d.socket_states);
-
 				var entry = tracker.device_entry(device_id);
 				if (entry) {
-					tracker.devices_updated[entry.index] = poweroutlet;
+					tracker.devices_updated[entry.index] = new Poweroutlet(d.id, d.name, d.online, d.socket_states.length, d.socket_states);
 				} else {
 					alert("Error: device mismatch. Contact Brad.");
 				}
@@ -131,7 +108,6 @@ class Poweroutlet_Tracker extends Data_Tracker {
 
 		for (var i = 0; i < device_json.length; ++i) {
 			var d = device_json[i];
-//console.log(JSON.stringify(device_json[i]));
 
 			var poweroutlet = new Poweroutlet(d.id, d.name, d.online, d.socket_states.length, d.socket_states);
 			var entry = tracker.device_entry(d.id);
@@ -152,12 +128,6 @@ class Poweroutlet_Tracker extends Data_Tracker {
 			}
 		}
 	}
-}
-
-function append_device_node(node) {
-	const device_panel = document.getElementById("device-panel");
-	device_panel.append(node);
-	device_panel.append(document.createElement("br"));
 }
 
 tracker = new Poweroutlet_Tracker();

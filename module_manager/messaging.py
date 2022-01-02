@@ -47,6 +47,7 @@ def generic_request_identity():
 def generic_ping():
 	return template.format(_get, _reg_id("GENERIC_REG_PING"), 0)
 
+
 def poweroutlet_get_count():
 	return template.format(_get, _reg_id("POWEROUTLET_REG_SOCKET_COUNT"), 0)
 
@@ -87,3 +88,11 @@ def poweroutlet_read_state(reg_value, socket_count = 8):
 			socket_states.append(0)
 
 	return socket_states
+
+
+def thermostat_get_temperature():
+	return template.format(_get, _reg_id("THERMOSTAT_REG_TEMPERATURE"), 0)
+
+def thermostat_get_humidity():
+	return template.format(_get, _reg_id("THERMOSTAT_REG_HUMIDITY"), 0)
+

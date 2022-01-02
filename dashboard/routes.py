@@ -76,31 +76,30 @@ def thermostat():
 @dashboard_app.route("/device/thermostat/refresh", methods=["GET"])
 def thermostat_fetch():
 	device_id = request.args.get("id")
-	thermostats = device_fetch(device_type = SH_defs.type_id("SH_TYPE_THERMOSTAT"))
+	thermostats = device_fetch(device_id, device_type = SH_defs.type_id("SH_TYPE_THERMOSTAT"))
 
-	temperature = None
-	humidity = None
 	if thermostats is None:
 		return "{\"result\": \"ERROR\"}"
 
+	valid_devices = []
 	for t in thermostats:
 		if not t["initialized"]:
 			continue
 
-		temperature = reg_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
-		humidity = reg_to_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
+		t["temperature"] = reg_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
+		t["humidity"] = reg_to_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
 
 		prune_device_obj(t)
+		valid_devices.append(t)
 
-	return str([temperature, humidity])
+	return json.dumps(valid_devices)
 
 @dashboard_app.route("/device/thermostat/command", methods=["POST"])
 def thermostat_command():
 #TODO: Debugging for now
 	device_id = request.args.get("id")
-	cmd = "null"
-	print("Issue command: " + cmd);
-	#si.data_transaction(si.device_command(device_id, cmd))
+	si.data_transaction(si.device_command(device_id, thermostat_get_temperature()))
+	si.data_transaction(si.device_command(device_id, thermostat_get_humidity()))
 	return "success"
 # --- ---
 

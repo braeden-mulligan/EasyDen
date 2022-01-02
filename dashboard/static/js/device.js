@@ -43,7 +43,35 @@ class SH_Device {
 	write_html(loading_flag = null) {
 //TODO: pending update flag, states: inactive, loading, failed.
 
-		var device_elem = document.createElement("div");
+		var device_elem = document.getElementById("device-" + this.id.toString());
+
+		if (device_elem != null) {
+			for (var i = 0; i < device_elem.children.length; ++i) {
+				var attr = device_elem.children[i];
+
+				if (attr.className == SH_Device.class_label_name) {
+					attr.innerHTML = this.name;
+
+				} else if (attr.className == SH_Device.class_label_online) {
+					attr.innerHTML = this.online.toString();
+
+				} else if (attr.className == "sh-device-waiting-flag") {
+					if (loading_flag == "loading") {
+						attr.style.display = "block";
+						attr.innerHTML = "Loading...";
+					} else if (loading_flag == "error") {
+						attr.style.display = "block";
+						attr.innerHTML = "Error communicating with device";
+					} else {
+						attr.style.display = "none";
+					}	
+				}
+			}
+
+			return device_elem;
+		}
+
+		device_elem = document.createElement("div");
 		device_elem.setAttribute("id", "device-" + this.id.toString());
 		device_elem.setAttribute("class", "sh-device"); 
 
@@ -293,3 +321,10 @@ function send_command(id, command, device_url_snippet) {
 	xhr.open("POST", url, true);
 	xhr.send(command);
 }
+
+function append_device_node(node) {
+	const device_panel = document.getElementById("device-panel");
+	device_panel.append(node);
+	device_panel.append(document.createElement("br"));
+}
+

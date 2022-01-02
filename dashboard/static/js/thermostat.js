@@ -1,21 +1,15 @@
-/*
-class Poweroutlet extends SH_Device {
-	static elem_tag_socket_count = "div";
+class Thermostat extends SH_Device {
+	static class_label_temperature = "thermostat-attr-temperature";
+	static class_label_humidity = "thermostat-attr-humidity";
 
-	static class_label_socket_count = "poweroutlet-attr-socket-count";
-	static class_label_socket_list = "poweroutlet-attr-socket-list";
-	static class_label_socket_item = "poweroutlet-attr-socket-item";
-	static class_label_socket_state = "poweroutlet-attr-socket-state";
-
-	constructor(id, name, online, socket_count = 0, socket_states = []) {
-		super(SH_Device.SH_TYPE_POWEROUTLET, id, name, online);
-		this.socket_count = socket_count;
-		this.socket_states = socket_states.slice();
+	constructor(id, name, online, temperature, humidity = 0.0) {
+		super(SH_Device.SH_TYPE_THERMOSTAT, id, name, online);
+		this.temperature = temperature;
+		this.humidity = humidity
 	}
 
 	copy() {
-		var copy_states = this.socket_states.slice();
-		return new Poweroutlet(this.id, this.name, this.online, this.socket_count, copy_states);
+		return new Thermostat(this.id, this.name, this.online, this.temperature, this.humidity);
 	}
 
 	differ(sh_device) {
@@ -23,108 +17,61 @@ class Poweroutlet extends SH_Device {
 
 		if (super.differ(sh_device)) return true;
 
-		for (var i = 0; i < this.socket_states.length; ++i) {
-			if (this.socket_states[i] != sh_device.socket_states[i]) return true;
-		}
+		if (this.temperature != sh_device.temperature) return true;
+		if (this.humidity != sh_device.humidity) return true;
 
 		return false;
 	}
 
 	write_html(loading_flag = null) {
-		var device_elem = document.getElementById("device-" + this.id.toString());
+		var device_elem = super.write_html(loading_flag);
 
-		if (device_elem != null) {
+		var existing_elem = document.getElementById("device-" + this.id.toString());
+
+		if (existing_elem != null) {
 			// Update all attributes that are mutable.
-			var socket_list;
-
-//TODO: Put block into generic function?
 			for (var i = 0; i < device_elem.children.length; ++i) {
 				var attr = device_elem.children[i];
-				if (attr.className == SH_Device.class_label_name) {
-					attr.innerHTML = this.name;
+				if (attr.className == Thermostat.class_label_temperature) {
+					attr.innerHTML = "Temperature: " + this.temperature.toFixed(1) + " °C";
 
-				} else if (attr.className == SH_Device.class_label_online) {
-					attr.innerHTML = this.online.toString();
-
-				} else if (attr.className == Poweroutlet.class_label_socket_list) {
-					socket_list = attr;
-
-//TODO Make this better.
-				} else if (attr.className == "sh-device-waiting-flag") {
-					if (loading_flag == "loading") {
-						attr.style.display = "block";
-						attr.innerHTML = "Loading...";
-					} else if (loading_flag == "error") {
-						attr.style.display = "block";
-						attr.innerHTML = "Error communicating with device";
-					} else {
-						attr.style.display = "none";
-					}	
+				} else if (attr.className == Thermostat.class_label_humidity) {
+					if (!this.humidity) this.humidity = -0.69;
+					attr.innerHTML = "Humidity: " + (this.humidity * 100).toFixed(1) + " %";
 				}
 			}
 
-			//each item should have a button and a state value
-			for (var i = 0; i < socket_list.children.length; ++i) {
-				var socket_item = socket_list.children[i];
-				for (var j = 0; j < socket_item.children.length; ++j) {
-					if (socket_item.children[j].className == Poweroutlet.class_label_socket_state) {
-						socket_item.children[j].innerHTML = "Socket " + i + ": " + (this.socket_states[i] ? "ON" : "OFF");
-					}
-				}
-			}
-	
-			return null;
+			return;
 		}
 
-		device_elem = super.write_html();
+		var temp = document.createElement("p");
+		temp.setAttribute("class", Thermostat.class_label_temperature);
+		temp.innerHTML = "Temperature: " + this.temperature.toFixed(1) + " °C";
 
-		var p = document.createElement(Poweroutlet.elem_tag_socket_count);
-		p.innerHTML = "Socket count: " + this.socket_count;
-		device_elem.append(p);
+		var hum = document.createElement("p");
+		hum.setAttribute("class", Thermostat.class_label_humidity);
+		if (!this.humidity) this.humidity = -0.69;
+		hum.innerHTML = "Humidity: " + (this.humidity * 100).toFixed(1) + " %";
 
-		var outlet_list = document.createElement("ul");
-		outlet_list.setAttribute("class", Poweroutlet.class_label_socket_list);
-		for (var i = 0; i < this.socket_states.length; ++i) {
-			var entry = document.createElement("li");
-			entry.setAttribute("class", Poweroutlet.class_label_socket_item);
+		device_elem.append(temp);
+		device_elem.append(hum);
 
-			var outlet_state = document.createElement("p");
-			outlet_state.setAttribute("class", Poweroutlet.class_label_socket_state);
-			outlet_state.innerHTML = "Socket " + i + ": " + (this.socket_states[i] ? "ON" : "OFF");
-
-			var toggle_button =  document.createElement("button");
-			toggle_button.innerHTML = "Toggle";
-			toggle_button.device_id = this.id;
-			toggle_button.socket_index = i;
-			toggle_button.addEventListener('click', toggle_action, false);
-
-			entry.append(outlet_state);
-			entry.append(toggle_button);
-
-			outlet_list.append(entry);
-		}
-
-		device_elem.append(outlet_list);
-
-console.log(device_elem);
 		return device_elem;
 	}
 }
 
-class Poweroutlet_Tracker extends Data_Tracker {
+class Thermostat_Tracker extends Data_Tracker {
 	constructor() {
-		super(SH_Device.SH_TYPE_POWEROUTLET);
+		super(SH_Device.SH_TYPE_THERMOSTAT);
 	}
 
 	request_response_processor = function(device_json, tracker, device_id) {
 		for (var i = 0; i < device_json.length; ++i) {
 			var d = device_json[i];
 			if (d.id == device_id) {
-				var poweroutlet = new Poweroutlet(d.id, d.name, d.online, d.socket_states.length, d.socket_states);
-
 				var entry = tracker.device_entry(device_id);
 				if (entry) {
-					tracker.devices_updated[entry.index] = poweroutlet;
+					tracker.devices_updated[entry.index] = new Thermostat(d.id, d.name, d.online, d.temperature, d.humidity);
 				} else {
 					alert("Error: device mismatch. Contact Brad.");
 				}
@@ -132,44 +79,42 @@ class Poweroutlet_Tracker extends Data_Tracker {
 		}
 	}
 
-//TODO: Move to generic. Parse and pass specific device 
 	global_poll_response_processor = function(device_json, tracker) {
-		// Check in case active tracking was started between the originating request and this callback.
-		//   We don't want the active tracking to miss an update.
 		if (!tracker.global_poll_active) return; 
 
 		for (var i = 0; i < device_json.length; ++i) {
 			var d = device_json[i];
-//console.log(JSON.stringify(device_json[i]));
 
-			var poweroutlet = new Poweroutlet(d.id, d.name, d.online, d.socket_states.length, d.socket_states);
+			var thermostat = new Thermostat(d.id, d.name, d.online, d.temperature, d.humidity);
 			var entry = tracker.device_entry(d.id);
 
 			if (entry) {
-				tracker.devices_updated[entry.index] = poweroutlet;
+				tracker.devices_updated[entry.index] = thermostat;
 
-				if (tracker.devices[entry.index].differ(poweroutlet)) {
+				if (tracker.devices[entry.index].differ(thermostat)) {
 					console.log("Global poll found diff");
 					tracker.devices_updated[entry.index].write_html();
 				}
 				tracker.devices[i] = tracker.devices_updated[i].copy();
 
 			} else {
-		console.log("Adding new device");
-				append_device_node(poweroutlet.write_html());
-				tracker.device_add(poweroutlet);
+				console.log("Global poll found new device");
+				append_device_node(thermostat.write_html());
+				tracker.device_add(thermostat);
 			}
 		}
 	}
 }
 
-function append_device_node(node) {
-	const device_panel = document.getElementById("device-panel");
-	device_panel.append(node);
-	device_panel.append(document.createElement("br"));
-}
+tracker = new Thermostat_Tracker();
 
 // Main ----
 
 tracker.start_global_poll(true);
-*/
+
+//TODO: debug for now, this should happen in back end.
+setInterval(function () {
+	for (var i = 0; i < tracker.devices.length; ++i) {
+		send_command(tracker.devices[i].id, "update", "thermostat");
+	}
+}, 25000);

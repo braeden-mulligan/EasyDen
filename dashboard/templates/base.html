@@ -3,6 +3,8 @@
 <head lang="en">
 	<link rel="stylesheet" href="{{ url_for('static', filename = 'css/base_style.css') }}">
 
+	{% block styles %} {% endblock %}
+
 	<meta charset="utf-8">
 	{% if title %}	
 	<title>SmartHome | {{title}}</title>

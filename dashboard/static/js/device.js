@@ -58,11 +58,21 @@ class SH_Device {
 				} else if (attr.className == "sh-device-waiting-flag") {
 					if (loading_flag == "loading") {
 						attr.style.display = "block";
-						attr.innerHTML = "Loading...";
+						//attr.innerHTML = "Loading...";
+for (var i = 0; i < attr.children.length; ++i) {
+	attr.children[i].style.animationPlayState = "running";
+}
+
 					} else if (loading_flag == "error") {
 						attr.style.display = "block";
-						attr.innerHTML = "Error communicating with device";
+						//attr.innerHTML = "Error communicating with device";
+for (var i = 0; i < attr.children.length; ++i) {
+	attr.children[i].style.animationPlayState = "paused";
+}
 					} else {
+for (var i = 0; i < attr.children.length; ++i) {
+	attr.children[i].style.animationPlayState = "paused";
+}
 						attr.style.display = "none";
 					}	
 				}
@@ -78,6 +88,10 @@ class SH_Device {
 		var attr = document.createElement("div");
 		attr.setAttribute("class", "sh-device-waiting-flag"); 
 		attr.style.display = "none";
+
+		attr.append(document.createElement("div"));
+		attr.append(document.createElement("div"));
+
 		device_elem.append(attr);
 
 		attr = document.createElement(SH_Device.elem_tag_id);
@@ -193,9 +207,10 @@ class Data_Tracker {
 				var device = this.device_entry(device_id).device;
 				device.write_html("error");
 				
-				this.start_global_poll(false);
 			}
 		}
+
+		if (this.pending_requests.length == 0) this.start_global_poll(false);
 	}
 	
 	request_check(seek_id /*, get vs set, notify_callback ?*/) {
@@ -225,7 +240,7 @@ class Data_Tracker {
 			this.devices[current.index] = after.device.copy();
 			this.devices[current.index].write_html("none");
 
-			this.start_global_poll(false);
+			if (this.pending_requests.length == 0) this.start_global_poll(false);
 
 		} else {
 			fetch_devices(this, seek_id, this.device_type, true);

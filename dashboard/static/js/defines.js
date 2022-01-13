@@ -1,2 +1,2 @@
-let SERVER_ADDR = "192.168.0.100";
+let SERVER_ADDR = location.hostname
 

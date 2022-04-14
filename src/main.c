@@ -1,4 +1,4 @@
-#include "arduino_wifi_app.h"
+#include "arduino_wifi_framework.h"
 #include "device_definition.h"
 #include "avr_utilities.h"
 
@@ -18,6 +18,7 @@
 #define OUTLET_7_STATE !!(PORTD & (1 << PB3))
 
 #define EEPROM_ADDR_SOCKET_COUNT 256
+#define EEPROM_ADDR_VALUES_INVERTED 257
 
 #define EEPROM_ADDR_OUTLET_0_MEM 512
 #define EEPROM_ADDR_OUTLET_1_MEM 513
@@ -30,6 +31,8 @@
 
 uint8_t socket_count;
 
+uint8_t values_inverted;
+
 uint32_t outlet_get(void) {
 	uint32_t status_mask = 0;
 	status_mask |= (OUTLET_0_STATE) << 0;
@@ -40,10 +43,13 @@ uint32_t outlet_get(void) {
 	status_mask |= (OUTLET_5_STATE) << 5;
 	status_mask |= (OUTLET_6_STATE) << 6;
 	status_mask |= (OUTLET_7_STATE) << 7;
-	return status_mask;
+
+	return values_inverted ? (0xFFF0 | (~status_mask)) : status_mask; 
 }
 
 void outlet_set(uint32_t status_mask) {
+	if (values_inverted) status_mask = (0xFFF0 & status_mask) | (~status_mask);
+
 	if (status_mask & (1 << 8)) {
 		if (status_mask & (1 << 0)) {
 			PORTD |= (1 << PD4); 
@@ -138,6 +144,7 @@ void outlet_init(void) {
 	DDRB |= (1 << PB3);
 
 	socket_count = eeprom_read_byte((uint8_t*)EEPROM_ADDR_SOCKET_COUNT);
+	values_inverted = eeprom_read_byte((uint8_t*)EEPROM_ADDR_VALUES_INVERTED);
 
 	uint8_t outlet0 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_0_MEM);
 	uint8_t outlet1 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_1_MEM);
@@ -148,25 +155,26 @@ void outlet_init(void) {
 	uint8_t outlet6 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_6_MEM);
 	uint8_t outlet7 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_7_MEM);
 
-	uint32_t status_mask = 0x0000FF00;
-	status_mask |= outlet0 | (outlet1 << 1) | (outlet2 << 2) | (outlet3 << 3);
-	status_mask |= (outlet4 << 4) | (outlet5 << 5) | (outlet6 << 6) | (outlet7 << 7);
+	uint32_t status_mask = 0x0000FFF0;
+	status_mask |= outlet0 | (outlet1 << 1) | (outlet2 << 2) | (outlet3 << 3) |
+	  (outlet4 << 4) | (outlet5 << 5) | (outlet6 << 6) | (outlet7 << 7);
+
 	outlet_set(status_mask);
 }
 
 int main(void) {
 	outlet_init();
 
-	struct wifi_app_config app_conf = wifi_app_config_create();
+	struct wifi_framework_config app_conf = wifi_framework_config_create();
 
 	app_conf.wifi_startup_timeout = 7;
-	app_conf.connection_interval = 20;
+	app_conf.connection_interval = 40;
 	app_conf.server_message_get_callback = handle_server_get;
 	app_conf.server_message_set_callback = handle_server_set;
 	
-	wifi_app_init(&app_conf);
+	wifi_framework_init(&app_conf);
 
-	wifi_app_start();
+	wifi_framework_start();
 
 	// If here is reached, error occurred
 	blink_led(-1, 1000);

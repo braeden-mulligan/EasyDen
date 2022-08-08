@@ -14,7 +14,7 @@ DEVICE_DEFINITIONS_PATH = "/../../libraries/common/device_definition.h"
 
 if ENV == "production":
 	BASE_DIR = "/root/server"
-	#SERVER_ADDR = "192.168.1.85"
+	#SERVER_ADDR = "192.168.1.69"
 	DEBUG = False
 
 elif ENV == "development":

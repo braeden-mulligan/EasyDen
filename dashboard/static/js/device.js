@@ -1,10 +1,5 @@
 class SH_Device {
 	static SH_TYPE_NULL = 0;
-	static SH_TYPE_RESERVED_1 = 1;
-	static SH_TYPE_RESERVED_2 = 2;
-	static SH_TYPE_RESERVED_3 = 3;
-	static SH_TYPE_RESERVED_4 = 4;
-	static SH_TYPE_RESERVED_5 = 5;
 	static SH_TYPE_IRRIGATION = 6;
 	static SH_TYPE_POWEROUTLET = 7;
 	static SH_TYPE_THERMOSTAT = 8;

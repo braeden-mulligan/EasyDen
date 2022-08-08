@@ -67,7 +67,7 @@ def prune_device_obj(device):
 
 @dashboard_app.route("/device/irrigator")
 def irrigator():
-	return "Irrigation not yet available"
+	return render_template("irrigation.html", title="Irrigation")
 
 @dashboard_app.route("/device/thermostat")
 def thermostat():

@@ -90,45 +90,77 @@ class SH_Device:
 			self.device_attrs[reg] = val
 		return
 
-#TODO: improve parsing robustness
-	def parse_message(self, packet_string):
-		words = [int(w, 16) for w in packet_string.split(',')]
+	def parse_packet(packet):
+		try:
+			words = [int(w, 16) for w in packet.split(',')]
+		except Exception as e:
+			#TODO: log?
+			return None
 
-		prev_msg_cmd = None
-		prev_words = None
+		if len(words) != 4:
+			return None
+
+		return tuple(words)
+
+	def process_message(self, packet):
+		try:
+			msg_seq, msg_cmd, msg_reg, msg_val = parse_packet(packet)
+		except TypeError:
+			return None
+		
+		sent_seq = sent_cmd = sent_reg = sent_val = None
 
 		if self.pending_response:
-			prev_words = [int(w, 16) for w in self.pending_response[0].split(',')]
-			if prev_words[0] == words[0]:
+			sent_seq, sent_cmd, sent_reg, sent_val = parse_packet(self.pending_response[0])
+			if msg_seq == sent_seq:
 				self.pending_response = None
-				prev_msg_cmd = prev_words[1]
 
-		# Check this to avoid sending diplicate messages.
+		# Check this to avoid sending obselete duplicate requests.
+		# TODO: Further investigate conditions this would occur... 
+		# pending response cleared after timeout -> duplicate request gets queued to send -> device responds before request is re-sent?
 		elif self.pending_send:
 			print("No pending_response, checking send queue.")
 			for entry in self.pending_send:
-				prev_words = [int(w, 16) for w in entry[0].split(',')]
-				if prev_words[0] == words[0]:
+				sent_seq, sent_cmd, sent_reg, sent_val = parse_packet(entry)
+				if msg_seq == sent_seq:
 					print("Found in send queue. Waiting transmission removed.")
 					self.pending_send.remove(entry)
-					prev_msg_cmd = prev_words[1]
 
 		else:
-			print("parse_message error. Recv does not correspond to anything pending.")
+			print("process_message error. Received packet does not correspond to any pending messages.")
 			return None
 
-		if words[1] == SH_defs.CMD_RSP and prev_msg_cmd == SH_defs.CMD_GET:
-			self.update_attributes(words[2], words[3])
+		if msg_cmd == SH_defs.CMD_RSP and sent_cmd == SH_defs.CMD_GET:
+			self.update_attributes(msg_reg, msg_val)
 
-		elif words[1] == SH_defs.CMD_RSP and prev_msg_cmd == SH_defs.CMD_SET: 
-			self.update_attributes(prev_words[2], prev_words[3])
+		elif msg_cmd == SH_defs.CMD_RSP and sent_cmd == SH_defs.CMD_SET: 
+			self.update_attributes(sent_reg, send_val)
 
-		elif words[1] == SH_defs.CMD_IDY:
-			self.device_type = words[2]
-			self.device_id = words[3]
+		elif msg_cmd == SH_defs.CMD_IDY:
+			self.device_type = msg_reg
+			self.device_id = msg_val
 			return self.device_id
 
-		return None
+		return 0
+
+	def device_recv(self):
+		if self.soc_connection is not None:
+			try:
+				# This should always return bytes because we use i/o poll mechanism.
+				msg = self.soc_connection.recv(32).decode()
+			except Exception as e:
+				print(e)
+				return -1
+
+			print("Device " + str(self.device_id) + " recv: [" + msg + "]")
+
+			self.update_last_contact()
+			
+			recv_result = self.process_message(msg)
+			if recv_result is None:
+				return -2
+			return recv_result
+		return 0
 
 	def device_send(self, message, retries = -1, raw_packet= None):
 		r = retries 
@@ -139,7 +171,7 @@ class SH_Device:
 			m = raw_packet or "{:04X},".format(self.msg_seq) + message
 			if raw_packet is None:
 				self.msg_seq += 1
-				if self.msg_seq >= 65535:
+				if self.msg_seq >= 5:
 					self.msg_seq = 1;
 
 			print("\nDevice " + str(self.device_id) + " submit: [" + m + "] retries = " + str(r))
@@ -153,18 +185,6 @@ class SH_Device:
 
 			return True 
 		return False
-
-# This should always return bytes because we use i/o poll mechanism.
-	def device_recv(self):
-		if self.soc_connection is not None:
-			#TODO: try: except to prevent potential for crashes
-			msg = self.soc_connection.recv(32).decode()
-			print("Device " + str(self.device_id) + " recv: [" + msg + "]")
-
-			self.update_last_contact()
-
-			return self.parse_message(msg)
-		return None
 
 	def disconnect(self):
 		self.online_status = False
@@ -184,8 +204,9 @@ class SH_Device:
 
 	def check_heartbeat(self):
 		if self.pending_response:
-			words = [int(w, 16) for w in self.pending_response[0].split(',')]
-			if words[2] == SH_defs.register_id("GENERIC_REG_PING"):
+			_, _, pending_reg, _ = parse_packet(self.pending_response[0])
+			
+			if pending_reg == SH_defs.register_id("GENERIC_REG_PING"):
 				# Already waiting on a heartbeat check.
 				return
 		if self.online_status:
@@ -195,8 +216,10 @@ class SH_Device:
 				self.soc_last_heartbeat = time.time()
 
 	def initialization_task(self):
-		if self.fully_initialized or not self.device_id or self.pending_response:
-			return self.fully_initialized
+		if self.fully_initialized:
+			return True
+		if not self.device_id or self.pending_response:
+			return False
 
 		necessary_attributes = []
 
@@ -206,6 +229,9 @@ class SH_Device:
 
 		elif self.device_type == SH_defs.type_id("SH_TYPE_THERMOSTAT"):
 			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_TEMPERATURE"))
+
+		elif self.device_type == SH_defs.type_id("SH_TYPE_IRRIGATION"):
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE"))
 
 		else:
 			return self.fully_initialized

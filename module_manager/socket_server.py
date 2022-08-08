@@ -3,6 +3,7 @@ from .device import SH_Device
 from .messaging import *
 
 import json, select, socket, sys, time, os
+import logging
 
 device_list = []
 dashboard_connections = []
@@ -55,8 +56,13 @@ def device_from_attr(soc_fd = -1, device_id = -1):
 			return d
 	return None
 
-def handle_device_message(device, new_id):
-	if new_id: # Check for duplicate devices
+def handle_device_message(device):
+	recv_code = device.device_recv()
+
+	if recv_code < 0:
+		return False
+
+	elif recv_code > 0: # ID detected, check for duplicate devices
 		for existing_device in device_list:
 			if new_id == existing_device.device_id and device is not existing_device:
 				# We have an already existing entry with this id
@@ -65,7 +71,8 @@ def handle_device_message(device, new_id):
 				existing_device.pending_response = None
 				print("Duplicate device found with id " + str(new_id))
 				device_list.remove(device)
-	return 
+
+	return True
 
 # --- ---
 
@@ -203,8 +210,7 @@ def handle_dashboard_message(dash_conn, msg):
 
 # --- ---
 
-
-def run():
+def main_loop():
 	print("Starting socket server.")
 	poller = select.poll()
 
@@ -262,8 +268,11 @@ def run():
 						print("Device disconnected.")
 						# Socket now closed so set device to disconnected. 
 						device.disconnect() # But do not remove device from list.
-					else:
-						handle_device_message(device, device.device_recv())
+					elif not handle_device_message(device):
+#TODO: Decide what to do depending how handle_device_message fails
+						socket_close(device.soc_connection, poller)
+						device.disconnect() 
+
 					print(" ")
 
 		for d in device_list:
@@ -279,3 +288,12 @@ def run():
 		# other routine checks.
 		# ...
 
+def run():
+	logging.basicConfig(filename="logs/module_manager.log", level = logging.DEBUG, format = "[%(asctime)s %(levelname)s %(name)s %(message)s] : ")
+	logger = logging.getLogger(__name__)
+
+	#sys.excepthook = crash_handler
+	try:
+		main_loop()
+	except:
+		logging.exception("Module manager crashed!")

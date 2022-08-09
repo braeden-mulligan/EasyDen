@@ -73,8 +73,6 @@ class SH_Device:
 		elif self.pending_send:
 			p, r = self.pending_send.pop(0)
 			print("Transmitting: [" + str(p) + "]. " + str(r) + " retries available...")
-			#try:
-			#TODO: except close broken connections 
 			if self.soc_connection:
 				self.pending_response = (p, time.time(), r)
 				self.soc_connection.send(p.encode())
@@ -90,38 +88,40 @@ class SH_Device:
 			self.device_attrs[reg] = val
 		return
 
-	def parse_packet(packet):
+	def parse_packet(self, packet):
 		try:
 			words = [int(w, 16) for w in packet.split(',')]
 		except Exception as e:
-			#TODO: log?
+			#TODO: log to determine frequency?
+			print(e)
 			return None
 
 		if len(words) != 4:
 			return None
 
-		return tuple(words)
+		return words
 
 	def process_message(self, packet):
 		try:
-			msg_seq, msg_cmd, msg_reg, msg_val = parse_packet(packet)
+			msg_seq, msg_cmd, msg_reg, msg_val = self.parse_packet(packet)
 		except TypeError:
+			print("Packet parsing failed!")
 			return None
 		
 		sent_seq = sent_cmd = sent_reg = sent_val = None
 
 		if self.pending_response:
-			sent_seq, sent_cmd, sent_reg, sent_val = parse_packet(self.pending_response[0])
+			sent_seq, sent_cmd, sent_reg, sent_val = self.parse_packet(self.pending_response[0])
 			if msg_seq == sent_seq:
 				self.pending_response = None
 
 		# Check this to avoid sending obselete duplicate requests.
 		# TODO: Further investigate conditions this would occur... 
-		# pending response cleared after timeout -> duplicate request gets queued to send -> device responds before request is re-sent?
+		#   pending response cleared after timeout -> duplicate request gets queued to send -> device responds before request is re-sent?
 		elif self.pending_send:
 			print("No pending_response, checking send queue.")
 			for entry in self.pending_send:
-				sent_seq, sent_cmd, sent_reg, sent_val = parse_packet(entry)
+				sent_seq, sent_cmd, sent_reg, sent_val = self.parse_packet(entry)
 				if msg_seq == sent_seq:
 					print("Found in send queue. Waiting transmission removed.")
 					self.pending_send.remove(entry)
@@ -152,7 +152,7 @@ class SH_Device:
 				print(e)
 				return -1
 
-			print("Device " + str(self.device_id) + " recv: [" + msg + "]")
+			print("Received [" + msg + "] from device: " + str(self.device_id))
 
 			self.update_last_contact()
 			
@@ -174,7 +174,7 @@ class SH_Device:
 				if self.msg_seq >= 5:
 					self.msg_seq = 1;
 
-			print("\nDevice " + str(self.device_id) + " submit: [" + m + "] retries = " + str(r))
+			print("\nSubmit: [" + m + "] (retries = " + str(r) + ") to device " + str(self.device_id))
 
 			if len(self.pending_send) >= self.max_pending_messages:
 				print("Device send buffer full")
@@ -204,7 +204,7 @@ class SH_Device:
 
 	def check_heartbeat(self):
 		if self.pending_response:
-			_, _, pending_reg, _ = parse_packet(self.pending_response[0])
+			_, _, pending_reg, _ = self.parse_packet(self.pending_response[0])
 			
 			if pending_reg == SH_defs.register_id("GENERIC_REG_PING"):
 				# Already waiting on a heartbeat check.

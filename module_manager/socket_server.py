@@ -64,12 +64,12 @@ def handle_device_message(device):
 
 	elif recv_code > 0: # ID detected, check for duplicate devices
 		for existing_device in device_list:
-			if new_id == existing_device.device_id and device is not existing_device:
+			if recv_code == existing_device.device_id and device is not existing_device:
 				# We have an already existing entry with this id
 				# Update old entry with new socket and delete current device object
 				existing_device.connect(device.soc_connection)
 				existing_device.pending_response = None
-				print("Duplicate device found with id " + str(new_id))
+				print("Duplicate device found with id " + str(recv_code))
 				device_list.remove(device)
 
 	return True
@@ -296,4 +296,5 @@ def run():
 	try:
 		main_loop()
 	except:
+		print("Caught unhandled exception. Check logs for details.")
 		logging.exception("Module manager crashed!")

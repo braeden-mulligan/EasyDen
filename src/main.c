@@ -1,6 +1,7 @@
 #include "arduino_wifi_framework.h"
 #include "device_definition.h"
 #include "avr_utilities.h"
+#include "nano_configs_eeprom_offsets.h"
 
 #include <avr/eeprom.h>
 #include <avr/io.h>
@@ -17,9 +18,6 @@
 #define OUTLET_6_STATE !!(PORTD & (1 << PB2))
 #define OUTLET_7_STATE !!(PORTD & (1 << PB3))
 
-#define EEPROM_ADDR_SOCKET_COUNT 256
-#define EEPROM_ADDR_VALUES_INVERTED 257
-
 #define EEPROM_ADDR_OUTLET_0_MEM 512
 #define EEPROM_ADDR_OUTLET_1_MEM 513
 #define EEPROM_ADDR_OUTLET_2_MEM 514
@@ -33,6 +31,8 @@ uint8_t socket_count;
 
 uint8_t values_inverted;
 
+uint8_t blink_trigger;
+
 uint32_t outlet_get(void) {
 	uint32_t status_mask = 0;
 	status_mask |= (OUTLET_0_STATE) << 0;
@@ -44,11 +44,11 @@ uint32_t outlet_get(void) {
 	status_mask |= (OUTLET_6_STATE) << 6;
 	status_mask |= (OUTLET_7_STATE) << 7;
 
-	return values_inverted ? (0xFFF0 | (~status_mask)) : status_mask; 
+	return values_inverted ? ~(0xFFFFFFF0 | status_mask) : status_mask; 
 }
 
 void outlet_set(uint32_t status_mask) {
-	if (values_inverted) status_mask = (0xFFF0 & status_mask) | (~status_mask);
+	if (values_inverted) status_mask = (0x0000FFF0 & status_mask) | (~status_mask);
 
 	if (status_mask & (1 << 8)) {
 		if (status_mask & (1 << 0)) {
@@ -125,11 +125,29 @@ uint32_t handle_server_get(uint16_t reg) {
 }
 
 uint32_t handle_server_set(uint16_t reg, uint32_t val) {
+	if (reg == GENERIC_REG_BLINK) blink_trigger = 0;
 	if (reg == POWEROUTLET_REG_STATE) {
 		outlet_set(val);
 		return outlet_get();
 	}
 	return 0;
+}
+
+void blink_identify(void) {
+	if (blink_trigger) {
+		blink_trigger = 0;
+
+		uint32_t saved_outlet_state = outlet_get();
+
+		for (uint8_t i = 0; i < 3; ++i) {
+			outlet_set(0x0000FFFF);
+			_delay_ms(750);
+			outlet_set(0x0000FFF0);
+			_delay_ms(750);
+		}
+
+		outlet_set(0x0000FFF0 | saved_outlet_state);
+	}
 }
 
 void outlet_init(void) {
@@ -143,8 +161,8 @@ void outlet_init(void) {
 	DDRB |= (1 << PB2);
 	DDRB |= (1 << PB3);
 
-	socket_count = eeprom_read_byte((uint8_t*)EEPROM_ADDR_SOCKET_COUNT);
-	values_inverted = eeprom_read_byte((uint8_t*)EEPROM_ADDR_VALUES_INVERTED);
+	socket_count = eeprom_read_byte((uint8_t*)POWER_OUTLET_EEPROM_ADDR_SOCKET_COUNT);
+	values_inverted = eeprom_read_byte((uint8_t*)POWER_OUTLET_EEPROM_ADDR_VALUES_INVERTED);
 
 	uint8_t outlet0 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_0_MEM);
 	uint8_t outlet1 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_1_MEM);
@@ -158,11 +176,13 @@ void outlet_init(void) {
 	uint32_t status_mask = 0x0000FFF0;
 	status_mask |= outlet0 | (outlet1 << 1) | (outlet2 << 2) | (outlet3 << 3) |
 	  (outlet4 << 4) | (outlet5 << 5) | (outlet6 << 6) | (outlet7 << 7);
+	if (values_inverted) status_mask = (0x0000FFF0 | ~status_mask);
 
 	outlet_set(status_mask);
 }
 
 int main(void) {
+	blink_trigger = 0;
 	outlet_init();
 
 	struct wifi_framework_config app_conf = wifi_framework_config_create();
@@ -171,13 +191,14 @@ int main(void) {
 	app_conf.connection_interval = 40;
 	app_conf.server_message_get_callback = handle_server_get;
 	app_conf.server_message_set_callback = handle_server_set;
+	app_conf.app_main_callback = blink_identify;
 	
 	wifi_framework_init(&app_conf);
 
 	wifi_framework_start();
 
 	// If here is reached, error occurred
-	blink_led(-1, 1000);
+	nano_onboard_led_blink(-1, 1000);
 	
 	return 0;
 }

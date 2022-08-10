@@ -1,4 +1,4 @@
-PROJECT_DEFINES := -DSH_ENDPOINT 
+PROJECT_DEFINES := 
 
 INCLUDE_PATHS := -I src -I ../libraries/arduino/ -I ../libraries/arduino/include -I ../libraries/common
 CC := avr-gcc

@@ -31,7 +31,19 @@ uint8_t socket_count;
 
 uint8_t values_inverted;
 
+struct wifi_framework_config app_conf;
+
 uint8_t blink_trigger;
+
+void set_conf_fast_period(void) {
+	struct wifi_framework_config current_conf = wifi_framework_config_load();
+	current_conf.application_interval = 1;
+	wifi_framework_init(&current_conf);
+}
+
+void restore_app_conf(void) {
+	wifi_framework_init(&app_conf);
+}
 
 uint32_t outlet_get(void) {
 	uint32_t status_mask = 0;
@@ -125,7 +137,11 @@ uint32_t handle_server_get(uint16_t reg) {
 }
 
 uint32_t handle_server_set(uint16_t reg, uint32_t val) {
-	if (reg == GENERIC_REG_BLINK) blink_trigger = 0;
+	if (reg == GENERIC_REG_BLINK) {
+		set_conf_fast_period();
+		blink_trigger = 1;
+	}
+
 	if (reg == POWEROUTLET_REG_STATE) {
 		outlet_set(val);
 		return outlet_get();
@@ -148,6 +164,8 @@ void blink_identify(void) {
 
 		outlet_set(0x0000FFF0 | saved_outlet_state);
 	}
+
+	restore_app_conf();
 }
 
 void outlet_init(void) {
@@ -185,7 +203,7 @@ int main(void) {
 	blink_trigger = 0;
 	outlet_init();
 
-	struct wifi_framework_config app_conf = wifi_framework_config_create();
+	app_conf = wifi_framework_config_create();
 
 	app_conf.wifi_startup_timeout = 7;
 	app_conf.connection_interval = 40;

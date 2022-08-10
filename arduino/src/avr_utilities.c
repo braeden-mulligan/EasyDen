@@ -4,7 +4,7 @@
 #include <stdint.h>
 #include <util/delay.h>
 
-void blink_led(int16_t count, uint16_t period_ms) {
+void nano_onboard_led_blink(int16_t count, uint16_t period_ms) {
 	uint8_t ddrb_tmp = DDRB;
 	uint8_t portb_tmp = PORTB;
 

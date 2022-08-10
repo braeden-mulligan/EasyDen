@@ -3,6 +3,6 @@
 #ifndef AVR_UTILITIES_H
 #define AVR_UTILITIES_H
 
-void blink_led(int16_t count, uint16_t period_ms);
+void nano_onboard_led_blink(int16_t count, uint16_t period_ms);
 
 #endif

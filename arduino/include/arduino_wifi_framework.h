@@ -36,6 +36,8 @@ struct wifi_framework_config {
 
 struct wifi_framework_config wifi_framework_config_create(void);
 
+struct wifi_framework_config wifi_framework_config_load(void);
+
 uint8_t wifi_framework_init(struct wifi_framework_config*);
 
 void wifi_framework_start(void);

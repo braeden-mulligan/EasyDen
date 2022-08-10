@@ -13,7 +13,7 @@
 	void load_metadata(struct sh_device_metadata* md) {
 		for (uint8_t i = 0; !eeprom_is_ready(); ++i) {
 			_delay_ms(100);
-			if (i > 10) blink_led(-1, 1000);
+			if (i > 10) nano_onboard_led_blink(-1, 1000);
 		}
 		md->type = eeprom_read_byte((uint8_t*)EEPROM_ADDR_TYPE);
 		md->id = eeprom_read_byte((uint8_t*)EEPROM_ADDR_ID);

@@ -37,7 +37,7 @@ static struct sh_device_metadata metadata;
 
 static struct ESP8266_network_parameters esp_params;
 
-static struct wifi_framework_config* config;
+static struct wifi_framework_config config;
 
 static char server_message_buf[SERVER_MSG_SIZE_MAX];
 
@@ -48,11 +48,11 @@ static void error_check(uint8_t cmd_result) {
 	case ESP8266_CMD_TIMEOUT:
 	case ESP8266_CMD_ERROR:
 	default:
-		for (uint32_t i = 0; i < config->command_timeout; i += 100) {
+		for (uint32_t i = 0; i < config.command_timeout; i += 100) {
 			ESP8266_poll(&esp_params, 100);
 		}
 
-		//blink_led(5, 500);
+		//nano_onboard_led_blink(5, 500);
 
 		break;
 	}
@@ -68,15 +68,15 @@ static void process_server_message(void) {
 		switch (msg_packet.cmd) {
 		case CMD_GET:
 			msg_packet.cmd = CMD_RSP;
-			if (config->server_message_get_callback != NULL) {
-				msg_packet.val = config->server_message_get_callback(msg_packet.reg);
+			if (config.server_message_get_callback != NULL) {
+				msg_packet.val = config.server_message_get_callback(msg_packet.reg);
 			}
 			break;
 
 		case CMD_SET:
 			msg_packet.cmd = CMD_RSP;
-			if (config->server_message_set_callback != NULL) {
-				msg_packet.val = config->server_message_set_callback(msg_packet.reg, msg_packet.val);
+			if (config.server_message_set_callback != NULL) {
+				msg_packet.val = config.server_message_set_callback(msg_packet.reg, msg_packet.val);
 			}
 			break;
 
@@ -94,7 +94,7 @@ static void process_server_message(void) {
 
 		if (sh_build_packet(&msg_packet, send_buf) != SH_PROTOCOL_SUCCESS) return;
 		if (wifi_send(send_buf) != ARDUINO_WIFI_SUCCESS) {
-			//config->server_message_error_callback();
+			//config.server_message_error_callback();
 		}
 
 		server_message_dequeue();
@@ -117,7 +117,7 @@ static uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_param
 // Allow time for WiFi module startup.
 static void module_startup_procedure(void) {
 	timer8_deinit();
-	timer8_init(config->wifi_startup_timeout * 1000, 1);
+	timer8_init(config.wifi_startup_timeout * 1000, 1);
 	timer8_start();
 
 	while (!timer8_flag) {
@@ -129,7 +129,7 @@ static void module_startup_procedure(void) {
 
 // In case the ESP8266 sent "ready" before the arduino could catch it.
 	if (!esp_params.module_ready) {
-		if (try_command(ESP8266_ping, config->command_timeout, config->command_retries) == ESP8266_CMD_SUCCESS) {
+		if (try_command(ESP8266_ping, config.command_timeout, config.command_retries) == ESP8266_CMD_SUCCESS) {
 			esp_params.module_ready = 1;
 		}
 	}
@@ -140,24 +140,24 @@ static uint8_t ssid_match = 0;
 static void module_check(void) {
 	uint8_t cmd_result;
 
-	if (esp_params.command_echo) try_command(ESP8266_echo_disable, config->command_timeout, config->command_retries); 
+	if (esp_params.command_echo) try_command(ESP8266_echo_disable, config.command_timeout, config.command_retries); 
 
-	if (!esp_params.wifi_mode) try_command(ESP8266_wifi_mode_get, config->command_timeout, config->command_retries);
+	if (!esp_params.wifi_mode) try_command(ESP8266_wifi_mode_get, config.command_timeout, config.command_retries);
 
 	if (esp_params.wifi_mode != ESP8266_MODE_STATION) {
-		if (try_command(ESP8266_wifi_mode_set, config->command_timeout, config->command_retries) != ESP8266_CMD_SUCCESS) return;
+		if (try_command(ESP8266_wifi_mode_set, config.command_timeout, config.command_retries) != ESP8266_CMD_SUCCESS) return;
 	}
 
 	for (uint8_t i = 0; (i < 3) && (!ssid_match); ++i) {
-		cmd_result = ESP8266_ap_query(&esp_params, config->command_timeout, wifi_ssid, &ssid_match);
+		cmd_result = ESP8266_ap_query(&esp_params, config.command_timeout, wifi_ssid, &ssid_match);
 		error_check(cmd_result);
 
 		if (cmd_result == ESP8266_CMD_SUCCESS && !ssid_match) {
-			error_check(ESP8266_lan_connect(&esp_params, config->wifi_startup_timeout * 1000, wifi_ssid, wifi_pass)); 
+			error_check(ESP8266_lan_connect(&esp_params, config.wifi_startup_timeout * 1000, wifi_ssid, wifi_pass)); 
 		}
 	}
 
-	try_command(ESP8266_status, config->command_timeout, config->command_retries);
+	try_command(ESP8266_status, config.command_timeout, config.command_retries);
 
 	if (!esp_params.lan_connection) {
 		return;
@@ -166,7 +166,7 @@ static void module_check(void) {
 		return;
 
 	} else if (!esp_params.tcp_connection) {
-		error_check(ESP8266_socket_connect(&esp_params, config->wifi_startup_timeout * 1000, socket_addr, socket_port));
+		error_check(ESP8266_socket_connect(&esp_params, config.wifi_startup_timeout * 1000, socket_addr, socket_port));
 	} 
 
 	process_server_message();
@@ -179,7 +179,7 @@ uint8_t wifi_send(char* message) {
 	uint8_t result = ESP8266_CMD_SUCCESS;
 
 	if (esp_params.tcp_connection) {
-		result = ESP8266_socket_send(&esp_params, config->command_timeout, message);
+		result = ESP8266_socket_send(&esp_params, config.command_timeout, message);
 	}
 
 	if (result == ESP8266_CMD_SUCCESS) return ARDUINO_WIFI_SUCCESS;
@@ -206,6 +206,10 @@ struct wifi_framework_config wifi_framework_config_create(void) {
 	return config_default;
 }
 
+struct wifi_framework_config wifi_framework_config_load(void) {
+	return config;
+}
+
 static uint8_t wifi_framework_initialized = 0;
 
 static uint16_t wifi_conn_clock_s;
@@ -214,14 +218,14 @@ static uint16_t application_clock_s;
 uint8_t wifi_framework_init(struct wifi_framework_config* wac) {
 	load_metadata(&metadata);
 
-	config = wac;
+	config = *wac;
 
 	wifi_conn_clock_s = 0;
 	application_clock_s = 0;
 
 	if (!wifi_framework_initialized) {
 		if (timer8_init(1000, 1) == TIMER_INIT_ERROR) return ARDUINO_WIFI_ERROR;
-		ESP8266_link_init(&esp_params, server_message_buf, SERVER_MSG_SIZE_MAX, config->server_latency_timeout);
+		ESP8266_link_init(&esp_params, server_message_buf, SERVER_MSG_SIZE_MAX, config.server_latency_timeout);
 		wifi_framework_initialized = 1;
 	}
 
@@ -231,7 +235,7 @@ uint8_t wifi_framework_init(struct wifi_framework_config* wac) {
 void wifi_framework_start(void) {
 	module_startup_procedure();
 
-	if (config->app_init_callback != NULL) config->app_init_callback();
+	if (config.app_init_callback != NULL) config.app_init_callback();
 
 	module_check();
 
@@ -245,13 +249,13 @@ void wifi_framework_start(void) {
 			timer8_restart();
 		}
 
-		if (wifi_conn_clock_s >= config->connection_interval) {
+		if (wifi_conn_clock_s >= config.connection_interval) {
 			module_check();
 			wifi_conn_clock_s = 0;
 		}
 
-		if (application_clock_s >= config->application_interval) {
-			if (config->app_main_callback != NULL) config->app_main_callback();
+		if (application_clock_s >= config.application_interval) {
+			if (config.app_main_callback != NULL) config.app_main_callback();
 			application_clock_s = 0;
 		}
 

@@ -13,10 +13,10 @@
 #define OUTLET_1_STATE !!(PORTD & (1 << PD5))
 #define OUTLET_2_STATE !!(PORTD & (1 << PD6))
 #define OUTLET_3_STATE !!(PORTD & (1 << PD7))
-#define OUTLET_4_STATE !!(PORTD & (1 << PB0))
-#define OUTLET_5_STATE !!(PORTD & (1 << PB1))
-#define OUTLET_6_STATE !!(PORTD & (1 << PB2))
-#define OUTLET_7_STATE !!(PORTD & (1 << PB3))
+#define OUTLET_4_STATE !!(PORTB & (1 << PB0))
+#define OUTLET_5_STATE !!(PORTB & (1 << PB1))
+#define OUTLET_6_STATE !!(PORTB & (1 << PB2))
+#define OUTLET_7_STATE !!(PORTB & (1 << PB3))
 
 #define EEPROM_ADDR_OUTLET_0_MEM 512
 #define EEPROM_ADDR_OUTLET_1_MEM 513

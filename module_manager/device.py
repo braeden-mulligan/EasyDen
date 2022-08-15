@@ -134,7 +134,7 @@ class SH_Device:
 			self.update_attributes(msg_reg, msg_val)
 
 		elif msg_cmd == SH_defs.CMD_RSP and sent_cmd == SH_defs.CMD_SET: 
-			self.update_attributes(sent_reg, send_val)
+			self.update_attributes(sent_reg, sent_val)
 
 		elif msg_cmd == SH_defs.CMD_IDY:
 			self.device_type = msg_reg

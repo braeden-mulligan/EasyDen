@@ -1,4 +1,4 @@
-export FLASK_APP=server_main.py
+export FLASK_APP=dashboard/__init__.py
 export FLASK_ENV=development
 export FLASK_DEBUG=1
 

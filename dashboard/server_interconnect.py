@@ -1,4 +1,4 @@
-import module_manager 
+import device_manager 
 
 import json, socket
 
@@ -31,7 +31,7 @@ def strerror(errno):
 def data_transaction(msg, timeout = 1.0):
 	soc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 	try:
-		soc.connect(module_manager.config.SERVER_INTERCONNECT)
+		soc.connect(device_manager.config.SERVER_INTERCONNECT)
 	except ConnectionRefusedError as e:
 		return "EXCEPTION: " + str(e)
 	except Exception as e:
@@ -80,6 +80,26 @@ def parse_response(transaction_result):
 		response_package = (SERVER_ERROR, message)
 
 	return response_package
+
+def fetch_devices(device_id = None, device_type = None):
+	query = "fetch "
+	if device_id:
+		query += "id " + str(device_id)
+	elif device_type:
+		query += "type " + str(device_type)
+	else:
+		query += "all"
+
+	response = data_transaction(query)
+	label, response = parse_response(response)
+
+	devices = []
+	if label == RESPONSE_JSON:
+		devices = response
+	else:
+		devices = None
+
+	return devices
 
 def compose_error_log(response_label, response_message):
 	response_message = response_message.replace('EXCEPTION:', "Socket exception")

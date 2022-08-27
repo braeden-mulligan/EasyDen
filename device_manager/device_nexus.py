@@ -289,7 +289,7 @@ def main_loop():
 		# ...
 
 def run():
-	logging.basicConfig(filename="logs/module_manager.log", level = logging.DEBUG, format = "[%(asctime)s %(levelname)s %(name)s %(message)s] : ")
+	logging.basicConfig(filename="logs/device_manager.log", level = logging.DEBUG, format = "[%(asctime)s %(levelname)s %(name)s %(message)s] : ")
 	logger = logging.getLogger(__name__)
 
 	#sys.excepthook = crash_handler

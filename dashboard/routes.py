@@ -1,9 +1,12 @@
 from flask import redirect, render_template, request, url_for
-from . import dashboard_app
 
-import module_manager.device_definitions as SH_defs
-from . import server_interconnect as si 
-from module_manager.messaging import *
+from dashboard import dashboard_app
+
+from device_manager.messaging import *
+import server_interconnect as interconnect 
+
+import controllers.thermostat as thermostat
+import controllers.poweroutlet as poweroutlet
 
 import json, os 
  
@@ -35,118 +38,34 @@ def debug():
 		return render_template("debug.html")
 	elif request.method == "POST":
 		debug_text = request.form["debug-input"]
-		response = si.data_transaction(debug_text)
+		response = interconnect.data_transaction(debug_text)
 		return render_template("debug.html", response = response)
 
-
-def device_fetch(device_id = None, device_type = None):
-	query = "fetch "
-	if device_id:
-		query += "id " + str(device_id)
-	elif device_type:
-		query += "type " + str(device_type)
-	else:
-		query += "all"
-
-	si_response = si.data_transaction(query)
-	label, response = si.parse_response(si_response)
-
-	devices = []
-	if label == si.RESPONSE_JSON:
-		devices = response
-	else:
-		devices = None
-
-	return devices
-
-def prune_device_obj(device):
-	del device["type"]
-	del device["initialized"]
-	del device["registers"]
-	return
-
 @dashboard_app.route("/device/irrigator")
-def irrigator():
+def irrigator_dash():
 	return render_template("irrigation.html", title="Irrigation")
 
 @dashboard_app.route("/device/thermostat")
-def thermostat():
+def thermostat_dash():
 	return render_template("thermostat.html", title="Thermostat")
 
 @dashboard_app.route("/device/thermostat/refresh", methods=["GET"])
 def thermostat_fetch():
-	device_id = request.args.get("id")
-	thermostats = device_fetch(device_id, device_type = SH_defs.type_id("SH_TYPE_THERMOSTAT"))
-
-	if thermostats is None:
-		return "{\"result\": \"ERROR\"}"
-
-	valid_devices = []
-	for t in thermostats:
-		if not t["initialized"]:
-			continue
-
-		t["temperature"] = reg_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
-		t["humidity"] = reg_to_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
-
-		prune_device_obj(t)
-		valid_devices.append(t)
-
-	return json.dumps(valid_devices)
+	return thermostat.fetch(request)
 
 @dashboard_app.route("/device/thermostat/command", methods=["POST"])
 def thermostat_command():
-#TODO: Debugging for now
-	device_id = request.args.get("id")
-	si.data_transaction(si.device_command(device_id, thermostat_get_temperature()))
-	si.data_transaction(si.device_command(device_id, thermostat_get_humidity()))
-	return "success"
-# --- ---
+	return thermostat.command(request)
 
-
-# --- Power ouetlet section ---
 @dashboard_app.route("/device/poweroutlet", methods=["GET"])
-def poweroutlet():
+def poweroutlet_dash():
 	return render_template("poweroutlet.html", title="Outlets")
 
 @dashboard_app.route("/device/poweroutlet/refresh", methods=["GET"])
 def poweroutlet_fetch():
-	device_id = request.args.get("id")
-	poweroutlets = device_fetch(device_id, SH_defs.type_id("SH_TYPE_POWEROUTLET"))
-
-	if poweroutlets is None:
-		return "{\"result\": \"ERROR\"}"
-
-	valid_devices = []
-	for p in poweroutlets:
-		if not p["initialized"]:
-			continue
-
-		socket_count = reg_to_int(p["registers"], "POWEROUTLET_REG_SOCKET_COUNT")
-		if not socket_count:
-			socket_count = 0
-			continue
-
-		outlet_state = reg_to_int(p["registers"], "POWEROUTLET_REG_STATE")
-		if not outlet_state:
-			outlet_state = 0
-			continue
-
-		prune_device_obj(p)
-
-		p["socket_states"] = poweroutlet_read_state(outlet_state, socket_count)
-		valid_devices.append(p);
-
-	return json.dumps(valid_devices)
+	return poweroutlet.fetch(request)
 
 @dashboard_app.route("/device/poweroutlet/command", methods=["POST"])
 def poweroutlet_command():
-#TODO: Debugging for now
-	device_id = request.args.get("id")
-	socket_vals = [int(val) for val in request.data.decode().split(',')]
-	cmd = poweroutlet_set_state(socket_vals)
-	print("Issue command: " + cmd);
-	si.data_transaction(si.device_command(device_id, cmd))
-	return "success"
-# --- ---
+	return poweroutlet.command(request)
 

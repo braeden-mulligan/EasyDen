@@ -295,6 +295,9 @@ def run():
 	#sys.excepthook = crash_handler
 	try:
 		main_loop()
+	except KeyboardInterrupt:
+		raise
 	except:
 		print("Caught unhandled exception. Check logs for details.")
 		logging.exception("Module manager crashed!")
+		raise

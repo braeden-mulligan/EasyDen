@@ -32,17 +32,18 @@ uint8_t socket_count;
 uint8_t values_inverted;
 
 struct wifi_framework_config app_conf;
+struct wifi_framework_config tmp_conf;
 
 uint8_t blink_trigger;
 
 void set_conf_fast_period(void) {
-	struct wifi_framework_config current_conf = wifi_framework_config_load();
-	current_conf.application_interval = 1;
-	wifi_framework_init(&current_conf);
+	tmp_conf = app_conf;
+	tmp_conf.application_interval = 1;
+	wifi_framework_init(tmp_conf);
 }
 
 void restore_app_conf(void) {
-	wifi_framework_init(&app_conf);
+	wifi_framework_init(app_conf);
 }
 
 uint32_t outlet_get(void) {
@@ -206,12 +207,12 @@ int main(void) {
 	app_conf = wifi_framework_config_create();
 
 	app_conf.wifi_startup_timeout = 7;
-	app_conf.connection_interval = 40;
+	app_conf.connection_interval = 20;
 	app_conf.server_message_get_callback = handle_server_get;
 	app_conf.server_message_set_callback = handle_server_set;
 	app_conf.app_main_callback = blink_identify;
 	
-	wifi_framework_init(&app_conf);
+	wifi_framework_init(app_conf);
 
 	wifi_framework_start();
 

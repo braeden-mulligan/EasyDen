@@ -206,26 +206,22 @@ struct wifi_framework_config wifi_framework_config_create(void) {
 	return config_default;
 }
 
-struct wifi_framework_config wifi_framework_config_load(void) {
-	return config;
-}
-
 static uint8_t wifi_framework_initialized = 0;
 
 static uint16_t wifi_conn_clock_s;
 static uint16_t application_clock_s;
 
-uint8_t wifi_framework_init(struct wifi_framework_config* wac) {
-	load_metadata(&metadata);
-
-	config = *wac;
+uint8_t wifi_framework_init(struct wifi_framework_config wac) {
+	config = wac;
 
 	wifi_conn_clock_s = 0;
 	application_clock_s = 0;
 
 	if (!wifi_framework_initialized) {
+		load_metadata(&metadata);
 		if (timer8_init(1000, 1) == TIMER_INIT_ERROR) return ARDUINO_WIFI_ERROR;
 		ESP8266_link_init(&esp_params, server_message_buf, SERVER_MSG_SIZE_MAX, config.server_latency_timeout);
+
 		wifi_framework_initialized = 1;
 	}
 

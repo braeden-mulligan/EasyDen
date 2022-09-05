@@ -34,6 +34,29 @@ float humidity_correction = -0.08;
 
 uint8_t sensor_error_count = 0;
 
+struct wifi_framework_config app_conf;
+struct wifi_framework_config tmp_conf;
+
+uint8_t blink_trigger;
+
+void set_conf_fast_period(void) {
+	tmp_conf = app_conf;
+	tmp_conf.application_interval = 1;
+	wifi_framework_init(tmp_conf);
+}
+
+void restore_app_conf(void) {
+	wifi_framework_init(app_conf);
+}
+
+void blink_identify(void) {
+	if (blink_trigger) {
+		blink_trigger = 0;
+		nano_onboard_led_blink(8, 300);
+		restore_app_conf();
+	}
+}
+
 void measure_temperature(void) {
 	float temperature_accum = 0.0;
 	uint8_t valid_reads = 0;
@@ -92,6 +115,8 @@ void sensor_init(void) {
 }
 
 void thermostat_loop() {
+	blink_identify();
+
 	if (!sensor_count) ds18b20_init();
 
 	measure_temperature();
@@ -99,7 +124,7 @@ void thermostat_loop() {
 
 	if (sensor_error_count > SENSOR_ERROR_COUNT_MAX) {
 		//TODO: Shut things down and lock up here.
-		blink_led(-1, 1000);
+		nano_onboard_led_blink(-1, 1000);
 	}
 }
 
@@ -125,11 +150,18 @@ uint32_t handle_server_get(uint16_t reg) {
 }
 
 uint32_t handle_server_set(uint16_t reg, uint32_t val) {
+	if (reg == GENERIC_REG_BLINK) {
+		set_conf_fast_period();
+		blink_trigger = 1;
+	}
+
 	return 0;
 }
 
 int main(void) {
-	struct wifi_framework_config app_conf = wifi_framework_config_create();
+	blink_trigger = 0;
+
+	app_conf = wifi_framework_config_create();
 
 	app_conf.wifi_startup_timeout = 7;
 	app_conf.connection_interval = 20;
@@ -139,12 +171,12 @@ int main(void) {
 	app_conf.app_init_callback = sensor_init;
 	app_conf.app_main_callback = thermostat_loop;
 	
-	wifi_framework_init(&app_conf);
+	wifi_framework_init(app_conf);
 
 	wifi_framework_start();
 
 	// If here is reached error occurred
-	blink_led(-1, 1000);
+	nano_onboard_led_blink(-1, 1000);
 	
 	return 0;
 }

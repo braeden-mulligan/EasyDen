@@ -23,14 +23,14 @@ def fetch(request):
 		t["temperature"] = dm_messaging.reg_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
 		t["humidity"] = dm_messaging.reg_to_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
 
-		utils.prune_device_obj(t)
+		utils.prune_device_data(t)
 		valid_devices.append(t)
 
 	return json.dumps(valid_devices)
 
 def command(request):
-#TODO: Debugging for now
+#TODO: Debugging for now, device manager should periodically check this
 	device_id = request.args.get("id")
-	interconnect.data_transaction(interconnect.device_command(device_id, thermostat_get_temperature()))
-	interconnect.data_transaction(interconnect.device_command(device_id, thermostat_get_humidity()))
+	interconnect.data_transaction(interconnect.device_command(device_id, dm_messaging.thermostat_get_temperature()))
+	interconnect.data_transaction(interconnect.device_command(device_id, dm_messaging.thermostat_get_humidity()))
 	return "success"

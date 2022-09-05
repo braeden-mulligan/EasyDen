@@ -1,4 +1,4 @@
-def prune_device_obj(device):
+def prune_device_data(device):
 	del device["type"]
 	del device["initialized"]
 	del device["registers"]

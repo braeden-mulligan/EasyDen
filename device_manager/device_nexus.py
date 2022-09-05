@@ -136,15 +136,15 @@ def handle_dashboard_message(dash_conn, msg):
 		json_obj_list = None
 
 		if "all" in words[1]:
-			json_obj_list = [d.get_obj_json() for d in device_list if d.device_id]
+			json_obj_list = [d.get_data() for d in device_list if d.device_id]
 		elif "type" in words[1]:
 			#TODO: validate
 			num = int(words[2])
-			json_obj_list = [d.get_obj_json() for d in device_list if d.device_type == num]
+			json_obj_list = [d.get_data() for d in device_list if d.device_type == num]
 		elif "id" in words[1]:
 			#TODO: validate
 			num = int(words[2])
-			json_obj_list = [d.get_obj_json() for d in device_list if d.device_id == num]
+			json_obj_list = [d.get_data() for d in device_list if d.device_id == num]
 		
 		for entry in json_obj_list:
 			if "registers" not in entry:

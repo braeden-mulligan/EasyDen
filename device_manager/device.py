@@ -45,7 +45,7 @@ class SH_Device:
 		self.no_response = 0
 		return
 
-	def get_obj_json(self):
+	def get_data(self):
 		device_obj = {}
 		device_obj["type"] = self.device_type
 		device_obj["id"] = self.device_id

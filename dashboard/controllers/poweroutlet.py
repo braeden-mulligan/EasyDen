@@ -16,21 +16,20 @@ def fetch(request):
 		return "{\"result\": \"ERROR\"}"
 
 	valid_devices = []
+
 	for p in poweroutlets:
 		if not p["initialized"]:
 			continue
 
 		socket_count = dm_messaging.reg_to_int(p["registers"], "POWEROUTLET_REG_SOCKET_COUNT")
-		if not socket_count:
-			socket_count = 0
+		if socket_count is None:
 			continue
 
 		outlet_state = dm_messaging.reg_to_int(p["registers"], "POWEROUTLET_REG_STATE")
-		if not outlet_state:
-			outlet_state = 0
+		if outlet_state is None:
 			continue
 
-		utils.prune_device_obj(p)
+		utils.prune_device_data(p)
 
 		p["socket_states"] = dm_messaging.poweroutlet_read_state(outlet_state, socket_count)
 		valid_devices.append(p);
@@ -38,7 +37,6 @@ def fetch(request):
 	return json.dumps(valid_devices)
 
 def command(request):
-#TODO: Debugging for now
 	device_id = request.args.get("id")
 	socket_vals = [int(val) for val in request.data.decode().split(',')]
 	cmd = dm_messaging.poweroutlet_set_state(socket_vals)

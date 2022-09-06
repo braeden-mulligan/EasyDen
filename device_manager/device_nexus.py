@@ -2,6 +2,7 @@ from device_manager import config
 from device_manager.device import SH_Device
 from device_manager.messaging import *
 from device_manager import utilities as utils
+from device_manager import jobs as jobs 
 
 import json, select, socket, sys, time, os
 import logging
@@ -239,12 +240,8 @@ def main_loop():
 				handle_socket_error(d.soc_connection, select.POLLHUP, poller)
 				d.disconnect()
 
-		for d in device_list:
-			if d.initialization_task():
-				d.check_heartbeat()
-
-		# other routine checks.
-		# ...
+		jobs.keepalive(device_list)
+		jobs.query_thermostats(device_list)
 
 def run():
 	logging.basicConfig(filename="logs/device_manager.log", level = logging.DEBUG, format = "[%(asctime)s %(levelname)s %(name)s %(message)s] : ")

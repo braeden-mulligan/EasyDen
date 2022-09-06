@@ -1,6 +1,6 @@
-from . import config
-from . import device_definitions as SH_defs
-from . import messaging
+from device_manager import config
+from device_manager import device_definitions as SH_defs
+from device_manager import messaging
 import copy, datetime, json, socket, sys, time, os
 
 class SH_Device:
@@ -209,11 +209,9 @@ class SH_Device:
 			if pending_reg == SH_defs.register_id("GENERIC_REG_PING"):
 				# Already waiting on a heartbeat check.
 				return
-		if self.online_status:
-			if time.time() > self.soc_last_heartbeat + config.DEVICE_KEEPALIVE:
-				#self.device_send("{:02X},{:02X},{:08X}".format(SH_defs.CMD_GET, SH_defs.register_id("GENERIC_REG_PING"), 0), retries = 1)
-				self.device_send(messaging.generic_ping(), retries = 1)
-				self.soc_last_heartbeat = time.time()
+		if self.online_status and (time.time() > self.soc_last_heartbeat + config.DEVICE_KEEPALIVE):
+			self.device_send(messaging.generic_ping(), retries = 1)
+			self.update_last_contact()
 
 	def initialization_task(self):
 		if self.fully_initialized:

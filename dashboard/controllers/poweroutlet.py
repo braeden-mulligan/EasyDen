@@ -10,13 +10,12 @@ import json
 
 def fetch(request):
 	device_id = request.args.get("id")
-	poweroutlets = interconnect.fetch_devices(device_id, dm_defs.type_id("SH_TYPE_POWEROUTLET"))
+	response_label, poweroutlets = interconnect.fetch_devices(device_id, dm_defs.type_id("SH_TYPE_POWEROUTLET"))
 
-	if poweroutlets is None:
-		return "{\"result\": \"ERROR\"}"
+	if response_label != "JSON":
+		return utils.compose_response(response_label, poweroutlets)
 
 	valid_devices = []
-
 	for p in poweroutlets:
 		if not p["initialized"]:
 			continue
@@ -34,7 +33,7 @@ def fetch(request):
 		p["socket_states"] = dm_messaging.poweroutlet_read_state(outlet_state, socket_count)
 		valid_devices.append(p);
 
-	return json.dumps(valid_devices)
+	return utils.compose_response(response_label, json.dumps(valid_devices))
 
 def command(request):
 	device_id = request.args.get("id")

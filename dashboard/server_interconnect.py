@@ -2,32 +2,6 @@ import device_manager
 
 import json, socket
 
-SERVER_ERROR = -2
-PARSE_ERROR = -1
-RESPONSE_ERROR = 0
-RESPONSE_SUCCESS = 1
-RESPONSE_FAILURE = 2
-RESPONSE_JSON = 3
-RESPONSE_PARAMETER = 4
-
-def strerror(errno):
-	if errno == SERVER_ERROR:
-		return "SERVER_ERROR"
-	if errno == PARSE_ERROR:
-		return "PARSE_ERROR"
-	elif errno == RESPONSE_ERROR:
-		return "RESPONSE_ERROR"
-	elif errno == RESPONSE_SUCCESS:
-		return "RESPONSE_SUCCESS"
-	elif errno == RESPONSE_FAILURE:
-		return "RESPONSE_FAILURE"
-	elif errno == RESPONSE_JSON:
-		return "RESPONSE_JSON"
-	elif errno == RESPONSE_PARAMETER:
-		return "RESPONSE_PARAMETER"
-
-	return "UNKNOWN_ERROR"
-
 def data_transaction(msg, timeout = 1.0):
 	soc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 	try:
@@ -55,29 +29,21 @@ def data_transaction(msg, timeout = 1.0):
 	return resp
 
 def parse_response(transaction_result):
-	response_package = (PARSE_ERROR, None)
+	response_package = ("ERROR", "Dashboard failed to parse message from device manager.")
 	response_components = [item.strip() for item in transaction_result.split(':', 1)]
 
 	if len(response_components) < 2:
-		return (PARSE_ERROR, None)
+		return response_package
 
-	label = response_components[0]
-	message = response_components[1]
+	response_label = response_components[0]
+	data = response_components[1] or "null"
 
-	if "SUCCESS" in label:
-		response_package = (RESPONSE_SUCCESS, message)
-	elif "FAILURE" in label:
-		response_package = (RESPONSE_FAILURE, message)
-	elif "JSON" in label:
-		json_message = json.loads(message)
+	if response_label == "JSON":
+		json_data = json.loads(data)
 		#TODO: Some error checking/validation here?
-		response_package = (RESPONSE_JSON, json_message)
-	elif "PARAMETER" in label:
-		response_package = (RESPONSE_PARAMETER, message)
-	elif "ERROR" in label: 
-		response_package = (RESPONSE_ERROR, message)
-	elif "EXCEPTION" in label:
-		response_package = (SERVER_ERROR, message)
+		response_package = (response_label, json_data)
+	else:
+		response_package = (response_label, data)
 
 	return response_package
 
@@ -91,20 +57,8 @@ def fetch_devices(device_id = None, device_type = None):
 		query += "all"
 
 	response = data_transaction(query)
-	label, response = parse_response(response)
 
-	devices = []
-	if label == RESPONSE_JSON:
-		devices = response
-	else:
-		devices = None
-
-	return devices
-
-def compose_error_log(response_label, response_message):
-	response_message = response_message.replace('EXCEPTION:', "Socket exception")
-	error_log = "Module Manager response " + strerror(response_label) + ": " + str(response_message)
-	return error_log
+	return parse_response(response)
 
 def device_command(device_id, message):
 	return "command id " + str(device_id) + " " + message

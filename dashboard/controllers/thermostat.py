@@ -10,10 +10,10 @@ import json
 
 def fetch(request):
 	device_id = request.args.get("id")
-	thermostats = interconnect.fetch_devices(device_id, device_type = dm_defs.type_id("SH_TYPE_THERMOSTAT"))
+	response_label, thermostats = interconnect.fetch_devices(device_id, device_type = dm_defs.type_id("SH_TYPE_THERMOSTAT"))
 
-	if thermostats is None:
-		return "{result: \"ERROR\"}"
+	if response_label != "JSON":
+		return utils.compose_response(response_label, poweroutlets)
 
 	valid_devices = []
 	for t in thermostats:
@@ -26,7 +26,7 @@ def fetch(request):
 		utils.prune_device_data(t)
 		valid_devices.append(t)
 
-	return json.dumps(valid_devices)
+	return utils.compose_response(response_label, json.dumps(valid_devices))
 
 def command(request):
 #TODO: Debugging for now, device manager should periodically check this

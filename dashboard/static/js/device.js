@@ -273,6 +273,12 @@ class Data_Tracker {
 	}
 }
 
+function parse_server_response(response_text) {
+	let label = response_text.slice(0, response_text.indexOf(":"));
+	let json = response_text.slice(response_text.indexOf(":") + 1);
+	return {response_label: label, data: JSON.parse(json)}
+}
+
 function fetch_devices(tracker, id = 0, type = null, fast_poll = true) {
 //TODO: if fast polling active just return?
 	console.log("fetching devices via " + (fast_poll ? "fast poll" : "global poll"));
@@ -297,11 +303,17 @@ function fetch_devices(tracker, id = 0, type = null, fast_poll = true) {
 		if (xhr.readyState == XMLHttpRequest.DONE) {
 			console.log("Raw response:");
 			console.log(xhr.responseText);
-			fetch_json = JSON.parse(xhr.responseText);
+
+			let {response_label, data} = parse_server_response(xhr.responseText);
+
+			if (response_label != "JSON") {
+				console.log(response_label + ": " + data)
+			}
+
 			if (fast_poll) {
-				tracker.request_response_processor(fetch_json, tracker, id);
+				tracker.request_response_processor(data, tracker, id);
 			} else {
-				tracker.global_poll_response_processor(fetch_json, tracker);
+				tracker.global_poll_response_processor(data, tracker);
 			}
 		}
 	}

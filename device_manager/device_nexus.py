@@ -1,6 +1,7 @@
-from . import config
-from .device import SH_Device
-from .messaging import *
+from device_manager import config
+from device_manager.device import SH_Device
+from device_manager.messaging import *
+from device_manager import utilities as utils
 
 import json, select, socket, sys, time, os
 import logging
@@ -38,17 +39,16 @@ def socket_close(soc, poll_obj):
 	soc.close()
 	return True
 
-def socket_error(soc, event, poll_obj):
+def handle_socket_error(soc, event, poll_obj):
 	if event & select.POLLHUP or event & select.POLLERR: 
 		return socket_close(soc, poll_obj)
 	return False
 
 # --- ---
 
-
 # --- Device Messaging Tools ---
 
-def device_from_attr(soc_fd = -1, device_id = -1):
+def device_from_identifier(soc_fd = -1, device_id = -1):
 	for d in device_list:
 		if soc_fd == d.soc_fd:
 			return d
@@ -76,55 +76,13 @@ def handle_device_message(device):
 
 # --- ---
 
-
 # --- Dashboard Messaging ---
-
-#TODO: improve upon cursory validation
-def dashboard_message_validate(msg):
-	if not msg:
-		return False
-
-	words = msg.split(' ')
-	if len(words) < 2: 
-		return False
-
-	if "fetch" in words[0]:
-		if "all" in words[1]:
-			pass
-		elif len(words) < 3:
-			return False
-
-	elif "command" in words[0]:
-		if len(words) < 3:
-			return False
-
-		if "id" in words[1]:
-			if len(words) < 4:
-				return False
-
-			cmd = words[3].split(',')
-			if len(cmd) < 3:
-				return False
-
-		elif "server" in words[1] and len(words) < 3:
-			return False
-
-	elif "info" in words[0]:
-		if "id" in words[1] and len(words) < 4:
-			return False
-		elif "server" in words[1] and len(words) < 3:
-			return False
-
-	return True
-		
-def reg_val_to_hex(json_device_list):
-	return
 
 # Should always return something to dashboard.
 def handle_dashboard_message(dash_conn, msg):
 	response = "ERROR: Malformed request"
 
-	if not dashboard_message_validate(msg):
+	if not utils.dashboard_message_validate(msg):
 		dash_conn.send(response.encode())
 		return
 		
@@ -160,7 +118,7 @@ def handle_dashboard_message(dash_conn, msg):
 		response = "SUCCESS: null"
 
 		if "id" in words[1]:
-			d = device_from_attr(device_id = int(words[2]));
+			d = device_from_identifier(device_id = int(words[2]));
 			if d:
 				d.device_send(words[3])
 			else:
@@ -180,7 +138,7 @@ def handle_dashboard_message(dash_conn, msg):
 
 		elif "server" in words[1]:
 			if "rename" in words[2]:
-				device = device_from_attr(device_id = int(words[3]))
+				device = device_from_identifier(device_id = int(words[3]))
 				device.name = " ".join(words[4:])
 
 # info [id x <specifier> | server <specifier>]
@@ -256,15 +214,15 @@ def main_loop():
 			else:
 				dash_conn = next((d for d in dashboard_connections if d.fileno() == fd), None)
 				if dash_conn is not None:
-					if socket_error(dash_conn, event, poller):
+					if handle_socket_error(dash_conn, event, poller):
 						dashboard_connections.remove(dash_conn)
 					else:
 						handle_dashboard_message(dash_conn, dash_conn.recv(2048).decode())
 				# else:
-				device = device_from_attr(fd)
+				device = device_from_identifier(fd)
 				if device is not None:
 					print("Device operation fd: " + str(device.soc_fd))
-					if socket_error(device.soc_connection, event, poller):
+					if handle_socket_error(device.soc_connection, event, poller):
 						print("Device disconnected.")
 						# Socket now closed so set device to disconnected. 
 						device.disconnect() # But do not remove device from list.
@@ -278,7 +236,7 @@ def main_loop():
 		for d in device_list:
 			if d.update_pending() == SH_Device.STATUS_UNRESPONSIVE and d.no_response >= 2:
 				print("Device " + str(d.device_id) + " unresponsive. Closing connection")
-				socket_error(d.soc_connection, select.POLLHUP, poller)
+				handle_socket_error(d.soc_connection, select.POLLHUP, poller)
 				d.disconnect()
 
 		for d in device_list:

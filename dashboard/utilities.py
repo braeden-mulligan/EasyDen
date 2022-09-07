@@ -5,9 +5,9 @@ def prune_device_data(device):
 	return
 
 def compose_response(response_label = None, data = None):
-	if not data:
+	if data is None:
 		data = "Unknown error."
-	if not response_label:
+	if response_label is None:
 		response_label = "ERROR"
 
 	return response_label + ": " + data

@@ -1,5 +1,4 @@
 
-#TODO: improve upon cursory validation
 def dashboard_message_validate(msg):
 	if not msg:
 		return False
@@ -26,17 +25,14 @@ def dashboard_message_validate(msg):
 			if len(cmd) < 3:
 				return False
 
-		elif "server" in words[1] and len(words) < 3:
-			return False
-
 	elif "info" in words[0]:
 		if "id" in words[1] and len(words) < 4:
 			return False
 		elif "server" in words[1] and len(words) < 3:
 			return False
 
+	elif "server" in words[0]:
+		pass
+
 	return True
-		
-def reg_val_to_hex(json_device_list):
-	return
 

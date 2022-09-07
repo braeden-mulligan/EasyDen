@@ -90,7 +90,7 @@ def handle_dashboard_message(dash_conn, msg):
 	print("Dash message: [" + msg + "]")
 	words = msg.split(' ')
 
-# fetch [all | type x | id x]
+# fetch [all | type <int> | id <int>]
 	if "fetch" in words[0]:
 		json_obj_list = None
 
@@ -114,14 +114,13 @@ def handle_dashboard_message(dash_conn, msg):
 		if isinstance(json_obj_list, list):
 			response = "JSON: " + json.dumps(json_obj_list)
 
-# command [id x <raw message> | server <specifier>]
+# command [id <int> <raw message> | type <int> <raw message>]
 	elif "command" in words[0]:
-		response = "SUCCESS: null"
-
 		if "id" in words[1]:
 			d = device_from_identifier(device_id = int(words[2]));
 			if d:
 				d.device_send(words[3])
+				response = "SUCCESS: Command sent"
 			else:
 				response = "ERROR: Device not found"
 
@@ -137,12 +136,7 @@ def handle_dashboard_message(dash_conn, msg):
 			else:
 				response = "ERROR: No devices found"
 
-		elif "server" in words[1]:
-			if "rename" in words[2]:
-				device = device_from_identifier(device_id = int(words[3]))
-				device.name = " ".join(words[4:])
-
-# info [id x <specifier> | server <specifier>]
+# info [id <int> <specifier> | type <int> <specifier>]
 	elif "info" in words[0]:
 		if "id" in words[1]:
 			#TODO: validate
@@ -158,10 +152,16 @@ def handle_dashboard_message(dash_conn, msg):
 			elif "fully_initialized" in words[3]:
 				response = "PARAMETER: " + str(device.fully_initialized).lower()
 
-		elif "server" in words[1]:
-			response = "FAILURE: Unimplemented feature"
+#server <directive> [<specifier> | <json specifier>]
+	elif "server" in words[0]:
+		if "rename" in words[1]:
+			device = device_from_identifier(device_id = int(words[3]))
+			device.name = " ".join(words[4:])
+		#elif "config"
+		#elif "set_schedule"
+		#elif "remove_schedule"
 
-	elif "debug" in words[1]:
+	elif "debug" in words[0]:
 		response = "FAILURE: Unimplemented feature"
 		
 	dash_conn.send(response.encode())

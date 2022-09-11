@@ -27,7 +27,6 @@ def _reg_id_parse(registers, reg_label = None, reg_id = None):
 def reg_to_float(registers, reg_label = None, reg_id = None):
 	reg_str = _reg_id_parse(registers, reg_label, reg_id)
 	if reg_str:
-		print(reg_str)
 		return struct.unpack("!f", bytes.fromhex(reg_str))[0]
 
 	return None
@@ -38,8 +37,6 @@ def reg_to_int(registers, reg_label = None, reg_id = None):
 		return int(reg_str, 16)
 
 	return None
-
-
 
 def generic_request_identity():
 	return template.format(SH_defs.CMD_IDY, 0, 0)

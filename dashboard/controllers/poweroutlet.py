@@ -24,16 +24,15 @@ def fetch(request):
 		if socket_count is None:
 			continue
 
-		outlet_state = interchange.reg_to_int(p["registers"], "POWEROUTLET_REG_STATE")
-		if outlet_state is None:
+		outlet_state_attr = utils.unpack_reg_attribute(p["registers"], "POWEROUTLET_REG_STATE")
+		if not outlet_state_attr:
 			continue
-		#outlet_state_key = [str(dm_defs.register_id("POWEROUTLET_REG_STATE"))]
-		#outlet_state_queried_at = p["registers"][outlet_state_key]["queried_at"]
-		#outlet_state_updated_at = p["registers"][outlet_state_key]["updated_at"]
 
 		utils.prune_device_data(p)
 
-		p["socket_states"] = interchange.poweroutlet_read_state(outlet_state, socket_count)
+		outlet_state_attr["value"] = interchange.poweroutlet_read_state(outlet_state_attr["value"], socket_count)
+		p["socket_states"] = outlet_state_attr
+
 		valid_devices.append(p);
 
 	return utils.compose_response(response_label, json.dumps(valid_devices))

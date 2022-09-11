@@ -187,7 +187,7 @@ class SH_Device:
 		m = raw_packet or "{:04X},".format(self.msg_seq) + message
 
 		if retries < 0:
-			r = self.msg_retries
+			retries = self.msg_retries
 
 			# Only update query timestamp if message is original, not a re-try
 			_, cmd, reg, val = self.parse_packet(m)
@@ -236,7 +236,7 @@ class SH_Device:
 				return
 		if self.online_status and (time.time() > self.soc_last_heartbeat + config.DEVICE_KEEPALIVE):
 			self.device_send(messaging.generic_ping())
-			self.update_last_contact()
+			self.soc_last_heartbeat = time.time()
 
 	def initialization_task(self):
 		if self.fully_initialized:

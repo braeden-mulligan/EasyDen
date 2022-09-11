@@ -27,6 +27,9 @@ def fetch(request):
 		outlet_state = interchange.reg_to_int(p["registers"], "POWEROUTLET_REG_STATE")
 		if outlet_state is None:
 			continue
+		#outlet_state_key = [str(dm_defs.register_id("POWEROUTLET_REG_STATE"))]
+		#outlet_state_queried_at = p["registers"][outlet_state_key]["queried_at"]
+		#outlet_state_updated_at = p["registers"][outlet_state_key]["updated_at"]
 
 		utils.prune_device_data(p)
 

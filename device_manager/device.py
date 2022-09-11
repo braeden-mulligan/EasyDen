@@ -1,6 +1,6 @@
 from device_manager import config
 from device_manager import device_definitions as SH_defs
-from device_manager import messaging
+from device_manager import messaging_interchange as messaging
 import copy, datetime, json, socket, sys, time, os
 
 class SH_Device:

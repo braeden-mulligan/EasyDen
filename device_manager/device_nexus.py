@@ -1,6 +1,6 @@
 from device_manager import config
 from device_manager.device import SH_Device
-from device_manager.messaging import *
+from device_manager import messaging_interchange as messaging
 from device_manager import utilities as utils
 from device_manager import jobs as jobs 
 
@@ -184,7 +184,7 @@ def main_loop():
 		for d in device_list:
 			if not d.device_id and d.pending_response is None:
 				print("New device detected, requesting ID")
-				if not d.device_send(generic_request_identity()):
+				if not d.device_send(messaging.generic_request_identity()):
 					print("New device failed to respond")
 					socket_close(d.soc_connection, poller)
 					device_list.remove(d)

@@ -1,7 +1,6 @@
 from device_manager import config
 from device_manager import device_definitions as SH_defs
-#from device_manager.device import SH_Device
-from device_manager.messaging import *
+from device_manager import messaging_interchange as messaging
 
 import datetime, time
 
@@ -19,7 +18,7 @@ def query_thermostats(device_list):
 
 	thermostats = [d for d in device_list if d.device_type == SH_defs.type_id("SH_TYPE_THERMOSTAT")]
 	for t in thermostats:
-		t.device_send(thermostat_get_temperature())
-		t.device_send(thermostat_get_humidity())
+		t.device_send(messaging.thermostat_get_temperature())
+		t.device_send(messaging.thermostat_get_humidity())
 
 	last_thermostat_query = time.time()

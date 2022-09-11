@@ -12,10 +12,10 @@ def _reg_id_parse(registers, reg_label = None, reg_id = None):
 	reg_value_str = None
 	try:
 		if reg_label:
-			reg_value_str = registers[str(_reg_id(reg_label))]
+			reg_value_str = registers[str(_reg_id(reg_label))]["value"]
 
 		elif reg_id:
-			reg_value_str = registers[str(reg_id)]
+			reg_value_str = registers[str(reg_id)]["value"]
 	except KeyError:
 		return None
 

@@ -2,7 +2,6 @@ from flask import redirect, render_template, request, url_for
 
 from dashboard import dashboard_app
 
-from device_manager.messaging import *
 import server_interconnect as interconnect 
 
 import controllers.thermostat as thermostat

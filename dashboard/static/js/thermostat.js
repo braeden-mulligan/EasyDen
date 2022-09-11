@@ -111,10 +111,3 @@ tracker = new Thermostat_Tracker();
 // Main ----
 
 tracker.start_global_poll(true);
-
-//TODO: debug for now, this should happen in back end.
-setInterval(function () {
-	for (var i = 0; i < tracker.devices.length; ++i) {
-		send_command(tracker.devices[i].id, "update", "thermostat");
-	}
-}, 25000);

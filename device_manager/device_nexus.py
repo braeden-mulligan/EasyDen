@@ -109,7 +109,7 @@ def handle_dashboard_message(dash_conn, msg):
 			if "registers" not in entry:
 				continue
 			for reg in entry["registers"]:
-				entry["registers"][reg] = "0x{:08X}".format(entry["registers"][reg])
+				entry["registers"][reg]["value"] = "0x{:08X}".format(entry["registers"][reg]["value"])
 
 		if isinstance(json_obj_list, list):
 			response = "JSON: " + json.dumps(json_obj_list)

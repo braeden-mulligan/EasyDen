@@ -8,11 +8,16 @@ class SH_Device:
 	STATUS_UNRESPONSIVE = 1
 	STATUS_ERROR = 2
 
+	MAX_SEQUENCE_NUM = 32767
+	MAX_TX_RETRIES = 1
+	TX_TIMEOUT = 3.0
+	
+
 	def __init__(self, socket_connection = None):
 		# Attributes returned on device query.
 		self.device_type = 0
 		self.device_id = 0
-		self.device_attrs = {} #(reg, val)
+		self.device_attrs = {} #(reg, {value, queried_at, updated_at})
 		self.name = "Default Name"
 		self.online_status = False 
 		self.fully_initialized = False
@@ -21,8 +26,8 @@ class SH_Device:
 		self.last_contact = None
 		self.reconnect_count = -1 # For debugging
 
-		self.msg_timeout = 3.0
-		self.msg_retries = 1
+		self.msg_timeout = SH_Device.TX_TIMEOUT
+		self.msg_retries = SH_Device.MAX_TX_RETRIES
 		self.msg_seq = 1
 		self.soc_connection = None
 		self.soc_fd = None
@@ -79,13 +84,26 @@ class SH_Device:
 
 		return SH_Device.STATUS_OK
 
-	def update_attributes(self, reg, val):
+	def update_attributes(self, reg, val, query = False, update = False):
 		if reg == SH_defs.register_id("GENERIC_REG_NULL"):
 			return
 		elif reg == SH_defs.register_id("GENERIC_REG_PING"):
 			return
 		else: 
-			self.device_attrs[reg] = val
+			attribute = {
+			  "value": val,
+			  "queried_at": round(time.time(), 3) if query else 0.0,
+			  "updated_at": round(time.time(), 3) if update else 0.0
+			}
+
+			self.device_attrs[reg] = self.device_attrs.get(reg, attribute)
+
+			if query:
+				self.device_attrs[reg]["queried_at"] = attribute["queried_at"]
+			elif update:
+				self.device_attrs[reg]["value"] = attribute["value"]
+				self.device_attrs[reg]["updated_at"] = attribute["updated_at"]
+				
 		return
 
 	def parse_packet(self, packet):
@@ -131,10 +149,10 @@ class SH_Device:
 			return None
 
 		if msg_cmd == SH_defs.CMD_RSP and sent_cmd == SH_defs.CMD_GET:
-			self.update_attributes(msg_reg, msg_val)
+			self.update_attributes(msg_reg, msg_val, update = True)
 
 		elif msg_cmd == SH_defs.CMD_RSP and sent_cmd == SH_defs.CMD_SET: 
-			self.update_attributes(sent_reg, sent_val)
+			self.update_attributes(sent_reg, sent_val, update = True)
 
 		elif msg_cmd == SH_defs.CMD_IDY:
 			self.device_type = msg_reg
@@ -163,28 +181,35 @@ class SH_Device:
 		return 0
 
 	def device_send(self, message, retries = -1, raw_packet= None):
-		r = retries 
-		if r < 0:
+		if self.soc_connection is None:
+			return False
+
+		m = raw_packet or "{:04X},".format(self.msg_seq) + message
+
+		if retries < 0:
 			r = self.msg_retries
 
-		if self.soc_connection is not None:
-			m = raw_packet or "{:04X},".format(self.msg_seq) + message
-			if raw_packet is None:
-				self.msg_seq += 1
-				if self.msg_seq >= 5:
-					self.msg_seq = 1;
+			# Only update query timestamp if message is original, not a re-try
+			_, cmd, reg, val = self.parse_packet(m)
+			if cmd == SH_defs.CMD_GET or cmd == SH_defs.CMD_SET:
+				self.update_attributes(reg, val, query = True)
 
-			print("\nSubmit: [" + m + "] (retries = " + str(r) + ") to device " + str(self.device_id))
 
-			if len(self.pending_send) >= self.max_pending_messages:
-				print("Device send buffer full")
-				return False
-					
-			self.pending_send.append((m, r))
-			print("Pending send: " + str(self.pending_send))
+		if raw_packet is None:
+			self.msg_seq += 1
+			if self.msg_seq >= SH_Device.MAX_SEQUENCE_NUM:
+				self.msg_seq = 1;
 
-			return True 
-		return False
+		print("\nSubmit: [" + m + "] (retries = " + str(retries) + ") to device " + str(self.device_id))
+
+		if len(self.pending_send) >= self.max_pending_messages:
+			print("Device send buffer full")
+			return False
+				
+		self.pending_send.append((m, retries))
+		print("Pending send: " + str(self.pending_send))
+
+		return True 
 
 	def disconnect(self):
 		self.online_status = False
@@ -210,7 +235,7 @@ class SH_Device:
 				# Already waiting on a heartbeat check.
 				return
 		if self.online_status and (time.time() > self.soc_last_heartbeat + config.DEVICE_KEEPALIVE):
-			self.device_send(messaging.generic_ping(), retries = 1)
+			self.device_send(messaging.generic_ping())
 			self.update_last_contact()
 
 	def initialization_task(self):
@@ -238,6 +263,6 @@ class SH_Device:
 		for reg in necessary_attributes:
 			if reg not in self.device_attrs:
 				self.fully_initialized = False
-				self.device_send(messaging.template.format(SH_defs.CMD_GET, reg, 0), retries = 1)
+				self.device_send(messaging.template.format(SH_defs.CMD_GET, reg, 0))
 		return self.fully_initialized
 

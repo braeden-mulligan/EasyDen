@@ -3,15 +3,15 @@ class Poweroutlet extends SH_Device {
 	static class_label_socket_item = "poweroutlet-attr-socket-item";
 	static class_label_socket_state = "poweroutlet-attr-socket-state";
 
-	constructor(id, name, online, socket_count = 0, socket_states = []) {
+	constructor(id, name, online, socket_count = 0, socket_states = {}) {
 		super(SH_Device.SH_TYPE_POWEROUTLET, id, name, online);
 		this.socket_count = socket_count;
-		this.socket_states = socket_states.slice();
+		this.socket_states = JSON.parse(JSON.stringify(socket_states));
 	}
 
 	copy() {
-		var copy_states = this.socket_states.slice();
-		return new Poweroutlet(this.id, this.name, this.online, this.socket_count, copy_states);
+		let copy_socket_states = JSON.parse(JSON.stringify(this.socket_states))
+		return new Poweroutlet(this.id, this.name, this.online, this.socket_count, copy_socket_states);
 	}
 
 	differ(sh_device) {
@@ -19,33 +19,33 @@ class Poweroutlet extends SH_Device {
 
 		if (super.differ(sh_device)) return true;
 
-		for (var i = 0; i < this.socket_states.length; ++i) {
-			if (this.socket_states[i] != sh_device.socket_states[i]) return true;
+		for (let i = 0; i < this.socket_states.value.length; ++i) {
+			if (this.socket_states.value[i] != sh_device.socket_states.value[i]) return true;
 		}
 
 		return false;
 	}
 
 	write_html(loading_flag = null) {
-		var device_elem = super.write_html(loading_flag);
+		let device_elem = super.write_html(loading_flag);
 
-		var existing_elem = document.getElementById("device-" + this.id.toString());
+		let existing_elem = document.getElementById("device-" + this.id.toString());
 
 		if (existing_elem != null) {
 			// Update all attributes that are mutable.
-			var socket_list;
+			let socket_list;
 
-			for (var i = 0; i < device_elem.children.length; ++i) {
-				var attr = device_elem.children[i];
+			for (let i = 0; i < device_elem.children.length; ++i) {
+				let attr = device_elem.children[i];
 				if (attr.className == Poweroutlet.class_label_socket_list) socket_list = attr;
 			}
 
 			//each item should have a button and a state value
-			for (var i = 0; i < socket_list.children.length; ++i) {
-				var socket_item = socket_list.children[i];
-				for (var j = 0; j < socket_item.children.length; ++j) {
+			for (let i = 0; i < socket_list.children.length; ++i) {
+				let socket_item = socket_list.children[i];
+				for (let j = 0; j < socket_item.children.length; ++j) {
 					if (socket_item.children[j].className == Poweroutlet.class_label_socket_state) {
-						socket_item.children[j].innerHTML = "Socket " + i + ": " + (this.socket_states[i] ? "ON" : "OFF");
+						socket_item.children[j].innerHTML = "Socket " + i + ": " + (this.socket_states.value[i] ? "ON" : "OFF");
 					}
 				}
 			}
@@ -53,17 +53,17 @@ class Poweroutlet extends SH_Device {
 			return null;
 		}
 
-		var outlet_list = document.createElement("ul");
+		let outlet_list = document.createElement("ul");
 		outlet_list.setAttribute("class", Poweroutlet.class_label_socket_list);
-		for (var i = 0; i < this.socket_states.length; ++i) {
-			var entry = document.createElement("li");
+		for (let i = 0; i < this.socket_states.value.length; ++i) {
+			let entry = document.createElement("li");
 			entry.setAttribute("class", Poweroutlet.class_label_socket_item);
 
-			var outlet_state = document.createElement("p");
+			let outlet_state = document.createElement("p");
 			outlet_state.setAttribute("class", Poweroutlet.class_label_socket_state);
-			outlet_state.innerHTML = "Socket " + i + ": " + (this.socket_states[i] ? "ON" : "OFF");
+			outlet_state.innerHTML = "Socket " + i + ": " + (this.socket_states.value[i] ? "ON" : "OFF");
 
-			var toggle_button =  document.createElement("button");
+			let toggle_button =  document.createElement("button");
 			toggle_button.innerHTML = "Toggle";
 			toggle_button.device_id = this.id;
 			toggle_button.socket_index = i;
@@ -77,7 +77,6 @@ class Poweroutlet extends SH_Device {
 
 		device_elem.append(outlet_list);
 
-//console.log(device_elem);
 		return device_elem;
 	}
 }
@@ -88,12 +87,12 @@ class Poweroutlet_Tracker extends Data_Tracker {
 	}
 
 	request_response_processor = function(device_json, tracker, device_id) {
-		for (var i = 0; i < device_json.length; ++i) {
-			var d = device_json[i];
+		for (let i = 0; i < device_json.length; ++i) {
+			let d = device_json[i];
 			if (d.id == device_id) {
-				var entry = tracker.device_entry(device_id);
+				let entry = tracker.device_entry(device_id);
 				if (entry) {
-					tracker.devices_updated[entry.index] = new Poweroutlet(d.id, d.name, d.online, d.socket_states.length, d.socket_states);
+					tracker.devices_updated[entry.index] = new Poweroutlet(d.id, d.name, d.online, d.socket_states.value.length, d.socket_states);
 				} else {
 					alert("Error: device mismatch. Contact Brad.");
 				}
@@ -106,11 +105,11 @@ class Poweroutlet_Tracker extends Data_Tracker {
 		//   We don't want the active tracking to miss an update.
 		if (!tracker.global_poll_active) return; 
 
-		for (var i = 0; i < device_json.length; ++i) {
-			var d = device_json[i];
+		for (let i = 0; i < device_json.length; ++i) {
+			let d = device_json[i];
 
-			var poweroutlet = new Poweroutlet(d.id, d.name, d.online, d.socket_states.length, d.socket_states);
-			var entry = tracker.device_entry(d.id);
+			let poweroutlet = new Poweroutlet(d.id, d.name, d.online, d.socket_states.value.length, d.socket_states);
+			let entry = tracker.device_entry(d.id);
 
 			if (entry) {
 				tracker.devices_updated[entry.index] = poweroutlet;
@@ -134,10 +133,10 @@ tracker = new Poweroutlet_Tracker();
 
 //TODO: This is debug only
 function toggle_action(evt) {
-	outlet_data = tracker.device_entry(evt.target.device_id).device.socket_states.slice();
+	outlet_data = tracker.device_entry(evt.target.device_id).device.socket_states.value.slice();
 	outlet_data[evt.target.socket_index] = +(!outlet_data[evt.target.socket_index]);
 	send_command(evt.target.device_id, outlet_data, "poweroutlet");
-	tracker.submit_tracking(evt.target.device_id);
+	tracker.submit_tracking(evt.target.device_id, "socket_states");
 }
 
 // Main ----

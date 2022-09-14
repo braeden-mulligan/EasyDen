@@ -38,6 +38,7 @@ def fetch(request):
 	return utils.compose_response(response_label, json.dumps(valid_devices))
 
 def command(request):
+#TODO: update this
 	device_id = request.args.get("id")
 	socket_vals = [int(val) for val in request.data.decode().split(',')]
 	cmd = interchange.poweroutlet_set_state(socket_vals)

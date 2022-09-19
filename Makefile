@@ -1,4 +1,4 @@
-PROJECT_DEFINES := -DSH_ENDPOINT 
+PROJECT_DEFINES := 
 
 INCLUDE_PATHS := -I src -I ../libraries/arduino/ -I ../libraries/arduino/include -I ../libraries/common -I ../libraries/arduino/avr-ds18b20/include
 CC := avr-gcc
@@ -24,9 +24,6 @@ all: project
 
 full: clean project
 
-print:
-	@echo $(OBJ)
-
 project: $(OBJ) $(OBJ_DS18B20)
 	@mkdir -p bin
 	@echo "Building $(TARGET)..."
@@ -50,7 +47,7 @@ build/%.o: ../libraries/arduino/avr-ds18b20/src/%.c | build_dir
 	$(CC) $(CFLAGS) -o $@ -c $<
 
 upload: 
-	sudo avrdude -F -V -c arduino -p m328p -P /dev/ttyACM0 -b 115200 -U flash:w:./bin/$(TARGET).hex:i
+	sudo avrdude -F -V -c arduino -p m328p -P /dev/ttyUSB0 -b 115200 -U flash:w:./bin/$(TARGET).hex:i
 
 .PHONY: build_dir
 build_dir:

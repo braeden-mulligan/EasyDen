@@ -164,9 +164,9 @@ void blink_identify(void) {
 		}
 
 		outlet_set(0x0000FFF0 | saved_outlet_state);
-	}
 
-	restore_app_conf();
+		restore_app_conf();
+	}
 }
 
 void outlet_init(void) {
@@ -180,8 +180,8 @@ void outlet_init(void) {
 	DDRB |= (1 << PB2);
 	DDRB |= (1 << PB3);
 
-	socket_count = eeprom_read_byte((uint8_t*)POWER_OUTLET_EEPROM_ADDR_SOCKET_COUNT);
-	values_inverted = eeprom_read_byte((uint8_t*)POWER_OUTLET_EEPROM_ADDR_VALUES_INVERTED);
+	socket_count = eeprom_read_byte((uint8_t*)POWEROUTLET_EEPROM_ADDR_SOCKET_COUNT);
+	values_inverted = eeprom_read_byte((uint8_t*)POWEROUTLET_EEPROM_ADDR_VALUES_INVERTED);
 
 	uint8_t outlet0 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_0_MEM);
 	uint8_t outlet1 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_1_MEM);

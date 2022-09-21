@@ -116,7 +116,6 @@ static uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_param
 
 // Allow time for WiFi module startup.
 static void module_startup_procedure(void) {
-	timer8_deinit();
 	timer8_init(config.wifi_startup_timeout * 1000, 1);
 	timer8_start();
 
@@ -125,7 +124,6 @@ static void module_startup_procedure(void) {
 	}
 
 	timer8_stop();
-	timer8_deinit();
 
 // In case the ESP8266 sent "ready" before the arduino could catch it.
 	if (!esp_params.module_ready) {
@@ -219,7 +217,7 @@ uint8_t wifi_framework_init(struct wifi_framework_config wac) {
 
 	if (!wifi_framework_initialized) {
 		load_metadata(&metadata);
-		if (timer8_init(1000, 1) == TIMER_INIT_ERROR) return ARDUINO_WIFI_ERROR;
+		timer8_init(1000, 1);
 		ESP8266_link_init(&esp_params, server_message_buf, SERVER_MSG_SIZE_MAX, config.server_latency_timeout);
 
 		wifi_framework_initialized = 1;

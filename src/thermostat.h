@@ -18,8 +18,7 @@ uint16_t max_heat_time;
 uint16_t min_cooldown_time;
 
 // Make available for metrics
-uint8_t heater_state;
-uint8_t cooldown_state;
+uint8_t thermostat_state(void);
 uint16_t heater_triggered_count;
 uint16_t cooldown_triggered_count;
 uint16_t sensor_error_total;

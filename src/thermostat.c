@@ -2,6 +2,7 @@
 
 #include "avr_adc.h"
 #include "avr_utilities.h"
+#include "avr_timer_util.h"
 #include "device_definition.h"
 #include "nano_configs_eeprom_offsets.h"
 #include "ds18b20/ds18b20.h"
@@ -16,9 +17,13 @@
 #define MEM_TEMPERATURE_CORRECTION (MEM_TARGET_TEMPERATURE + sizeof(target_temperature))
 #define MEM_THRESHOLD_HIGH (MEM_TEMPERATURE_CORRECTION + sizeof(temperature_correction))
 #define MEM_THRESHOLD_LOW (MEM_THRESHOLD_HIGH + sizeof(threshold_high))
-#define MEM_HUMIDITY_CORRECTION (MEM_THRESHOLD_HIGH + sizeof(threshold_high))
+#define MEM_HUMIDITY_CORRECTION (MEM_THRESHOLD_LOW + sizeof(threshold_low))
 #define MEM_MAX_HEAT_TIME (MEM_HUMIDITY_CORRECTION + sizeof(humidity_correction))
 #define MEM_MIN_COOLDOWN_TIME (MEM_MAX_HEAT_TIME + sizeof(max_heat_time))
+
+#define heater_active (!!(PORTD & (1 << PD4)))
+
+#define MIN_THRESHOLD 0.15
 
 #define MAX_SENSOR_COUNT 5
 
@@ -40,6 +45,7 @@ uint8_t sensor_error_tally;
 
 uint8_t humidity_sensor_initialized;
 
+uint8_t cooldown_active;
 // -----
 
 void measure_temperature(void) {
@@ -83,15 +89,13 @@ void measure_humidity(void) {
 }
 
 void switch_heater(uint8_t value) {
-	if (heater_state == value) return;
+	if (heater_active == value) return;
 
 	if (value) {
 		PORTD |= 1 << PD4;
 	} else {
 		PORTD &= ~(1 << PD4);
 	}
-
-	heater_state = value;
 }
 
 void set_thermostat_enabled(uint8_t value) {
@@ -112,11 +116,15 @@ void set_temperature_correction(float value) {
 }
 
 void set_threshold_high(float value) {
+	if (value < MIN_THRESHOLD) value = MIN_THRESHOLD;
+
 	threshold_high = value;
 	eeprom_update_float((float*)MEM_THRESHOLD_HIGH, threshold_high);
 }
 
 void set_threshold_low(float value) {
+	if (value < MIN_THRESHOLD) value = MIN_THRESHOLD;
+
 	threshold_low = value;
 	eeprom_update_float((float*)MEM_THRESHOLD_LOW, threshold_low);
 }
@@ -152,11 +160,13 @@ void ds18b20_init(void){
 void thermostat_init(void) {
 	sensor_count = 0;
 	sensor_error_tally = 0;
+	cooldown_active = 0;
+
 	sensor_error_total = 0;
 	heater_triggered_count = 0;
 	cooldown_triggered_count = 0;
+
 	temperature = 420.0;
-	humidity = -69.0;
 
 	thermostat_enabled = eeprom_read_byte((uint8_t*)MEM_ENABLE);
 	target_temperature = eeprom_read_float((float*)MEM_TARGET_TEMPERATURE);
@@ -167,6 +177,7 @@ void thermostat_init(void) {
 	max_heat_time = eeprom_read_word((uint16_t*)MEM_MAX_HEAT_TIME);
 	min_cooldown_time = eeprom_read_word((uint16_t*)MEM_MIN_COOLDOWN_TIME);
 
+	humidity = -69.0;
 	humidity_sensor_initialized = 0;
 	humidity_sensor_count = eeprom_read_byte((uint8_t*)THERMOSTAT_EEPROM_ADDR_HUMIDITY_SENSOR_COUNT);
 
@@ -186,6 +197,10 @@ void thermostat_init(void) {
 	measure_temperature();
 }
 
+void system_error_lock(void) {
+	switch_heater(OFF);
+	nano_onboard_led_blink(-1, 1000);
+}
 
 void thermostat_control(void) {
 	if (!sensor_count) ds18b20_init();
@@ -193,14 +208,48 @@ void thermostat_control(void) {
 	measure_temperature();
 	measure_humidity();
 
-	if (sensor_error_tally > SENSOR_ERROR_COUNT_MAX) {
-		// Shut things down and lock up here.
-		switch_heater(0);
-		nano_onboard_led_blink(-1, 1000);
+	if ((sensor_error_tally > SENSOR_ERROR_COUNT_MAX) ||
+	  (heater_active && cooldown_active)) {
+		system_error_lock();
 	}
-	
+
 	if (!thermostat_enabled) return;
 
-	//if (temperature < target_temperature - threshold_low) switch_heater(ON);
+	switch_heater(!heater_active);
+
+	if (heater_active) {
+		if (timer16_flag) {
+			switch_heater(OFF);
+			cooldown_active = ON;
+			timer16_init(min_cooldown_time);
+			timer16_start();
+		}
+
+		if (temperature > target_temperature + threshold_high) {
+			switch_heater(OFF);
+			timer16_stop();
+		}
+
+	} else if (cooldown_active) {
+		if (timer16_flag) {
+			cooldown_active = OFF;
+			timer16_stop();
+		}
+
+		return;
+
+	} else {
+		if (temperature < target_temperature - threshold_low) {
+			timer16_init(max_heat_time);
+			timer16_start();
+			switch_heater(ON);
+		}
+	}
 }
 
+uint8_t thermostat_state(void) {
+	if (!thermostat_enabled) return 0;
+	if (heater_active) return 2;
+	if (cooldown_active) return 3;
+	return 1;
+}

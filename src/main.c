@@ -76,11 +76,15 @@ uint32_t handle_server_get(uint16_t reg) {
 	case THERMOSTAT_REG_MIN_COOLDOWN_TIME:
 		return min_cooldown_time;
 
-//heater_state;
-//cooldown_state;
-//heater_triggered_count;
-//cooldown_triggered_count;
-//sensor_error_total;
+// Debug
+	case 200:
+		return thermostat_state();
+	case 201:
+		return heater_triggered_count;
+	case 202: 
+		return cooldown_triggered_count;
+	case 203:
+		return sensor_error_total;
 	}
 
 	return 0;
@@ -148,7 +152,7 @@ int main(void) {
 
 	app_conf.wifi_startup_timeout = 7;
 	app_conf.connection_interval = 20;
-	app_conf.application_interval = 30;
+	app_conf.application_interval = 15;
 	app_conf.server_message_get_callback = handle_server_get;
 	app_conf.server_message_set_callback = handle_server_set;
 	app_conf.app_main_callback = main_loop;

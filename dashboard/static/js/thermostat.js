@@ -2,14 +2,16 @@ class Thermostat extends SH_Device {
 	static class_label_temperature = "thermostat-attr-temperature";
 	static class_label_humidity = "thermostat-attr-humidity";
 
-	constructor(id, name, online, temperature, humidity = 0.0) {
+	constructor(id, name, online, temperature = {}, humidity = {}) {
 		super(SH_Device.SH_TYPE_THERMOSTAT, id, name, online);
 		this.temperature = temperature;
 		this.humidity = humidity
 	}
 
 	copy() {
-		return new Thermostat(this.id, this.name, this.online, this.temperature, this.humidity);
+		let temperature = JSON.parse(JSON.stringify(this.temperature))
+		let humidity = JSON.parse(JSON.stringify(this.humidity))
+		return new Thermostat(this.id, this.name, this.online, temperature, humidity);
 	}
 
 	differ(sh_device) {
@@ -17,8 +19,8 @@ class Thermostat extends SH_Device {
 
 		if (super.differ(sh_device)) return true;
 
-		if (this.temperature != sh_device.temperature) return true;
-		if (this.humidity != sh_device.humidity) return true;
+		if (this.temperature?.value != sh_device.temperature?.value) return true;
+		if (this.humidity?.value != sh_device.humidity?.value) return true;
 
 		return false;
 	}
@@ -28,16 +30,17 @@ class Thermostat extends SH_Device {
 
 		var existing_elem = document.getElementById("device-" + this.id.toString());
 
+console.log(this.temperature)
 		if (existing_elem != null) {
 			// Update all attributes that are mutable.
 			for (var i = 0; i < device_elem.children.length; ++i) {
 				var attr = device_elem.children[i];
 				if (attr.className == Thermostat.class_label_temperature) {
-					attr.innerHTML = "Temperature: " + this.temperature.toFixed(1) + " °C";
+					attr.innerHTML = "Temperature: " + this.temperature.value.toFixed(1) + " °C";
 
 				} else if (attr.className == Thermostat.class_label_humidity) {
-					if (!this.humidity) this.humidity = -0.69;
-					attr.innerHTML = "Humidity: " + (this.humidity * 100).toFixed(1) + " %";
+					if (!this.humidity.value) this.humidity.value = -0.69;
+					attr.innerHTML = "Humidity: " + (this.humidity.value * 100).toFixed(1) + " %";
 				}
 			}
 
@@ -46,12 +49,12 @@ class Thermostat extends SH_Device {
 
 		var temp = document.createElement("p");
 		temp.setAttribute("class", Thermostat.class_label_temperature);
-		temp.innerHTML = "Temperature: " + this.temperature.toFixed(1) + " °C";
+		temp.innerHTML = "Temperature: " + this.temperature.value.toFixed(1) + " °C";
 
 		var hum = document.createElement("p");
 		hum.setAttribute("class", Thermostat.class_label_humidity);
-		if (!this.humidity) this.humidity = -0.69;
-		hum.innerHTML = "Humidity: " + (this.humidity * 100).toFixed(1) + " %";
+		if (!this.humidity.value) this.humidity.value = -0.69;
+		hum.innerHTML = "Humidity: " + (this.humidity.value * 100).toFixed(1) + " %";
 
 		device_elem.append(temp);
 		device_elem.append(hum);

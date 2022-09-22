@@ -20,8 +20,14 @@ def fetch(request):
 		if not t["initialized"]:
 			continue
 
-		t["temperature"] = interchange.reg_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
-		t["humidity"] = interchange.reg_to_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
+		
+		temperature_attr = utils.unpack_reg_attribute(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
+		temperature_attr["value"] = interchange.reg_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
+		t["temperature"] = temperature_attr
+
+		humidity_attr = utils.unpack_reg_attribute(t["registers"], "THERMOSTAT_REG_HUMIDITY")
+		humidity_attr["value"] = interchange.reg_to_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
+		t["humidity"] = humidity_attr
 
 		utils.prune_device_data(t)
 		valid_devices.append(t)

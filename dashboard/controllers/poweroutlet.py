@@ -20,6 +20,8 @@ def fetch(request):
 		if not p["initialized"]:
 			continue
 
+		p["attributes"] = {}
+
 		socket_count = interchange.reg_to_int(p["registers"], "POWEROUTLET_REG_SOCKET_COUNT")
 		if socket_count is None:
 			continue
@@ -28,11 +30,10 @@ def fetch(request):
 		if not outlet_state_attr:
 			continue
 
-		utils.prune_device_data(p)
-
 		outlet_state_attr["value"] = interchange.poweroutlet_read_state(outlet_state_attr["value"], socket_count)
-		p["socket_states"] = outlet_state_attr
+		p["attributes"]["socket_states"] = outlet_state_attr
 
+		utils.prune_device_data(p)
 		valid_devices.append(p);
 
 	return utils.compose_response(response_label, json.dumps(valid_devices))

@@ -3,15 +3,18 @@ class Poweroutlet extends SH_Device {
 	static class_label_socket_item = "poweroutlet-attr-socket-item";
 	static class_label_socket_state = "poweroutlet-attr-socket-state";
 
-	constructor(id, name, online, socket_count = 0, socket_states = {}) {
+	constructor(id, name, online, attributes = {}) {
 		super(SH_Device.SH_TYPE_POWEROUTLET, id, name, online);
-		this.socket_count = socket_count;
-		this.socket_states = JSON.parse(JSON.stringify(socket_states));
+		this.socket_states = JSON.parse(JSON.stringify(attributes?.socket_states));
+		this.socket_count = attributes.socket_count || this.socket_states?.length;
 	}
 
 	copy() {
-		let copy_socket_states = JSON.parse(JSON.stringify(this.socket_states))
-		return new Poweroutlet(this.id, this.name, this.online, this.socket_count, copy_socket_states);
+		let attributes = {
+			socket_count: this.socket_count,
+			socket_states: JSON.parse(JSON.stringify(this.socket_states))
+		}
+		return new Poweroutlet(this.id, this.name, this.online, attributes);
 	}
 
 	differ(sh_device) {
@@ -92,7 +95,7 @@ class Poweroutlet_Tracker extends Data_Tracker {
 			if (d.id == device_id) {
 				let entry = tracker.device_entry(device_id);
 				if (entry) {
-					tracker.devices_updated[entry.index] = new Poweroutlet(d.id, d.name, d.online, d.socket_states.value.length, d.socket_states);
+					tracker.devices_updated[entry.index] = new Poweroutlet(d.id, d.name, d.online, d.attributes);
 				} else {
 					alert("Error: device mismatch. Contact Brad.");
 				}
@@ -108,7 +111,7 @@ class Poweroutlet_Tracker extends Data_Tracker {
 		for (let i = 0; i < device_json.length; ++i) {
 			let d = device_json[i];
 
-			let poweroutlet = new Poweroutlet(d.id, d.name, d.online, d.socket_states.value.length, d.socket_states);
+			let poweroutlet = new Poweroutlet(d.id, d.name, d.online, d.attributes);
 			let entry = tracker.device_entry(d.id);
 
 			if (entry) {

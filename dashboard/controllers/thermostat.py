@@ -8,6 +8,11 @@ import device_manager.messaging_interchange as interchange
 
 import json
 
+def unpack_with_float(registers, reg_label):
+	attr = utils.unpack_reg_attribute(registers, reg_label)
+	attr["value"] = interchange.reg_to_float(registers, reg_label)
+	return attr
+
 def fetch(request):
 	device_id = request.args.get("id")
 	response_label, thermostats = interconnect.fetch_devices(device_id, device_type = dm_defs.type_id("SH_TYPE_THERMOSTAT"))
@@ -20,14 +25,11 @@ def fetch(request):
 		if not t["initialized"]:
 			continue
 
-		
-		temperature_attr = utils.unpack_reg_attribute(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
-		temperature_attr["value"] = interchange.reg_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
-		t["temperature"] = temperature_attr
+		t["attributes"] = {}
 
-		humidity_attr = utils.unpack_reg_attribute(t["registers"], "THERMOSTAT_REG_HUMIDITY")
-		humidity_attr["value"] = interchange.reg_to_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
-		t["humidity"] = humidity_attr
+		t["attributes"]["temperature"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
+		t["attributes"]["target_temperature"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_TARGET_TEMPERATURE")
+		t["attributes"]["humidity"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
 
 		utils.prune_device_data(t)
 		valid_devices.append(t)

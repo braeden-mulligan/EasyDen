@@ -90,6 +90,9 @@ def poweroutlet_read_state(reg_value, socket_count = 8):
 def thermostat_get_temperature():
 	return template.format(_get, _reg_id("THERMOSTAT_REG_TEMPERATURE"), 0)
 
+def thermostat_get_target_temperature():
+	return template.format(_get, _reg_id("THERMOSTAT_REG_TARGET_TEMPERATURE"), 0)
+
 def thermostat_get_humidity():
 	return template.format(_get, _reg_id("THERMOSTAT_REG_HUMIDITY"), 0)
 

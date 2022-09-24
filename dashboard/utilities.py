@@ -13,8 +13,6 @@ def unpack_reg_attribute(registers, register_label):
 		attribute = {"value": value, "queried_at": queried_at, "updated_at": updated_at}
 
 	return attribute
-	
-
 
 def prune_device_data(device):
 	del device["type"]

@@ -11,7 +11,7 @@ class SH_Device:
 	MAX_SEQUENCE_NUM = 32767
 	MAX_TX_RETRIES = 1
 	TX_TIMEOUT = 3.0
-	
+	TX_BUFFER_SIZE = 32
 
 	def __init__(self, socket_connection = None):
 		# Attributes returned on device query.
@@ -37,7 +37,7 @@ class SH_Device:
 		self.pending_response = None
 # pending send list of double of (packet_string, retry_count) 
 		self.pending_send = []
-		self.max_pending_messages = 3
+		self.max_pending_messages = SH_Device.TX_BUFFER_SIZE
 		self.no_response = 0
 
 		self.connect(socket_connection)
@@ -251,7 +251,15 @@ class SH_Device:
 			necessary_attributes.append(SH_defs.register_id("POWEROUTLET_REG_STATE"))
 
 		elif self.device_type == SH_defs.type_id("SH_TYPE_THERMOSTAT"):
+			necessary_attributes.append(SH_defs.register_id("GENERIC_REG_ENABLE"))
 			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_TEMPERATURE"))
+			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_TARGET_TEMPERATURE"))
+			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_TEMPERATURE_CORRECTION"))
+			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_THRESHOLD_HIGH"))
+			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_THRESHOLD_LOW"))
+			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_MAX_HEAT_TIME"))
+			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_MIN_COOLDOWN_TIME"))
+			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_HUMIDITY_SENSOR_COUNT"))
 
 		elif self.device_type == SH_defs.type_id("SH_TYPE_IRRIGATION"):
 			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE"))

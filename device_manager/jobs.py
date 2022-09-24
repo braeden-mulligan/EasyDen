@@ -19,6 +19,7 @@ def query_thermostats(device_list):
 	thermostats = [d for d in device_list if d.device_type == SH_defs.type_id("SH_TYPE_THERMOSTAT")]
 	for t in thermostats:
 		t.device_send(messaging.thermostat_get_temperature())
+#TODO: if device has humidity sensor
 		t.device_send(messaging.thermostat_get_humidity())
 
 	last_thermostat_query = time.time()

@@ -2,16 +2,18 @@ class Thermostat extends SH_Device {
 	static class_label_temperature = "thermostat-attr-temperature";
 	static class_label_humidity = "thermostat-attr-humidity";
 
-	constructor(id, name, online, temperature = {}, humidity = {}) {
+	constructor(id, name, online, attributes = {}) { 
 		super(SH_Device.SH_TYPE_THERMOSTAT, id, name, online);
-		this.temperature = temperature;
-		this.humidity = humidity
+		this.temperature = attributes?.temperature;
+		this.humidity = attributes?.humidity;
 	}
 
 	copy() {
-		let temperature = JSON.parse(JSON.stringify(this.temperature))
-		let humidity = JSON.parse(JSON.stringify(this.humidity))
-		return new Thermostat(this.id, this.name, this.online, temperature, humidity);
+		let attributes = {
+			temperature: JSON.parse(JSON.stringify(this.temperature)),
+			humidity: JSON.parse(JSON.stringify(this.humidity))
+		}
+		return new Thermostat(this.id, this.name, this.online, attributes);
 	}
 
 	differ(sh_device) {
@@ -26,35 +28,34 @@ class Thermostat extends SH_Device {
 	}
 
 	write_html(loading_flag = null) {
-		var device_elem = super.write_html(loading_flag);
+		let device_elem = super.write_html(loading_flag);
 
-		var existing_elem = document.getElementById("device-" + this.id.toString());
+		let existing_elem = document.getElementById("device-" + this.id.toString());
 
-console.log(this.temperature)
 		if (existing_elem != null) {
 			// Update all attributes that are mutable.
-			for (var i = 0; i < device_elem.children.length; ++i) {
-				var attr = device_elem.children[i];
+			for (let i = 0; i < device_elem.children.length; ++i) {
+				let attr = device_elem.children[i];
 				if (attr.className == Thermostat.class_label_temperature) {
 					attr.innerHTML = "Temperature: " + this.temperature.value.toFixed(1) + " °C";
 
 				} else if (attr.className == Thermostat.class_label_humidity) {
 					if (!this.humidity.value) this.humidity.value = -0.69;
-					attr.innerHTML = "Humidity: " + (this.humidity.value * 100).toFixed(1) + " %";
+					attr.innerHTML = "Humidity: " + (this.humidity.value).toFixed(1) + " %";
 				}
 			}
 
 			return;
 		}
 
-		var temp = document.createElement("p");
+		let temp = document.createElement("p");
 		temp.setAttribute("class", Thermostat.class_label_temperature);
 		temp.innerHTML = "Temperature: " + this.temperature.value.toFixed(1) + " °C";
 
-		var hum = document.createElement("p");
+		let hum = document.createElement("p");
 		hum.setAttribute("class", Thermostat.class_label_humidity);
 		if (!this.humidity.value) this.humidity.value = -0.69;
-		hum.innerHTML = "Humidity: " + (this.humidity.value * 100).toFixed(1) + " %";
+		hum.innerHTML = "Humidity: " + (this.humidity.value).toFixed(1) + " %";
 
 		device_elem.append(temp);
 		device_elem.append(hum);
@@ -69,12 +70,12 @@ class Thermostat_Tracker extends Data_Tracker {
 	}
 
 	request_response_processor = function(device_json, tracker, device_id) {
-		for (var i = 0; i < device_json.length; ++i) {
-			var d = device_json[i];
+		for (let i = 0; i < device_json.length; ++i) {
+			let d = device_json[i];
 			if (d.id == device_id) {
-				var entry = tracker.device_entry(device_id);
+				let entry = tracker.device_entry(device_id);
 				if (entry) {
-					tracker.devices_updated[entry.index] = new Thermostat(d.id, d.name, d.online, d.temperature, d.humidity);
+					tracker.devices_updated[entry.index] = new Thermostat(d.id, d.name, d.online, d.attributes);
 				} else {
 					alert("Error: device mismatch. Contact Brad.");
 				}
@@ -85,11 +86,11 @@ class Thermostat_Tracker extends Data_Tracker {
 	global_poll_response_processor = function(device_json, tracker) {
 		if (!tracker.global_poll_active) return; 
 
-		for (var i = 0; i < device_json.length; ++i) {
-			var d = device_json[i];
+		for (let i = 0; i < device_json.length; ++i) {
+			let d = device_json[i];
 
-			var thermostat = new Thermostat(d.id, d.name, d.online, d.temperature, d.humidity);
-			var entry = tracker.device_entry(d.id);
+			let thermostat = new Thermostat(d.id, d.name, d.online, d.attributes);
+			let entry = tracker.device_entry(d.id);
 
 			if (entry) {
 				tracker.devices_updated[entry.index] = thermostat;

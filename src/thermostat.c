@@ -29,6 +29,7 @@
 
 //TODO Pick this based on application loop time.
 #define SENSOR_ERROR_COUNT_MAX 15
+#define SENSOR_ERROR_RECOVERY_HYSTERESIS (SENSOR_ERROR_COUNT_MAX + 5)
 
 #define DS18B20_TEMP_SCALE 0.0625
 
@@ -67,6 +68,7 @@ void measure_temperature(void) {
 
 		if (sensor_error != DS18B20_ERROR_OK) {
 			++sensor_error_tally;
+			if (sensor_error_tally > SENSOR_ERROR_RECOVERY_HYSTERESIS) sensor_error_tally = SENSOR_ERROR_RECOVERY_HYSTERESIS;
 			++sensor_error_total;
 		}
 
@@ -95,14 +97,18 @@ void switch_heater(uint8_t value) {
 		PORTD |= 1 << PD4;
 	} else {
 		PORTD &= ~(1 << PD4);
+		timer16_stop();
 	}
 }
 
 void set_thermostat_enabled(uint8_t value) {
-	if (value == OFF) switch_heater(OFF);
+	if (value == OFF) {
+		switch_heater(OFF);
+		cooldown_active = OFF;
+	}
 
-	thermostat_enabled = value;
-	eeprom_update_byte((uint8_t*)MEM_ENABLE, value);
+	thermostat_enabled = !!value;
+	eeprom_update_byte((uint8_t*)MEM_ENABLE, thermostat_enabled);
 }
 
 void set_target_temperature(float value) {
@@ -215,8 +221,6 @@ void thermostat_control(void) {
 
 	if (!thermostat_enabled) return;
 
-	switch_heater(!heater_active);
-
 	if (heater_active) {
 		if (timer16_flag) {
 			switch_heater(OFF);
@@ -225,9 +229,8 @@ void thermostat_control(void) {
 			timer16_start();
 		}
 
-		if (temperature > target_temperature + threshold_high) {
+		if (temperature > (target_temperature + threshold_high)) {
 			switch_heater(OFF);
-			timer16_stop();
 		}
 
 	} else if (cooldown_active) {
@@ -239,7 +242,7 @@ void thermostat_control(void) {
 		return;
 
 	} else {
-		if (temperature < target_temperature - threshold_low) {
+		if (temperature < (target_temperature - threshold_low)) {
 			timer16_init(max_heat_time);
 			timer16_start();
 			switch_heater(ON);

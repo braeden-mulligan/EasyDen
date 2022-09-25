@@ -5,14 +5,14 @@ class Poweroutlet extends SH_Device {
 
 	constructor(id, name, online, attributes = {}) {
 		super(SH_Device.SH_TYPE_POWEROUTLET, id, name, online);
-		this.socket_states = JSON.parse(JSON.stringify(attributes?.socket_states));
+		this.socket_states = deep_copy(attributes?.socket_states);
 		this.socket_count = attributes.socket_count || this.socket_states?.length;
 	}
 
 	copy() {
 		let attributes = {
 			socket_count: this.socket_count,
-			socket_states: JSON.parse(JSON.stringify(this.socket_states))
+			socket_states: deep_copy(this.socket_states)
 		}
 		return new Poweroutlet(this.id, this.name, this.online, attributes);
 	}

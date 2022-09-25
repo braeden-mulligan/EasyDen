@@ -6,12 +6,14 @@ class Thermostat extends SH_Device {
 		super(SH_Device.SH_TYPE_THERMOSTAT, id, name, online);
 		this.temperature = attributes?.temperature;
 		this.humidity = attributes?.humidity;
+		this.target_temperature = attributes?.target_temperature;
 	}
 
 	copy() {
 		let attributes = {
-			temperature: JSON.parse(JSON.stringify(this.temperature)),
-			humidity: JSON.parse(JSON.stringify(this.humidity))
+			temperature: deep_copy(this.temperature),
+			humidity: deep_copy(this.humidity),
+			target_temperature: deep_copy(this.target_temperature)
 		}
 		return new Thermostat(this.id, this.name, this.online, attributes);
 	}
@@ -42,6 +44,9 @@ class Thermostat extends SH_Device {
 				} else if (attr.className == Thermostat.class_label_humidity) {
 					if (!this.humidity.value) this.humidity.value = -0.69;
 					attr.innerHTML = "Humidity: " + (this.humidity.value).toFixed(1) + " %";
+
+				} else if (attr.className == "thermostat-attr-target-temperature") {
+					attr.innerHTML = "Target temperature: " + this.target_temperature.value.toFixed(1) + " °C";
 				}
 			}
 
@@ -54,11 +59,31 @@ class Thermostat extends SH_Device {
 
 		let hum = document.createElement("p");
 		hum.setAttribute("class", Thermostat.class_label_humidity);
-		if (!this.humidity.value) this.humidity.value = -0.69;
+		if (!this.humidity?.value) this.humidity.value = -0.69;
 		hum.innerHTML = "Humidity: " + (this.humidity.value).toFixed(1) + " %";
+
+		//let target_temperature_form = document.createElement("form");
+			let target_temperature = document.createElement("p");
+			//target_temperature.setAttribute("method", "post");
+			target_temperature.setAttribute("class", "thermostat-attr-target-temperature");
+			target_temperature.innerHTML = "Target temperature: " + this.target_temperature.value.toFixed(1) + " °C";
+			let target_input = document.createElement("input");
+			target_input.setAttribute("type", "text");
+			target_input.setAttribute("name", "target-temperature");
+			target_input.setAttribute("id", "target-temperature-" + this.id);
+			let target_submit =  document.createElement("button");
+			target_submit.device_id = this.id;
+			target_submit.innerHTML = "Set";
+			target_submit.addEventListener('click', set_target_temperature, false);
 
 		device_elem.append(temp);
 		device_elem.append(hum);
+		//device_elem.append(target_temperature_form);
+
+		device_elem.append(target_temperature);
+		device_elem.append(target_input);
+		device_elem.append(target_submit);
+		
 
 		return device_elem;
 	}
@@ -110,6 +135,12 @@ class Thermostat_Tracker extends Data_Tracker {
 	}
 }
 
+function set_target_temperature(evt, value) {
+	console.log("set device " + evt.target.device_id);
+	let value_input = document.getElementById("target-temperature-" + evt.target.device_id).value;
+	send_command(evt.target.device_id, value_input, "thermostat");
+	tracker.submit_tracking(evt.target.device_id, "target_temperature");
+}
 tracker = new Thermostat_Tracker();
 
 // Main ----

@@ -30,6 +30,8 @@ def fetch(request):
 		t["attributes"]["temperature"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
 		t["attributes"]["target_temperature"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_TARGET_TEMPERATURE")
 		t["attributes"]["humidity"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
+		t["attributes"]["threshold_high"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_THRESHOLD_HIGH")
+		t["attributes"]["threshold_low"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_THRESHOLD_LOW")
 
 		utils.prune_device_data(t)
 		valid_devices.append(t)
@@ -39,6 +41,8 @@ def fetch(request):
 def command(request):
 #TODO: Debugging for now, device manager should periodically check this
 	device_id = request.args.get("id")
-	interconnect.data_transaction(interconnect.device_command(device_id, interchange.thermostat_get_temperature()))
-	interconnect.data_transaction(interconnect.device_command(device_id, interchange.thermostat_get_humidity()))
+	value = float(request.data.decode())
+	#interconnect.data_transaction(interconnect.device_command(device_id, interchange.thermostat_get_temperature()))
+	#interconnect.data_transaction(interconnect.device_command(device_id, interchange.thermostat_get_humidity()))
+	interconnect.data_transaction(interconnect.device_command(device_id, interchange.thermostat_set_temperature(value)))
 	return "success"

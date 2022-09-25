@@ -96,3 +96,7 @@ def thermostat_get_target_temperature():
 def thermostat_get_humidity():
 	return template.format(_get, _reg_id("THERMOSTAT_REG_HUMIDITY"), 0)
 
+def thermostat_set_temperature(value):
+	#TODO: check value is float
+	packed_float = struct.unpack("!i", struct.pack("!f", value))[0]
+	return template.format(_set, _reg_id("THERMOSTAT_REG_TARGET_TEMPERATURE"), packed_float);

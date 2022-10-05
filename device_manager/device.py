@@ -1,6 +1,7 @@
 from device_manager import config
 from device_manager import device_definitions as SH_defs
 from device_manager import messaging_interchange as messaging
+from device_manager import utilities as utils
 import copy, datetime, json, socket, sys, time, os
 
 class SH_Device:
@@ -36,7 +37,7 @@ class SH_Device:
 # pending response triple of (packet_string, timeout, retry_count) 
 		self.pending_response = None
 # pending send list of double of (packet_string, retry_count) 
-		self.pending_send = []
+		self.pending_transmission = []
 		self.max_pending_messages = SH_Device.TX_BUFFER_SIZE
 		self.no_response = 0
 
@@ -75,10 +76,10 @@ class SH_Device:
 					self.no_response += 1
 					return SH_Device.STATUS_UNRESPONSIVE
 
-		elif self.pending_send:
-			p, r = self.pending_send.pop(0)
-			print("Transmitting: [" + str(p) + "]. " + str(r) + " retries available...")
+		elif self.pending_transmission:
+			p, r = self.pending_transmission.pop(0)
 			if self.soc_connection:
+				print("Transmitting: [" + str(p) + "] to device " + str(self.device_id) + ". " + str(r) + " retries available...")
 				self.pending_response = (p, time.time(), r)
 				self.soc_connection.send(p.encode())
 
@@ -110,8 +111,7 @@ class SH_Device:
 		try:
 			words = [int(w, 16) for w in packet.split(',')]
 		except Exception as e:
-			#TODO: log to determine frequency?
-			print(e)
+			utils.print_exception(e)
 			return None
 
 		if len(words) != 4:
@@ -123,7 +123,8 @@ class SH_Device:
 		try:
 			msg_seq, msg_cmd, msg_reg, msg_val = self.parse_packet(packet)
 		except TypeError:
-			print("Packet parsing failed!")
+#TODO: log frequency of malformed packets?
+			print("Failed to parse packet [" + str(packet) + "]!")
 			return None
 		
 		sent_seq = sent_cmd = sent_reg = sent_val = None
@@ -136,13 +137,13 @@ class SH_Device:
 		# Check this to avoid sending obselete duplicate requests.
 		# TODO: Further investigate conditions this would occur... 
 		#   pending response cleared after timeout -> duplicate request gets queued to send -> device responds before request is re-sent?
-		elif self.pending_send:
+		elif self.pending_transmission:
 			print("No pending_response, checking send queue.")
-			for entry in self.pending_send:
-				sent_seq, sent_cmd, sent_reg, sent_val = self.parse_packet(entry)
+			for entry in self.pending_transmission:
+				sent_seq, sent_cmd, sent_reg, sent_val = self.parse_packet(entry[0])
 				if msg_seq == sent_seq:
-					print("Found in send queue. Waiting transmission removed.")
-					self.pending_send.remove(entry)
+					print("Found in send queue. Message awaiting transmission removed.")
+					self.pending_transmission.remove(entry)
 
 		else:
 			print("process_message error. Received packet does not correspond to any pending messages.")
@@ -167,7 +168,7 @@ class SH_Device:
 				# This should always return bytes because we use i/o poll mechanism.
 				msg = self.soc_connection.recv(32).decode()
 			except Exception as e:
-				print(e)
+				utils.print_exception(e)
 				return -1
 
 			print("Received [" + msg + "] from device: " + str(self.device_id))
@@ -180,7 +181,7 @@ class SH_Device:
 			return recv_result
 		return 0
 
-	def device_send(self, message, retries = -1, raw_packet= None):
+	def device_send(self, message, retries = -1, raw_packet = None):
 		if self.soc_connection is None:
 			return False
 
@@ -202,12 +203,13 @@ class SH_Device:
 
 		print("\nSubmit: [" + m + "] (retries = " + str(retries) + ") to device " + str(self.device_id))
 
-		if len(self.pending_send) >= self.max_pending_messages:
+		if len(self.pending_transmission) >= self.max_pending_messages:
 			print("Device send buffer full")
 			return False
 				
-		self.pending_send.append((m, retries))
-		print("Pending send: " + str(self.pending_send))
+		# Tag device id for logging.
+		self.pending_transmission.append((m, retries))
+		print("Pending transmissions for device " + str(self.device_id) +": " + str(self.pending_transmission))
 
 		return True 
 

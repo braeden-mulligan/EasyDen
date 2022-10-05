@@ -71,10 +71,15 @@ class Thermostat extends SH_Device {
 			target_input.setAttribute("type", "text");
 			target_input.setAttribute("name", "target-temperature");
 			target_input.setAttribute("id", "target-temperature-" + this.id);
-			let target_submit =  document.createElement("button");
+			let target_submit = document.createElement("button");
 			target_submit.device_id = this.id;
 			target_submit.innerHTML = "Set";
 			target_submit.addEventListener('click', set_target_temperature, false);
+
+		let config_button = document.createElement("button");
+		config_button.device_id = this.id;
+		config_button.innerHTML = "Configure";
+		config_button.addEventListener('click', config_thermostat, false);
 
 		device_elem.append(temp);
 		device_elem.append(hum);
@@ -84,6 +89,9 @@ class Thermostat extends SH_Device {
 		device_elem.append(target_input);
 		device_elem.append(target_submit);
 		
+		device_elem.append(document.createElement("br"));
+		device_elem.append(document.createElement("br"));
+		device_elem.append(config_button);
 
 		return device_elem;
 	}
@@ -135,12 +143,19 @@ class Thermostat_Tracker extends Data_Tracker {
 	}
 }
 
-function set_target_temperature(evt, value) {
+function set_target_temperature(evt) {
 	console.log("set device " + evt.target.device_id);
 	let value_input = document.getElementById("target-temperature-" + evt.target.device_id).value;
 	send_command(evt.target.device_id, value_input, "thermostat");
 	tracker.submit_tracking(evt.target.device_id, "target_temperature");
 }
+
+function config_thermostat(evt, value) {
+	console.log("config for thermostat " + evt.target.device_id);
+	//send_command(evt.target.device_id, value_input, "thermostat");
+	//tracker.submit_tracking(evt.target.device_id, "target_temperature");
+}
+
 tracker = new Thermostat_Tracker();
 
 // Main ----

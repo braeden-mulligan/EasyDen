@@ -1,3 +1,9 @@
+import traceback
+
+def print_exception(e):
+	print(" ")
+	traceback.print_exc()
+	print(" ")
 
 def dashboard_message_validate(msg):
 	if not msg:

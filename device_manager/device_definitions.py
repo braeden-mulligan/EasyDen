@@ -23,6 +23,7 @@ def build_definition_mapping(search_term):
 			def_map.append((reg, int(index)))
 	return def_map
 
+#TODO: Hashify these?
 TYPE_MAP = build_definition_mapping("SH_TYPE_")
 REGISTER_MAP = build_definition_mapping("_REG_")
 

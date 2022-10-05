@@ -26,7 +26,7 @@ def fetch(request):
 		if socket_count is None:
 			continue
 
-		outlet_state_attr = utils.unpack_reg_attribute(p["registers"], "POWEROUTLET_REG_STATE")
+		outlet_state_attr = utils.unpack_attribute(p["registers"], "POWEROUTLET_REG_STATE")
 		if not outlet_state_attr:
 			continue
 

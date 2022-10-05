@@ -31,13 +31,13 @@ def listener_init(dashboard = False):
 	return soc
 
 def socket_close(soc, poll_obj):
-	print("Unregister fd " + str(soc.fileno()))
-	poll_obj.unregister(soc)
 	try:
+		print("Unregister fd " + str(soc.fileno()))
+		poll_obj.unregister(soc)
 		soc.shutdown(socket.SHUT_RDWR)
-	except Exception as err:
-		print(err)
-	soc.close()
+		soc.close()
+	except Exception as e:
+		utils.print_exception(e)
 	return True
 
 def handle_socket_error(soc, event, poll_obj):

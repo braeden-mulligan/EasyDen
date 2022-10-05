@@ -8,17 +8,12 @@ import device_manager.messaging_interchange as interchange
 
 import json
 
-def unpack_with_float(registers, reg_label):
-	attr = utils.unpack_reg_attribute(registers, reg_label)
-	attr["value"] = interchange.reg_to_float(registers, reg_label)
-	return attr
-
 def fetch(request):
 	device_id = request.args.get("id")
 	response_label, thermostats = interconnect.fetch_devices(device_id, device_type = dm_defs.type_id("SH_TYPE_THERMOSTAT"))
 
 	if response_label != "JSON":
-		return utils.compose_response(response_label, poweroutlets)
+		return utils.compose_response(response_label, thermostats)
 
 	valid_devices = []
 	for t in thermostats:
@@ -27,11 +22,16 @@ def fetch(request):
 
 		t["attributes"] = {}
 
-		t["attributes"]["temperature"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
-		t["attributes"]["target_temperature"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_TARGET_TEMPERATURE")
-		t["attributes"]["humidity"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
-		t["attributes"]["threshold_high"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_THRESHOLD_HIGH")
-		t["attributes"]["threshold_low"] = unpack_with_float(t["registers"], "THERMOSTAT_REG_THRESHOLD_LOW")
+		t["attributes"]["enabled"] = utils.unpack_attribute(t["registers"], "GENERIC_REG_ENABLE")
+		print(t["attributes"])
+		t["attributes"]["temperature"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
+		t["attributes"]["target_temperature"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_TARGET_TEMPERATURE")
+		t["attributes"]["humidity"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
+		t["attributes"]["threshold_high"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_THRESHOLD_HIGH")
+		t["attributes"]["threshold_low"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_THRESHOLD_LOW")
+		t["attributes"]["temperature_correction"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE_CORRECTION")
+		t["attributes"]["max_heat_time"] = utils.unpack_attribute(t["registers"], "THERMOSTAT_REG_MAX_HEAT_TIME")
+		t["attributes"]["min_cooldown_time"] = utils.unpack_attribute(t["registers"], "THERMOSTAT_REG_MIN_COOLDOWN_TIME")
 
 		utils.prune_device_data(t)
 		valid_devices.append(t)
@@ -39,10 +39,7 @@ def fetch(request):
 	return utils.compose_response(response_label, json.dumps(valid_devices))
 
 def command(request):
-#TODO: Debugging for now, device manager should periodically check this
 	device_id = request.args.get("id")
 	value = float(request.data.decode())
-	#interconnect.data_transaction(interconnect.device_command(device_id, interchange.thermostat_get_temperature()))
-	#interconnect.data_transaction(interconnect.device_command(device_id, interchange.thermostat_get_humidity()))
 	interconnect.data_transaction(interconnect.device_command(device_id, interchange.thermostat_set_temperature(value)))
 	return "success"

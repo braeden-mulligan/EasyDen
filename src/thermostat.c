@@ -95,6 +95,7 @@ void switch_heater(uint8_t value) {
 
 	if (value) {
 		PORTD |= 1 << PD4;
+		++heater_triggered_count;
 	} else {
 		PORTD &= ~(1 << PD4);
 		timer16_stop();
@@ -201,6 +202,8 @@ void thermostat_init(void) {
 	ds18b20_init();
 	_delay_ms(10);
 	measure_temperature();
+	_delay_ms(2000);
+	measure_temperature();
 }
 
 void system_error_lock(void) {
@@ -225,6 +228,7 @@ void thermostat_control(void) {
 		if (timer16_flag) {
 			switch_heater(OFF);
 			cooldown_active = ON;
+			++cooldown_triggered_count;
 			timer16_init(min_cooldown_time);
 			timer16_start();
 		}

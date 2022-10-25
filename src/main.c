@@ -50,6 +50,9 @@ uint32_t handle_server_get(uint16_t reg) {
 	case GENERIC_REG_ENABLE:
 		return thermostat_enabled;
 
+	case GENERIC_REG_APP_INTERVAL:
+		return app_conf.application_interval;
+
 	case THERMOSTAT_REG_TARGET_TEMPERATURE:
 		value_conversion.sensor = target_temperature;
 		return value_conversion.reg;
@@ -106,6 +109,11 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 		set_thermostat_enabled(val);
 		return thermostat_enabled;
 
+	case GENERIC_REG_APP_INTERVAL:
+		app_conf.application_interval = (val > 3) ? val : 3;
+		wifi_framework_init(app_conf);
+		return app_conf.application_interval;
+
 	case THERMOSTAT_REG_TARGET_TEMPERATURE:
 		set_target_temperature(value_conversion.sensor);
 		return value_conversion.reg;
@@ -146,8 +154,6 @@ void main_loop(void) {
 int main(void) {
 	blink_trigger = 0;
 
-	thermostat_init();
-
 	app_conf = wifi_framework_config_create();
 
 	app_conf.wifi_startup_timeout = 7;
@@ -156,6 +162,7 @@ int main(void) {
 	app_conf.server_message_get_callback = handle_server_get;
 	app_conf.server_message_set_callback = handle_server_set;
 	app_conf.app_main_callback = main_loop;
+	app_conf.app_init_callback = thermostat_init;
 	
 	wifi_framework_init(app_conf);
 

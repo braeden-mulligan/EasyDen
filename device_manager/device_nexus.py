@@ -4,7 +4,7 @@ from device_manager import messaging_interchange as messaging
 from device_manager import utilities as utils
 from device_manager import jobs as jobs 
 
-import json, select, socket, sys, time, os
+import json, select, socket, time, os
 import logging
 
 device_list = []
@@ -247,7 +247,6 @@ def run():
 	logging.basicConfig(filename="logs/device_manager.log", level = logging.DEBUG, format = "[%(asctime)s %(levelname)s %(name)s %(message)s] : ")
 	logger = logging.getLogger(__name__)
 
-	#sys.excepthook = crash_handler
 	try:
 		main_loop()
 	except KeyboardInterrupt:

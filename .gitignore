@@ -66,3 +66,7 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+<<<<<<< HEAD
+=======
+*.swp
+>>>>>>> thermostat/main

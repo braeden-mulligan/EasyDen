@@ -18,6 +18,14 @@
 		<a href="{{ url_for('index') }}">Home</a>
 		<a href="#">About</a>
 	</div>
+
+	<div id="like_button_container"></div>
+
+	<script src="{{ url_for('static', filename = 'lib/react.development.js') }}"></script>
+	<script src="{{ url_for('static', filename = 'lib/react-dom.development.js') }}"></script>
+
+	<script src="{{url_for('static', filename = 'js/like_button.js') }}"></script>
+
 	<hr>
 	
 	{% block content %}	{% endblock %}

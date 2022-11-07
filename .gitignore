@@ -66,6 +66,8 @@ Module.symvers
 Mkfile.old
 dkms.conf
 
+node_modules/
+
 *.swp
 secret_script.sh
 tools/

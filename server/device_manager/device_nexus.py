@@ -247,7 +247,7 @@ def run():
 	log_dir = os.path.dirname(__file__) + "/logs"
 	if not os.path.exists(log_dir):
 		os.makedirs(log_dir)
-	logging.basicConfig(filename="logs/device_manager.log", level = logging.DEBUG, format = "[%(asctime)s %(levelname)s %(name)s %(message)s] : ")
+	logging.basicConfig(filename=log_dir + "/device_manager.log", level = logging.DEBUG, format = "[%(asctime)s %(levelname)s %(name)s %(message)s] : ")
 	logger = logging.getLogger(__name__)
 
 	try:

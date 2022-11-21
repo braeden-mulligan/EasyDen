@@ -67,6 +67,7 @@ Mkfile.old
 dkms.conf
 
 node_modules/
+js/
 
 *.swp
 secret_script.sh

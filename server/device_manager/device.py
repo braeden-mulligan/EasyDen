@@ -47,7 +47,7 @@ class SH_Device:
 
 	def update_last_contact(self):
 		self.last_contact = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
-		self.soc_last_heartbeat = time.time()
+		self.soc_last_heartbeat = time.monotonic()
 		self.no_response = 0
 		return
 
@@ -66,7 +66,7 @@ class SH_Device:
 			packet, timestamp, retries = self.pending_response 
 			#print("waiting on message [" + packet + "] retries remaining: " + str(retries))
 
-			if time.time() > timestamp + self.msg_timeout:
+			if time.monotonic() > timestamp + self.msg_timeout:
 				self.pending_response = None
 				if retries > 0:
 					print("Message [" + packet + "] deilvery failed, retrying " + str(retries) + " more times...")
@@ -80,7 +80,7 @@ class SH_Device:
 			p, r = self.pending_transmission.pop(0)
 			if self.soc_connection:
 				print("Transmitting: [" + str(p) + "] to device " + str(self.device_id) + ". " + str(r) + " retries available...")
-				self.pending_response = (p, time.time(), r)
+				self.pending_response = (p, time.monotonic(), r)
 				self.soc_connection.send(p.encode())
 
 		return SH_Device.STATUS_OK
@@ -93,8 +93,8 @@ class SH_Device:
 		else: 
 			attribute = {
 			  "value": val,
-			  "queried_at": round(time.time(), 3) if query else 0.0,
-			  "updated_at": round(time.time(), 3) if update else 0.0
+			  "queried_at": round(time.monotonic(), 5) if query else 0.0,
+			  "updated_at": round(time.monotonic(), 5) if update else 0.0
 			}
 
 			self.device_attrs[reg] = self.device_attrs.get(reg, attribute)
@@ -236,9 +236,9 @@ class SH_Device:
 			if pending_reg == SH_defs.register_id("GENERIC_REG_PING"):
 				# Already waiting on a heartbeat check.
 				return
-		if self.online_status and (time.time() > self.soc_last_heartbeat + config.DEVICE_KEEPALIVE):
+		if self.online_status and (time.monotonic() > self.soc_last_heartbeat + config.DEVICE_KEEPALIVE):
 			self.device_send(messaging.generic_ping())
-			self.soc_last_heartbeat = time.time()
+			self.soc_last_heartbeat = time.monotonic()
 
 	def initialization_task(self):
 		if self.fully_initialized:

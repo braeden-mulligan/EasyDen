@@ -38,6 +38,29 @@ def reg_to_int(registers, reg_label = None, reg_id = None):
 
 	return None
 
+def _map_to_register_id(reg):
+	if isinstance(reg, str):
+		return _reg_id(reg)
+	elif isinstance(reg, int):
+		return reg
+
+	return None
+
+def command_from_float(register, value):
+	register_id = _map_to_register_id(register)
+	if register_id is None:
+		return None
+
+	packed_float = struct.unpack("!i", struct.pack("!f", value))[0]
+	return template.format(_set, register_id, packed_float);
+
+def command_from_int(register, value):
+	register_id = _map_to_register_id(register)
+	if register_id is None:
+		return None
+
+	return template.format(_set, register_id, value);
+
 def generic_request_identity():
 	return template.format(SH_defs.CMD_IDY, 0, 0)
 

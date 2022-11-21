@@ -1,20 +1,11 @@
 from flask import request
 
-from dashboard import server_interconnect as interconnect
 from dashboard import utilities as utils
+from dashboard.controllers import base_device as base
 
-import device_manager.device_definitions as dm_defs
 import device_manager.messaging_interchange as interchange
 
-import json
-
-def fetch(request):
-	device_id = request.args.get("id")
-	response_label, poweroutlets = interconnect.fetch_devices(device_id, dm_defs.type_id("SH_TYPE_POWEROUTLET"))
-
-	if response_label != "JSON":
-		return utils.compose_response(response_label, poweroutlets)
-
+def poweroutlet_processor(poweroutlets):
 	valid_devices = []
 	for p in poweroutlets:
 		if not p["initialized"]:
@@ -36,13 +27,21 @@ def fetch(request):
 		utils.prune_device_data(p)
 		valid_devices.append(p);
 
-	return utils.compose_response(response_label, json.dumps(valid_devices))
+	return valid_devices
+
+def fetch(request):
+	return base.fetch(request, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
 
 def command(request):
-#TODO: update this
-	device_id = request.args.get("id")
-	socket_vals = [int(val) for val in request.data.decode().split(',')]
-	cmd = interchange.poweroutlet_set_state(socket_vals)
-	print("Issue command: " + cmd);
-	resp = interconnect.data_transaction(interconnect.device_command(device_id, cmd))
-	return resp
+	message = None
+	register = int(request.args.get("register"))
+
+	if register == utils.register_id("GENERIC_REG_ENABLE"):
+		interchange.command_from_int(int(request.data.decode()))
+	elif register == utils.register_id("POWEROUTLET_REG_STATE"):
+		socket_vals = [int(val) for val in request.data.decode().split(',')]
+		message = interchange.poweroutlet_set_state(socket_vals)
+	else:
+		return "{ \"error\": null }"
+
+	return base.command(request, message, "SH_TYPE_POWEROUTLET")

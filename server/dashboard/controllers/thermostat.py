@@ -1,20 +1,11 @@
-from flask import request
+from flask import request 
 
-from dashboard import server_interconnect as interconnect
 from dashboard import utilities as utils
+from dashboard.controllers import base_device as base
 
-import device_manager.device_definitions as dm_defs
 import device_manager.messaging_interchange as interchange
 
-import json
-
-def fetch(request):
-	device_id = request.args.get("id")
-	response_label, thermostats = interconnect.fetch_devices(device_id, device_type = dm_defs.type_id("SH_TYPE_THERMOSTAT"))
-
-	if response_label != "JSON":
-		return utils.compose_response(response_label, thermostats)
-
+def thermostat_processor(thermostats):
 	valid_devices = []
 	for t in thermostats:
 		if not t["initialized"]:
@@ -36,10 +27,36 @@ def fetch(request):
 		utils.prune_device_data(t)
 		valid_devices.append(t)
 
-	return utils.compose_response(response_label, json.dumps(valid_devices))
+	return valid_devices
+
+def fetch(request):
+	return base.fetch(request, thermostat_processor, "SH_TYPE_THERMOSTAT")
 
 def command(request):
-	device_id = request.args.get("id")
-	value = float(request.data.decode())
-	interconnect.data_transaction(interconnect.device_command(device_id, interchange.thermostat_set_temperature(value)))
-	return "success"
+	float_register_values = [
+	  utils.register_id("THERMOSTAT_REG_TARGET_TEMPERATURE"),
+	  utils.register_id("THERMOSTAT_REG_THRESHOLD_HIGH"),
+	  utils.register_id("THERMOSTAT_REG_THRESHOLD_LOW"),
+	  utils.register_id("THERMOSTAT_REG_TEMPERATURE_CORRECTION")
+	]
+
+	integer_register_values = [
+	  utils.register_id("GENERIC_REG_ENABLE"),
+	  utils.register_id("THERMOSTAT_REG_MAX_HEAT_TIME"),
+	  utils.register_id("THERMOSTAT_REG_MIN_COOLDOWN_TIME")
+	]
+
+	message = None
+	register = int(request.args.get("register"))
+
+	if register in float_register_values:
+		value = float(request.data.decode())
+		message = interchange.command_from_float(register, value)
+	elif register in integer_register_values:
+		value = int(request.data.decode())
+		message = interchange.command_from_float(register, value)
+	else:
+		return "{ \"error\": null }"
+
+	return base.command(request, message, "SH_TYPE_THERMOSTAT")
+

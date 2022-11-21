@@ -305,11 +305,15 @@ function fetch_devices(tracker, id = 0, type = null, fast_poll = true) {
 			console.log("Raw response:");
 			console.log(xhr.responseText);
 
+			/*
 			let {response_label, data} = parse_server_response(xhr.responseText);
 
 			if (response_label != "JSON") {
 				console.log(response_label + ": " + data)
 			}
+			*/
+
+			data = JSON.parse(xhr.responseText)
 
 			if (fast_poll) {
 				tracker.request_response_processor(data, tracker, id);
@@ -327,6 +331,7 @@ function send_command(id, command, device_url_snippet) {
 	console.log("Sending...");
 	console.log(command);
 	var url = "http://" + SERVER_ADDR + "/device/"+ device_url_snippet + "/command?id=" + id;
+	url += "&register=102";
 
 	try {
 		var xhr = new XMLHttpRequest();

@@ -147,7 +147,7 @@ function set_target_temperature(evt) {
 	console.log("set device " + evt.target.device_id);
 	let value_input = document.getElementById("target-temperature-" + evt.target.device_id).value;
 	send_command(evt.target.device_id, value_input, "thermostat");
-	tracker.submit_tracking(evt.target.device_id, "target_temperature");
+	//tracker.submit_tracking(evt.target.device_id, "target_temperature");
 }
 
 function config_thermostat(evt, value) {

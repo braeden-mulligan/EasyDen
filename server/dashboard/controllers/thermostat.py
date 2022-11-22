@@ -56,7 +56,7 @@ def command(request):
 		value = int(request.data.decode())
 		message = interchange.command_from_float(register, value)
 	else:
-		return "{ \"error\": null }"
+		return base.error({ "error": None })
 
 	return base.command(request, message, "SH_TYPE_THERMOSTAT")
 

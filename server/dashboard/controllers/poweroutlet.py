@@ -42,6 +42,6 @@ def command(request):
 		socket_vals = [int(val) for val in request.data.decode().split(',')]
 		message = interchange.poweroutlet_set_state(socket_vals)
 	else:
-		return "{ \"error\": null }"
+		return base.error({ "error": None })
 
 	return base.command(request, message, "SH_TYPE_POWEROUTLET")

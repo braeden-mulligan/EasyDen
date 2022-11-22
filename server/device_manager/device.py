@@ -182,9 +182,6 @@ class SH_Device:
 		return 0
 
 	def device_send(self, message, retries = -1, raw_packet = None):
-		if self.soc_connection is None:
-			return False
-
 		m = raw_packet or "{:04X},".format(self.msg_seq) + message
 
 		if retries < 0:
@@ -195,6 +192,8 @@ class SH_Device:
 			if cmd == SH_defs.CMD_GET or cmd == SH_defs.CMD_SET:
 				self.update_attributes(reg, val, query = True)
 
+		if self.soc_connection is None:
+			return False
 
 		if raw_packet is None:
 			self.msg_seq += 1

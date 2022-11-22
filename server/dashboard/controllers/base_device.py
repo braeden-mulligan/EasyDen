@@ -38,6 +38,9 @@ def command(request, packet, type_label):
 			continue
 
 		if last_update > last_query:
-			return Response(response = json.dumps(devices), mimetype = "application/json");
+			return Response(response = json.dumps(devices), mimetype = "application/json")
 
-	return "{ \"error\": \"Device could not be reached.\" }"
+	return error({ "error": "Device could not be reached." })
+
+def error(data):
+	return Response(response = json.dumps(data), mimetype = "application/json")

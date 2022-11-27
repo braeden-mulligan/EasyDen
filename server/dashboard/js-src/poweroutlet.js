@@ -1,3 +1,4 @@
+/*
 class Poweroutlet extends SH_Device {
 	static class_label_socket_list = "poweroutlet-attr-socket-list";
 	static class_label_socket_item = "poweroutlet-attr-socket-item";
@@ -145,3 +146,4 @@ function toggle_action(evt) {
 // Main ----
 
 tracker.start_global_poll(true);
+*/

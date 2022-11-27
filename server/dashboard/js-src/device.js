@@ -30,6 +30,51 @@ function Mutable_Attribute(props) {
 	);
 }
 
+class Poweroutlet_Attributes extends React.Component {
+	constructor(props) {
+		super(props);
+	}
+
+	render_socket_states() {
+		let attrs = this.props.attributes;
+
+		let rendered_sockets = attrs.socket_states.value.map((val, i) => {
+			return(
+				<li key={ i }>
+					<span socket_id={i}>Socket {i}: {val ? "ON" : "OFF"} &nbsp; </span>
+					<button className="set" onClick={
+						() => {
+							let socket_states = attrs.socket_states.value.slice();
+							socket_states[i] = + !socket_states[i];
+							this.props.update_attribute(null, attrs.socket_states.register, socket_states, null)
+						}
+					} > Toggle </button>
+				</li>
+			);
+		});
+
+		console.log(rendered_sockets)
+
+		return rendered_sockets;
+	}
+
+	render() {
+		let attrs = this.props.attributes;
+		return (
+			<div>
+				<p>Device enabled: { attrs.enabled.value } &nbsp;
+					<button className="set" onClick={
+						() => this.props.update_attribute(null, attrs.enabled.register, + !attrs.enabled.value, null)
+					} > Toggle </button>
+				</p>
+				<ul>
+					{ this.render_socket_states() }
+				</ul>
+			</div>
+		)
+	}
+}
+
 class Thermostat_Attributes extends React.Component {
 	constructor(props) {
 		super(props);
@@ -81,6 +126,7 @@ class Device extends React.Component {
 			device_attributes = <Thermostat_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
 			device_schedules= <Thermostat_Schedules attributes={ this.props.attributes } />
 		} else if (this.props.device_type == "poweroutlet") {
+			device_attributes = <Poweroutlet_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
 		}
 
 		return (
@@ -186,8 +232,10 @@ function build_request(data_handler) {
 
 	xhr.onreadystatechange = function() {
 		if (xhr.readyState == XMLHttpRequest.DONE) {
-			data = JSON.parse(xhr.responseText)
-			data_handler(data)
+			console.log("Raw response:");
+			console.log(xhr.responseText);
+			data = JSON.parse(xhr.responseText);
+			data_handler(data);
 		}
 	}
 

@@ -245,14 +245,15 @@ class SH_Device:
 		if not self.device_id or self.pending_response:
 			return False
 
-		necessary_attributes = []
+		necessary_attributes = [
+			SH_defs.register_id("GENERIC_REG_ENABLE")
+		]
 
 		if self.device_type == SH_defs.type_id("SH_TYPE_POWEROUTLET"):
 			necessary_attributes.append(SH_defs.register_id("POWEROUTLET_REG_SOCKET_COUNT"))
 			necessary_attributes.append(SH_defs.register_id("POWEROUTLET_REG_STATE"))
 
 		elif self.device_type == SH_defs.type_id("SH_TYPE_THERMOSTAT"):
-			necessary_attributes.append(SH_defs.register_id("GENERIC_REG_ENABLE"))
 			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_TEMPERATURE"))
 			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_TARGET_TEMPERATURE"))
 			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_TEMPERATURE_CORRECTION"))

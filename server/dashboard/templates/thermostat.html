@@ -2,11 +2,8 @@
 
 {% block device_content %}
 <h2>Thermostat</h2>
-<div id="device-panel">
-	
-</div>
+<div id="device-panel" device-type="thermostat"></div>
 {% endblock %}
-
 
 {% block device_scripts %}
 <script type="text/javascript" src="{{ url_for('static', filename = 'js/thermostat.js') }}"></script>

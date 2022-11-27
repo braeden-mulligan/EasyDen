@@ -11,6 +11,9 @@
 	{% else %}
 	<title>SmartHome</title>
 	{% endif %}
+
+	<script src="{{ url_for('static', filename = 'lib/react.development.js') }}"></script>
+	<script src="{{ url_for('static', filename = 'lib/react-dom.development.js') }}"></script>
 </head>
 <body>
 	<div class="header">
@@ -22,18 +25,13 @@
 	<hr>
 
 	{% block content %}	{% endblock %}
+
+	<hr>
+
+	<p>Device page footer</p>
+
 	{% block scripts %} {% endblock %}
 
-	<br><hr>
-	<h4>Tic Tac Toe!</h4>
-	<div id="root"></div>
-
-	<div id="like_button_container"></div>
-
-	<script src="{{ url_for('static', filename = 'lib/react.development.js') }}"></script>
-	<script src="{{ url_for('static', filename = 'lib/react-dom.development.js') }}"></script>
-	<script src="{{url_for('static', filename = 'js/like_button.js') }}"></script>
-	<script src="{{url_for('static', filename = 'js/tictac.js') }}"></script>
 	<link rel="stylesheet" href="{{ url_for('static', filename = 'css/index.css') }}">
 	
 </body>

@@ -79,8 +79,9 @@ def poweroutlet_set_state(socket_states):
 	high_byte = 0
 	low_byte = 0
 	for i, val in enumerate(socket_states):
-		high_byte |= (1 << i)
-		if val:
+		if val >= 0:
+			high_byte |= (1 << i)
+		if val > 0:
 			low_byte |= (1 << i)
 	reg_value = high_byte << 8 | low_byte
 	print("REG VAL: " + str(reg_value))

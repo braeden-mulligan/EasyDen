@@ -17,7 +17,7 @@ def fetch(request, processor, type_label):
 	
 	return Response(response = json.dumps(processor(devices)), mimetype = "application/json")
 
-def command(request, packet, type_label):
+def command(request, packet, processor, type_label):
 	device_id = request.args.get("id")
 
 	interconnect.data_transaction(interconnect.device_command(device_id, packet))
@@ -25,6 +25,7 @@ def command(request, packet, type_label):
 #TODO: Clean up...
 	#if request.args.get("all") = true
 	# submit best-effort cmd
+	# else
 	timeout = time.monotonic() + 5.0
 	while time.monotonic() < timeout: #args.get("timeout")
 		time.sleep(0.15)
@@ -38,7 +39,7 @@ def command(request, packet, type_label):
 			continue
 
 		if last_update > last_query:
-			return Response(response = json.dumps(devices), mimetype = "application/json")
+			return Response(response = json.dumps(processor(devices)), mimetype = "application/json")
 
 	return error({ "error": "Device could not be reached." })
 

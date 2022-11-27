@@ -1,4 +1,4 @@
-class Thermostat extends SH_Device {
+/*class Thermostat extends SH_Device {
 	static class_label_temperature = "thermostat-attr-temperature";
 	static class_label_humidity = "thermostat-attr-humidity";
 
@@ -161,3 +161,5 @@ tracker = new Thermostat_Tracker();
 // Main ----
 
 tracker.start_global_poll(true);
+
+*/

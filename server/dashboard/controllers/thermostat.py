@@ -58,5 +58,5 @@ def command(request):
 	else:
 		return base.error({ "error": None })
 
-	return base.command(request, message, "SH_TYPE_THERMOSTAT")
+	return base.command(request, message, thermostat_processor, "SH_TYPE_THERMOSTAT")
 

@@ -54,7 +54,7 @@ def command(request):
 		message = interchange.command_from_float(register, value)
 	elif register in integer_register_values:
 		value = int(request.data.decode())
-		message = interchange.command_from_float(register, value)
+		message = interchange.command_from_int(register, value)
 	else:
 		return base.error({ "error": None })
 

@@ -15,35 +15,56 @@ class Device_Info extends React.Component {
 	}
 }
 
-class Thermostat extends React.Component {
+function Mutable_Attribute(props) {
+	let current_target;
+
+	return (
+		<p><span>{ props.description }: { props.attribute.value } &nbsp;
+			<input type="text" onChange={ 
+				(e) => { current_target = e.target.value; }
+			} /> 
+			<button className="set" onClick={
+				() => props.update_attribute(null, props.attribute.register, current_target, null)
+			} > Set </button>
+		</span></p>
+	);
+}
+
+class Thermostat_Attributes extends React.Component {
 	constructor(props) {
 		super(props);
-		this.current_target = 0.0;
 	}
 
 	render() {
 		let attrs = this.props.attributes;
 		return (
 			<div>
-				<p>Device enabled: { attrs.enabled.value }</p>
+				<p>Device enabled: { attrs.enabled.value } &nbsp;
+					<button className="set" onClick={
+						() => this.props.update_attribute(null, attrs.enabled.register, + !attrs.enabled.value, null)
+					} > Toggle </button>
+				</p>
 				<p>Temperature: { attrs.temperature.value }</p>
-				<p>Target temperature: { attrs.target_temperature.value }</p>
-
-				<input type="text" onChange={ 
-					(e) => { this.current_target = e.target.value; console.log(e); }
-				} /> 
-				<button className="set" onClick={
-					() => this.props.update_attribute(null, attrs.target_temperature.register, this.current_target, null)
-				} > Set </button>
-
-				<p>Min cooldown time: { attrs.min_cooldown_time.value }</p>
-				<p>Max heat time: { attrs.max_heat_time.value }</p>
-				<p>Min cooldown time: { attrs.min_cooldown_time.value }</p>
-				<p>Temperature correction: { attrs.temperature_correction.value }</p>
-				<p>Threshold high: { attrs.threshold_high.value }</p>
-				<p>Threshold low: { attrs.threshold_low.value }</p>
+				<Mutable_Attribute description="Target Temperature" attribute={ attrs.target_temperature } update_attribute={ this.props.update_attribute } />
+				<Mutable_Attribute description="Temperature correction" attribute={ attrs.temperature_correction } update_attribute={ this.props.update_attribute } />
+				<Mutable_Attribute description="Threshold high" attribute={ attrs.threshold_high } update_attribute={ this.props.update_attribute } />
+				<Mutable_Attribute description="Threshold low" attribute={ attrs.threshold_low } update_attribute={ this.props.update_attribute } />
+				<Mutable_Attribute description="Max heat time" attribute={ attrs.max_heat_time } update_attribute={ this.props.update_attribute } />
+				<Mutable_Attribute description="Min cooldown time" attribute={ attrs.min_cooldown_time } update_attribute={ this.props.update_attribute } />
 			</div>
 		)
+	}
+}
+
+class Thermostat_Schedules extends React.Component {
+	constructor(props) {
+		super(props);
+	}
+
+	render() {
+		return (
+			<p>No schedules</p>
+		);
 	}
 }
 
@@ -53,20 +74,20 @@ class Device extends React.Component {
 	}
 
 	render() {
-		let device_attributes;
+		let device_attributes = <p> Uknown device type </p>
+		let device_schedules = <p>No schedules</p>
 
 		if (this.props.device_type == "thermostat") {
-			device_attributes = <Thermostat attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
+			device_attributes = <Thermostat_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
+			device_schedules= <Thermostat_Schedules attributes={ this.props.attributes } />
 		} else if (this.props.device_type == "poweroutlet") {
-			device_attributes = <p> Poweroutlet </p>
-		} else {
-			device_attributes = <p> Uknown device type </p>
 		}
 
 		return (
 			<div>
 				<Device_Info id={ this.props.id } name={ this.props.name } online={ this.props.online } />
 				{ device_attributes }
+				{ device_schedules }
 			</div>
 		);
 	}
@@ -165,8 +186,6 @@ function build_request(data_handler) {
 
 	xhr.onreadystatechange = function() {
 		if (xhr.readyState == XMLHttpRequest.DONE) {
-			//console.log("Raw response:");
-			//console.log(xhr.responseText);
 			data = JSON.parse(xhr.responseText)
 			data_handler(data)
 		}
@@ -194,8 +213,12 @@ function update_attribute(type, register, data, processor, id = null) {
 		return;
 	}
 
+	console.log("Send reg: " + register.toString() + " data: " + data.toString() + " for id:" + id.toString()) 
+
 	let query_string = "?register=" + register.toString(); 
-	if (id) query_string += "&id=" + register.toString();
+	if (id) query_string += "&id=" + id.toString();
+
+	console.log(query_string);
 
 	let url = "http://" + SERVER_ADDR + "/device/" + type + "/command" + query_string;
 
@@ -207,4 +230,3 @@ function update_attribute(type, register, data, processor, id = null) {
 let device_panel_container = document.getElementById("device-panel");
 const root = ReactDOM.createRoot(device_panel_container);
 root.render(<Device_Panel device_type={ device_panel_container.getAttribute("device-type") } />);
-

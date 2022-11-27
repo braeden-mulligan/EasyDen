@@ -9,7 +9,7 @@ class Device_Info extends React.Component {
 		<div>
 			<p>Device { this.props.id } reporting for duty</p>
 			<p>Name: { this.props.name }</p>
-			<p>net status: { this.props.online.toString() }</p>
+			<p>Online: { this.props.online.toString() }</p>
 		</div>
 		)
 	}

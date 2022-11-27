@@ -27,8 +27,10 @@
 #define EEPROM_ADDR_OUTLET_6_MEM 518
 #define EEPROM_ADDR_OUTLET_7_MEM 519
 
-uint8_t socket_count;
+#define EEPROM_ADDR_ENABLED 520
 
+uint8_t poweroutlet_enabled;
+uint8_t socket_count;
 uint8_t values_inverted;
 
 struct wifi_framework_config app_conf;
@@ -61,6 +63,8 @@ uint32_t outlet_get(void) {
 }
 
 void outlet_set(uint32_t status_mask) {
+	if (!poweroutlet_enabled) return;
+
 	if (values_inverted) status_mask = (0x0000FFF0 & status_mask) | (~status_mask);
 
 	if (status_mask & (1 << 8)) {
@@ -132,12 +136,19 @@ void outlet_set(uint32_t status_mask) {
 }
 
 uint32_t handle_server_get(uint16_t reg) {
+	if (reg == GENERIC_REG_ENABLE) return poweroutlet_enabled;
 	if (reg == POWEROUTLET_REG_STATE) return outlet_get();
 	if (reg == POWEROUTLET_REG_SOCKET_COUNT) return socket_count;
 	return 0;
 }
 
 uint32_t handle_server_set(uint16_t reg, uint32_t val) {
+	if (reg == GENERIC_REG_ENABLE) {
+		poweroutlet_enabled = !!val;
+		eeprom_update_byte((uint8_t*)EEPROM_ADDR_ENABLED, poweroutlet_enabled);
+		return poweroutlet_enabled;
+	}
+
 	if (reg == GENERIC_REG_BLINK) {
 		set_conf_fast_period();
 		blink_trigger = 1;
@@ -147,6 +158,7 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 		outlet_set(val);
 		return outlet_get();
 	}
+
 	return 0;
 }
 
@@ -182,6 +194,7 @@ void outlet_init(void) {
 
 	socket_count = eeprom_read_byte((uint8_t*)POWEROUTLET_EEPROM_ADDR_SOCKET_COUNT);
 	values_inverted = eeprom_read_byte((uint8_t*)POWEROUTLET_EEPROM_ADDR_VALUES_INVERTED);
+	poweroutlet_enabled = eeprom_read_byte((uint8_t*)EEPROM_ADDR_ENABLED);
 
 	uint8_t outlet0 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_0_MEM);
 	uint8_t outlet1 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_1_MEM);

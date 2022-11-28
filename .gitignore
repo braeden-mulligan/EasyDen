@@ -72,3 +72,4 @@ js/
 *.swp
 secret_script.sh
 tools/
+**/static/lib/

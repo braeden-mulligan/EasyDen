@@ -89,7 +89,7 @@ class Thermostat_Attributes extends React.Component {
 						() => this.props.update_attribute(null, attrs.enabled.register, + !attrs.enabled.value, null)
 					} > Toggle </button>
 				</p>
-				<p>Temperature: { attrs.temperature.value }</p>
+				<p>Temperature: { attrs.temperature.value.toFixed(1) + " °C" }</p>
 				<Mutable_Attribute description="Target Temperature" attribute={ attrs.target_temperature } update_attribute={ this.props.update_attribute } />
 				<Mutable_Attribute description="Temperature correction" attribute={ attrs.temperature_correction } update_attribute={ this.props.update_attribute } />
 				<Mutable_Attribute description="Threshold high" attribute={ attrs.threshold_high } update_attribute={ this.props.update_attribute } />

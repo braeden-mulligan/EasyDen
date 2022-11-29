@@ -1,11 +1,12 @@
-import device_manager 
+import device_manager.config as dm_config
+import device_manager.device_definitions as dm_defs
 
 import json, socket
 
 def data_transaction(msg, timeout = 1.0):
 	soc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 	try:
-		soc.connect(device_manager.config.SERVER_INTERCONNECT)
+		soc.connect(dm_config.SERVER_INTERCONNECT)
 	except ConnectionRefusedError as e:
 		return "EXCEPTION: " + str(e)
 	except Exception as e:
@@ -47,12 +48,13 @@ def parse_response(transaction_result):
 
 	return response_package
 
-def fetch_devices(device_id = None, device_type = None):
+def fetch_devices(device_id = None, device_type_label = None):
 	query = "fetch "
 	if device_id:
 		query += "id " + str(device_id)
-	elif device_type:
-		query += "type " + str(device_type)
+	elif device_type_label:
+		query += "type " + str(dm_defs.type_id(device_type_label)
+)
 	else:
 		query += "all"
 
@@ -63,9 +65,11 @@ def fetch_devices(device_id = None, device_type = None):
 def device_command(device_id, message):
 	return "command id " + str(device_id) + " " + message
 
-def group_command(device_type, message):
-	return "command type " + str(device_type) + " " + message
+def group_command(device_type_label, message):
+	type_number = dm_defs.type_id(device_type_label)
+	return "command type " + str(type_number) + " " + message
 
-def server_command(message):
-	return "command server " + message
+def device_schedule(device_id, message, device_type_label):
+	type_number = dm_defs.type_id(device_type_label)
+	return "schedule " + str(type_number) + " id " + str(device_id) + " " + message
 

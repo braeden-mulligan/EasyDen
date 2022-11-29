@@ -3,14 +3,12 @@ from flask import request, Response
 from dashboard import server_interconnect as interconnect
 from dashboard import utilities as utils
 
-import device_manager.device_definitions as dm_defs
-
 import json, time
 
 def fetch(request, processor, type_label):
 	device_id = request.args.get("id")
 
-	response_label, devices = interconnect.fetch_devices(device_id, device_type = dm_defs.type_id(type_label))
+	response_label, devices = interconnect.fetch_devices(device_id, device_type_label = type_label)
 
 	if response_label != "JSON":
 		return utils.compose_response(response_label, devices)
@@ -44,9 +42,11 @@ def command(request, packet, processor, type_label):
 	return error({ "error": "Device could not be reached" })
 
 def set_schedule(request, processor, type_label):
-	print(request.data.decode())
+	data = request.data.decode()
+#TODO: Check data validity
 	device_id = request.args.get("id")
-	#interconnect.data_transaction(interconnect.???(device_id, data))
+	interconnect.data_transaction(interconnect.device_schedule(device_id, data, type_label))
+	response_label, devices = interconnect.fetch_devices(device_id, device_type = type_label)
 
 	return error({ "error": "Unimplemented" })
 

@@ -83,9 +83,9 @@ def handle_device_message(device):
 def handle_dashboard_message(dash_conn, msg):
 	response = "ERROR: Malformed request"
 
-	if not utils.dashboard_message_validate(msg):
-		dash_conn.send(response.encode())
-		return
+	# if not utils.dashboard_message_validate(msg):
+	# 	dash_conn.send(response.encode())
+	# 	return
 		
 	print("Dash message: [" + msg + "]")
 	words = msg.split(' ')
@@ -135,6 +135,9 @@ def handle_dashboard_message(dash_conn, msg):
 				response = "SUCCESS: command sent to " + str(device_count) + " devices"
 			else:
 				response = "ERROR: No devices found"
+		
+		elif "server" in words[1]:
+			pass
 
 # info [id <int> <specifier> | type <int> <specifier>]
 	elif "info" in words[0]:
@@ -151,15 +154,29 @@ def handle_dashboard_message(dash_conn, msg):
 				response = "PARAMETER: " + str(device.reconnect_count)
 			elif "fully_initialized" in words[3]:
 				response = "PARAMETER: " + str(device.fully_initialized).lower()
+		
+		elif "type" in words[1]:
+			pass
+		
+		elif "server" in words[0]:
+			pass
 
-#server <directive> [<specifier> | <json specifier>]
-	elif "server" in words[0]:
-		if "rename" in words[1]:
-			device = device_from_identifier(device_id = int(words[3]))
-			device.name = " ".join(words[4:])
-		#elif "config"
-		#elif "set_schedule"
-		#elif "remove_schedule"
+	elif "rename" in words[0]:
+		d = device_from_identifier(device_id = int(words[1]));
+		d.name = " ".join(words[2:])
+		response = "SUCCESS: New name for device " + str(d.device_id) + " " + d.name
+
+	elif "schedule" in words[0]:
+		type_number = int(words[1])
+		if "id" in words[2]:
+			# data = words[4]
+			# add_to_jobs(type, data, device_id = int(words[3])
+			pass
+		else:
+			#data = words[2]
+			# add_to_jobs(type, data)
+			pass
+		response = "FAILURE: Unimplemented"
 
 	elif "debug" in words[0]:
 		response = "FAILURE: Unimplemented feature"

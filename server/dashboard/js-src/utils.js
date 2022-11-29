@@ -11,3 +11,23 @@ function sleep(milliseconds) {
   }
 }
 
+/*
+	{
+		"recurring": bool,
+		"time": "cron"/timestamp,
+		"action": add/delete,
+		"register": data
+	}
+*/
+function build_schedule(register, data, action, type, time_expression) {
+	let schedule_data = {
+		register: register,
+		data: data,
+		action: action,
+		recurring: type,
+		time: time_expression
+	}
+
+	return JSON.stringify(schedule_data)
+}
+

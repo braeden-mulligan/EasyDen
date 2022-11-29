@@ -24,93 +24,10 @@ function Mutable_Attribute(props) {
 				(e) => { current_target = e.target.value; }
 			} /> 
 			<button className="set" onClick={
-				() => props.update_attribute(null, props.attribute.register, current_target, null)
+				() => props.update_attribute(props.attribute.register, current_target)
 			} > Set </button>
 		</span></p>
 	);
-}
-
-class Poweroutlet_Attributes extends React.Component {
-	constructor(props) {
-		super(props);
-	}
-
-	render_socket_states() {
-		let attrs = this.props.attributes;
-
-		let rendered_sockets = attrs.socket_states.value.map((val, i) => {
-			return(
-				<li key={ i }>
-					<span socket_id={i}>Socket {i}: {val ? "ON" : "OFF"} &nbsp; </span>
-					<button className="set" onClick={
-						() => {
-							let socket_states = attrs.socket_states.value.slice();
-							socket_states[i] = + !socket_states[i];
-							this.props.update_attribute(null, attrs.socket_states.register, socket_states, null)
-						}
-					} > Toggle </button>
-				</li>
-			);
-		});
-
-		console.log(rendered_sockets)
-
-		return rendered_sockets;
-	}
-
-	render() {
-		let attrs = this.props.attributes;
-		return (
-			<div>
-				<p>Device enabled: { attrs.enabled.value } &nbsp;
-					<button className="set" onClick={
-						() => this.props.update_attribute(null, attrs.enabled.register, + !attrs.enabled.value, null)
-					} > Toggle </button>
-				</p>
-				<ul>
-					{ this.render_socket_states() }
-				</ul>
-			</div>
-		)
-	}
-}
-
-class Thermostat_Attributes extends React.Component {
-	constructor(props) {
-		super(props);
-	}
-
-	render() {
-		let attrs = this.props.attributes;
-		return (
-			<div>
-				<p>Device enabled: { attrs.enabled.value } &nbsp;
-					<button className="set" onClick={
-						() => this.props.update_attribute(null, attrs.enabled.register, + !attrs.enabled.value, null)
-					} > Toggle </button>
-				</p>
-				<p>Temperature: { attrs.temperature.value.toFixed(1) + " °C" }</p>
-				<Mutable_Attribute description="Target Temperature" attribute={ attrs.target_temperature } update_attribute={ this.props.update_attribute } />
-				<Mutable_Attribute description="Temperature correction" attribute={ attrs.temperature_correction } update_attribute={ this.props.update_attribute } />
-				<Mutable_Attribute description="Threshold high" attribute={ attrs.threshold_high } update_attribute={ this.props.update_attribute } />
-				<Mutable_Attribute description="Threshold low" attribute={ attrs.threshold_low } update_attribute={ this.props.update_attribute } />
-				<Mutable_Attribute description="Max heat time" attribute={ attrs.max_heat_time } update_attribute={ this.props.update_attribute } />
-				<Mutable_Attribute description="Min cooldown time" attribute={ attrs.min_cooldown_time } update_attribute={ this.props.update_attribute } />
-			</div>
-		)
-	}
-}
-
-class Thermostat_Schedules extends React.Component {
-	constructor(props) {
-		super(props);
-	}
-
-	render() {
-		return (
-			<p>No schedules</p>
-		);
-	}
 }
 
 class Device extends React.Component {
@@ -124,7 +41,7 @@ class Device extends React.Component {
 
 		if (this.props.device_type == "thermostat") {
 			device_attributes = <Thermostat_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
-			device_schedules= <Thermostat_Schedules attributes={ this.props.attributes } />
+			device_schedules= <Thermostat_Schedules attributes={ this.props.attributes } set_schedule={ this.props.set_schedule } />
 		} else if (this.props.device_type == "poweroutlet") {
 			device_attributes = <Poweroutlet_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
 		}
@@ -178,7 +95,8 @@ class Device_Panel extends React.Component {
 		return (
 			<li key={ obj.id }>
 				<Device id={ obj.id } name={ obj.name } online={ obj.online } attributes={ obj.attributes } device_type= { this.props.device_type }
-				  update_attribute={ (type, register, data, processor) => update_attribute(this.props.device_type, register, data, this.process_devices.bind(this), obj.id) } />
+				  update_attribute={ (register, data) => update_attribute(this.props.device_type, register, data, this.process_devices.bind(this), obj.id) }
+				  set_schedule={ (data) => set_schedule(this.props.device_type, data, this.process_devices.bind(this), obj.id) } />
 			</li>
 		)
 	}
@@ -242,35 +160,35 @@ function build_request(data_handler) {
 	return xhr;
 }
 
-function fetch_devices(type, processor, id = null) {
-	if (!type) {
-		console.log("Failed to fetch, no type specified");
-		return;
-	}
-
+function fetch_devices(type, response_processor, id = null) {
 	let url = "http://" + SERVER_ADDR + "/device/" + type + "/refresh" + (id ? "?id=" + id.toString() : "");
 
-	let request = build_request(processor);
+	let request = build_request(response_processor);
 	request.open("GET", url, true);
 	request.send();
 }
 
-function update_attribute(type, register, data, processor, id = null) {
-	if (!type) {
-		console.log("Failed to update attribute, no type specified");
-		return;
-	}
-
+function update_attribute(type, register, data, response_processor, id = null) {
 	console.log("Send reg: " + register.toString() + " data: " + data.toString() + " for id:" + id.toString()) 
 
 	let query_string = "?register=" + register.toString(); 
 	if (id) query_string += "&id=" + id.toString();
 
-	console.log(query_string);
-
 	let url = "http://" + SERVER_ADDR + "/device/" + type + "/command" + query_string;
 
-	let request = build_request(processor);
+	let request = build_request(response_processor);
+	request.open("POST", url, true);
+	request.send(data);
+}
+
+function set_schedule(type, data, response_processor, id = null) {
+console.log("set schedule" + data); return;
+	let query_string = "?register=" + register.toString(); 
+	if (id) query_string += "&id=" + id.toString();
+
+	let url = "http://" + SERVER_ADDR + "/device/" + type + "/schedule" + query_string;
+
+	let request = build_request(response_processor);
 	request.open("POST", url, true);
 	request.send(data);
 }

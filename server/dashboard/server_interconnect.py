@@ -18,7 +18,7 @@ def data_transaction(msg, timeout = 1.0):
 	resp = ""
 	try:
 		resp = soc.recv(65536).decode()
-		print("Dashboard got: " + resp)
+		#print("Dashboard got: " + resp)
 	except Exception as e:
 		resp = "EXCEPTION: " + str(e)
 		print(e)

@@ -42,3 +42,6 @@ def command(request):
 		return base.error({ "error": None })
 
 	return base.command(request, message, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
+
+def set_schedule(request):
+	return base.set_schedule(request, thermostat_processor, "SH_TYPE_POWEROUTLET")

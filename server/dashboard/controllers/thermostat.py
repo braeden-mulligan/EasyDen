@@ -14,7 +14,6 @@ def thermostat_processor(thermostats):
 		t["attributes"] = {}
 
 		t["attributes"]["enabled"] = utils.unpack_attribute(t["registers"], "GENERIC_REG_ENABLE")
-		print(t["attributes"])
 		t["attributes"]["temperature"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
 		t["attributes"]["target_temperature"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_TARGET_TEMPERATURE")
 		t["attributes"]["humidity"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
@@ -60,3 +59,5 @@ def command(request):
 
 	return base.command(request, message, thermostat_processor, "SH_TYPE_THERMOSTAT")
 
+def set_schedule(request):
+	return base.set_schedule(request, thermostat_processor, "SH_TYPE_THERMOSTAT")

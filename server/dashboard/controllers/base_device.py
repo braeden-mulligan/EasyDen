@@ -41,7 +41,14 @@ def command(request, packet, processor, type_label):
 		if last_update > last_query:
 			return Response(response = json.dumps(processor(devices)), mimetype = "application/json")
 
-	return error({ "error": "Device could not be reached." })
+	return error({ "error": "Device could not be reached" })
+
+def set_schedule(request, processor, type_label):
+	print(request.data.decode())
+	device_id = request.args.get("id")
+	#interconnect.data_transaction(interconnect.???(device_id, data))
+
+	return error({ "error": "Unimplemented" })
 
 def error(data):
 	return Response(response = json.dumps(data), mimetype = "application/json")

@@ -177,16 +177,13 @@ function update_attribute(type, register, data, response_processor, id = null) {
 	let url = "http://" + SERVER_ADDR + "/device/" + type + "/command" + query_string;
 
 	let request = build_request(response_processor);
-	request.open("POST", url, true);
+	request.open("PUT", url, true);
 	request.send(data);
 }
 
 function set_schedule(type, data, response_processor, id = null) {
-console.log("set schedule" + data); return;
-	let query_string = "?register=" + register.toString(); 
-	if (id) query_string += "&id=" + id.toString();
-
-	let url = "http://" + SERVER_ADDR + "/device/" + type + "/schedule" + query_string;
+//console.log("set schedule" + data); return;
+	let url = "http://" + SERVER_ADDR + "/device/" + type + "/schedule" + (id ? "?id=" + id.toString() : "");
 
 	let request = build_request(response_processor);
 	request.open("POST", url, true);

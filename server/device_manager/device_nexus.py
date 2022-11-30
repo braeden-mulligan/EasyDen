@@ -162,21 +162,20 @@ def handle_dashboard_message(dash_conn, msg):
 			pass
 
 	elif "rename" in words[0]:
-		d = device_from_identifier(device_id = int(words[1]));
+		d = device_from_identifier(device_id = int(words[1]))
 		d.name = " ".join(words[2:])
 		response = "SUCCESS: New name for device " + str(d.device_id) + " " + d.name
 
 	elif "schedule" in words[0]:
-		type_number = int(words[1])
+		device_type = int(words[1])
 		if "id" in words[2]:
-			# data = words[4]
-			# add_to_jobs(type, data, device_id = int(words[3])
-			pass
+			data = "".join(words[4:])
+			jobs.submit_schedule(device_type, data, device_id = int(words[3]))
+			response = "SUCCESS: New schedule submitted"
 		else:
-			#data = words[2]
-			# add_to_jobs(type, data)
-			pass
-		response = "FAILURE: Unimplemented"
+			data = "".join(words[2:])
+			jobs.submit_schedule(device_type, data)
+			response = "SUCCESS: New schedule submitted"
 
 	elif "debug" in words[0]:
 		response = "FAILURE: Unimplemented feature"
@@ -257,8 +256,7 @@ def main_loop():
 				handle_socket_error(d.soc_connection, select.POLLHUP, poller)
 				d.disconnect()
 
-		jobs.keepalive(device_list)
-		jobs.query_thermostats(device_list)
+		jobs.run_tasks(device_list)
 
 def run():
 	log_dir = os.path.dirname(__file__) + "/logs"

@@ -41,13 +41,13 @@ def command(request, packet, processor, type_label):
 
 	return error({ "error": "Device could not be reached" })
 
-def set_schedule(request, processor, type_label):
-	data = request.data.decode()
+def set_schedule(request, data, processor, type_label):
 #TODO: Check data validity
 	device_id = request.args.get("id")
 	interconnect.data_transaction(interconnect.device_schedule(device_id, data, type_label))
-	response_label, devices = interconnect.fetch_devices(device_id, device_type = type_label)
-
+	response_label, devices = interconnect.fetch_devices(device_id, device_type_label = type_label)
+	
+	return Response(response = json.dumps(processor(devices)), mimetype = "application/json")
 	return error({ "error": "Unimplemented" })
 
 def error(data):

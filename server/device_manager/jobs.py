@@ -57,17 +57,27 @@ def send_command(command, device_type, device_id):
 			d.device_send(command)
 	return
 
+def fetch_schedules(device_id, device_type):
+	existing_schedules = []
+	for s in schedules:
+		if s.device_id is None or s.device_id == device_id:
+			existing_schedules.append(s.data)
+	return existing_schedules
+
 def submit_schedule(device_type, data, device_id = None):
 	global schedules
 
 	print("Appending " + data + " for device_type " + SH_defs.type_label(device_type) + " id " + str(device_id))
 	data = json.loads(data)
 
+	action = data["action"]
+	del data["action"]
+
 	new_schedule = Device_Schedule(device_type, data, device_id)
 	
 	for s in schedules:
 		if new_schedule == s:
-			if data["action"] == "delete":
+			if action == "delete":
 				schedule.cancel_job(s.job)
 				schedules.remove(s)
 				return True
@@ -78,7 +88,8 @@ def submit_schedule(device_type, data, device_id = None):
 	print("NEW SCHEDULE ADDED!")
 
 #TODO: proper cron format.
-	new_schedule.job = schedule.every().day.at(str(data["time"]["hour"]) + ":" + str(data["time"]["minute"])).do(send_command, data["command"], device_type, device_id)
+	time_expression = "{:02d}".format(int(data["time"]["hour"])) + ":" + "{:02d}".format(int(data["time"]["minute"]))
+	new_schedule.job = schedule.every().day.at(time_expression).do(send_command, data["command"], device_type, device_id)
 	schedules.append(new_schedule)
 
 	return True

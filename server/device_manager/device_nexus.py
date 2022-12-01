@@ -90,6 +90,7 @@ def handle_dashboard_message(dash_conn, msg):
 	print("Dash message: [" + msg + "]")
 	words = msg.split(' ')
 
+#TODO: data collection helper for fetches.
 # fetch [all | type <int> | id <int>]
 	if "fetch" in words[0]:
 		json_obj_list = None
@@ -110,6 +111,8 @@ def handle_dashboard_message(dash_conn, msg):
 				continue
 			for reg in entry["registers"]:
 				entry["registers"][reg]["value"] = "0x{:08X}".format(entry["registers"][reg]["value"])
+
+			entry["schedules"] = jobs.fetch_schedules(entry["id"], entry["type"])
 
 		if isinstance(json_obj_list, list):
 			response = "JSON: " + json.dumps(json_obj_list)

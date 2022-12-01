@@ -33,10 +33,26 @@ class Thermostat_Schedules extends React.Component {
 		this.current_minute = null;
 	}
 
+	render_schedule(obj, index) {
+		return (
+			<li key={ index }>
+				{ JSON.stringify(obj) }
+			</li>
+		)
+	}
+
 	render() {
+		let schedules = this.props.schedules.map((obj, i) => {
+			return this.render_schedule(obj, i)
+		})
+
 		return (
 			<div>
-			<b>Schedules</b><br />
+			<b>Schedules</b>
+			<ul>
+				{ schedules }
+			</ul>
+			<br />
 			<p>No schedules</p><br />
 			<b>New Schedule</b>
 			<p><span>Target temperature: &nbsp;

@@ -41,7 +41,7 @@ class Device extends React.Component {
 
 		if (this.props.device_type == "thermostat") {
 			device_attributes = <Thermostat_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
-			device_schedules= <Thermostat_Schedules attributes={ this.props.attributes } set_schedule={ this.props.set_schedule } />
+			device_schedules = <Thermostat_Schedules attributes={ this.props.attributes } schedules={ this.props.schedules } set_schedule={ this.props.set_schedule } />
 		} else if (this.props.device_type == "poweroutlet") {
 			device_attributes = <Poweroutlet_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
 		}
@@ -94,7 +94,8 @@ class Device_Panel extends React.Component {
 	render_device(obj) {
 		return (
 			<li key={ obj.id }>
-				<Device id={ obj.id } name={ obj.name } online={ obj.online } attributes={ obj.attributes } device_type= { this.props.device_type }
+				<Device id={ obj.id } name={ obj.name } online={ obj.online } device_type= { this.props.device_type }
+				  attributes={ obj.attributes } schedules={ obj.schedules }
 				  update_attribute={ (register, data) => update_attribute(this.props.device_type, register, data, this.process_devices.bind(this), obj.id) }
 				  set_schedule={ (data) => set_schedule(this.props.device_type, data, this.process_devices.bind(this), obj.id) } />
 			</li>

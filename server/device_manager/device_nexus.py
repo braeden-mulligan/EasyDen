@@ -32,7 +32,6 @@ def listener_init(dashboard = False):
 
 def socket_close(soc, poll_obj):
 	try:
-		print("Unregister fd " + str(soc.fileno()))
 		poll_obj.unregister(soc)
 		soc.shutdown(socket.SHUT_RDWR)
 		soc.close()
@@ -45,7 +44,6 @@ def handle_socket_error(soc, event, poll_obj):
 		return socket_close(soc, poll_obj)
 	return False
 
-# --- ---
 
 # --- Device Messaging Tools ---
 
@@ -75,11 +73,9 @@ def handle_device_message(device):
 
 	return True
 
-# --- ---
 
 # --- Dashboard Messaging ---
 
-# Should always return something to dashboard.
 def handle_dashboard_message(dash_conn, msg):
 	response = "ERROR: Malformed request"
 
@@ -87,37 +83,33 @@ def handle_dashboard_message(dash_conn, msg):
 	# 	dash_conn.send(response.encode())
 	# 	return
 		
-	print("Dash message: [" + msg + "]")
+	print("Dashboard message: [" + msg + "]")
+	
 	words = msg.split(' ')
 
-#TODO: data collection helper for fetches.
-# fetch [all | type <int> | id <int>]
+	# fetch [all | type <int> | id <int>]
 	if "fetch" in words[0]:
 		json_obj_list = None
 
 		if "all" in words[1]:
 			json_obj_list = [d.get_data() for d in device_list if d.device_id]
 		elif "type" in words[1]:
-			#TODO: validate
-			num = int(words[2])
-			json_obj_list = [d.get_data() for d in device_list if d.device_type == num]
+			json_obj_list = [d.get_data() for d in device_list if d.device_type == int(words[2])]
 		elif "id" in words[1]:
-			#TODO: validate
-			num = int(words[2])
-			json_obj_list = [d.get_data() for d in device_list if d.device_id == num]
+			json_obj_list = [d.get_data() for d in device_list if d.device_id == int(words[2])]
 		
 		for entry in json_obj_list:
+			entry["schedules"] = jobs.fetch_schedules(entry["id"])
+
 			if "registers" not in entry:
 				continue
 			for reg in entry["registers"]:
 				entry["registers"][reg]["value"] = "0x{:08X}".format(entry["registers"][reg]["value"])
 
-			entry["schedules"] = jobs.fetch_schedules(entry["id"], entry["type"])
-
 		if isinstance(json_obj_list, list):
 			response = "JSON: " + json.dumps(json_obj_list)
 
-# command [id <int> <raw message> | type <int> <raw message>]
+	# command [id|type <int> <raw message>]
 	elif "command" in words[0]:
 		if "id" in words[1]:
 			d = device_from_identifier(device_id = int(words[2]));
@@ -142,12 +134,10 @@ def handle_dashboard_message(dash_conn, msg):
 		elif "server" in words[1]:
 			pass
 
-# info [id <int> <specifier> | type <int> <specifier>]
+	# info [id <int> <specifier> | type <int> <specifier>]
 	elif "info" in words[0]:
 		if "id" in words[1]:
-			#TODO: validate
-			num = int(words[2])
-			device = next((d for d in device_list if d.device_id == num), None)
+			device = next((d for d in device_list if d.device_id == int(words[2])), None)
 
 			if device is None:
 				response = "ERROR: Device not found"
@@ -156,13 +146,12 @@ def handle_dashboard_message(dash_conn, msg):
 			elif "reconnections" in words[3]:
 				response = "PARAMETER: " + str(device.reconnect_count)
 			elif "fully_initialized" in words[3]:
-				response = "PARAMETER: " + str(device.fully_initialized).lower()
-		
+				response = "PARAMETER: " + str(device.fully_initialized).lower()	
 		elif "type" in words[1]:
-			pass
-		
-		elif "server" in words[0]:
-			pass
+			pass	
+		elif "server" in words[1]:
+			if "schedules" in words[2]:
+				response = "SUCCESS: " + str(["Device " + str(s.device_id) + " " + str(s.job) for s in jobs.schedules])
 
 	elif "rename" in words[0]:
 		d = device_from_identifier(device_id = int(words[1]))
@@ -170,15 +159,9 @@ def handle_dashboard_message(dash_conn, msg):
 		response = "SUCCESS: New name for device " + str(d.device_id) + " " + d.name
 
 	elif "schedule" in words[0]:
-		device_type = int(words[1])
-		if "id" in words[2]:
-			data = "".join(words[4:])
-			jobs.submit_schedule(device_type, data, device_id = int(words[3]))
-			response = "SUCCESS: New schedule submitted"
-		else:
-			data = "".join(words[2:])
-			jobs.submit_schedule(device_type, data)
-			response = "SUCCESS: New schedule submitted"
+		data = "".join(words[2:])
+		jobs.submit_schedule(int(words[1]), data)
+		response = "SUCCESS: New schedule submitted"
 
 	elif "debug" in words[0]:
 		response = "FAILURE: Unimplemented feature"
@@ -189,7 +172,6 @@ def handle_dashboard_message(dash_conn, msg):
 # --- ---
 
 def main_loop():
-	print("Starting socket server.")
 	poller = select.poll()
 
 	dash_soc = listener_init(dashboard = True)
@@ -211,23 +193,18 @@ def main_loop():
 		poll_result = poller.poll(config.POLL_TIMEOUT)
 
 		for fd, event in poll_result:
-			print("\nFD: " + str(fd) + " EVENT: " + str(event))
-
 			if event & select.POLLNVAL:
-				print("Unregister fd " + str(fd))
 				poller.unregister(fd)
 
 			elif (fd == dash_soc.fileno()):
 				conn, addr = dash_soc.accept()
 				conn.setblocking(False)
-				print("Dashboard connected from " + str(addr))
 				poller.register(conn, poll_opts)
 				dashboard_connections.append(conn)
 
 			elif (fd == device_soc.fileno()):
 				conn, addr = device_soc.accept()
 				conn.setblocking(False)
-				print("Device connected from " + str(addr))
 				poller.register(conn, poll_opts)
 				device_list.append(SH_Device(conn))
 
@@ -241,7 +218,6 @@ def main_loop():
 				# else:
 				device = device_from_identifier(fd)
 				if device is not None:
-					print("Device operation fd: " + str(device.soc_fd))
 					if handle_socket_error(device.soc_connection, event, poller):
 						print("Device disconnected.")
 						# Socket now closed so set device to disconnected. 
@@ -250,7 +226,6 @@ def main_loop():
 #TODO: Decide what to do depending how handle_device_message fails
 						socket_close(device.soc_connection, poller)
 						device.disconnect() 
-
 					print(" ")
 
 		for d in device_list:
@@ -269,10 +244,11 @@ def run():
 	logger = logging.getLogger(__name__)
 
 	try:
+		print("Starting device manager.")
 		main_loop()
 	except KeyboardInterrupt:
 		raise
 	except:
 		print("Caught unhandled exception. Check logs for details.")
-		logging.exception("Module manager crashed!")
+		logging.exception("Device manager crashed!")
 		raise

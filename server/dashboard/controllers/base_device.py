@@ -44,7 +44,7 @@ def command(request, packet, processor, type_label):
 def set_schedule(request, data, processor, type_label):
 #TODO: Check data validity
 	device_id = request.args.get("id")
-	interconnect.data_transaction(interconnect.device_schedule(device_id, data, type_label))
+	interconnect.data_transaction(interconnect.device_schedule(device_id, data))
 	response_label, devices = interconnect.fetch_devices(device_id, device_type_label = type_label)
 	
 	return Response(response = json.dumps(processor(devices)), mimetype = "application/json")

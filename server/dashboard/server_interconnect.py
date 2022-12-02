@@ -69,7 +69,6 @@ def group_command(device_type_label, message):
 	type_number = dm_defs.type_id(device_type_label)
 	return "command type " + str(type_number) + " " + message
 
-def device_schedule(device_id, message, device_type_label):
-	type_number = dm_defs.type_id(device_type_label)
-	return "schedule " + str(type_number) + " id " + str(device_id) + " " + message
+def device_schedule(device_id, message):
+	return "schedule " + str(device_id) + " " + message
 

@@ -32,69 +32,61 @@ def query_thermostats(device_list):
 	last_thermostat_query = time.time()
 
 class Device_Schedule:
-	def __init__(self, device_type, data, device_id):
-		self.data = data
-		self.device_type = device_type
+	def __init__(self, device_id, data):
 		self.device_id = device_id
-		self.job = None
+		self.data = data
+		self.job = []
 
 	def __eq__(self, other):
 		if type(other) is not type(self):
 			return False
-		if other.data != self.data:
-			return False
-		if other.device_type != self.device_type:
-			return False
 		if other.device_id != self.device_id:
+			return False
+		if other.data != self.data:
 			return False
 		return True
 
-def send_command(command, device_type, device_id):
+def send_command(device_id, command):
 	for d in nexus.device_list:
-		if device_id is None and d.device_type == device_type:
-			d.device_send(command)
-		elif device_id and device_id == d.device_id:
+		if device_id == d.device_id:
 			d.device_send(command)
 	return
 
-def fetch_schedules(device_id, device_type):
+def fetch_schedules(device_id):
 	existing_schedules = []
 	for s in schedules:
-		if s.device_id is None or s.device_id == device_id:
+		if s.device_id == device_id:
 			existing_schedules.append(s.data)
 	return existing_schedules
 
-def submit_schedule(device_type, data, device_id = None):
+def submit_schedule(device_id, data):
 	global schedules
 
-	print("Appending " + data + " for device_type " + SH_defs.type_label(device_type) + " id " + str(device_id))
+	print("Appending " + data + " for device " + str(device_id))
 	data = json.loads(data)
 
 	action = data["action"]
 	del data["action"]
 
-	new_schedule = Device_Schedule(device_type, data, device_id)
+	new_schedule = Device_Schedule(device_id, data)
 	
 	for s in schedules:
 		if new_schedule == s:
 			if action == "delete":
-				schedule.cancel_job(s.job)
+				for j in s.job:
+					schedule.cancel_job(j)
 				schedules.remove(s)
 				return True
 			else:
-				#TODO: Handle if new schedule for type + id is already covered by same data for entire type group
 				print("Cannot add duplicate schedule")
 				return False
 	print("NEW SCHEDULE ADDED!")
 
-#TODO: proper cron format.
 	time_expression = "{:02d}".format(int(data["time"]["hour"])) + ":" + "{:02d}".format(int(data["time"]["minute"]))
-	new_schedule.job = schedule.every().day.at(time_expression).do(send_command, data["command"], device_type, device_id)
+	new_schedule.job.append(schedule.every().day.at(time_expression).do(send_command, device_id, data["command"]))
 	schedules.append(new_schedule)
 
 	return True
-
-#{"action":"create","recurring":true,"time":{"hour":"23","minute":"2"},"command":"02,66,41B00000"}
 
 def run_tasks(device_list):
 	keepalive(device_list)

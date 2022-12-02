@@ -38,6 +38,18 @@ def thermostat_processor(thermostats):
 		t["attributes"]["max_heat_time"] = utils.unpack_attribute(t["registers"], "THERMOSTAT_REG_MAX_HEAT_TIME")
 		t["attributes"]["min_cooldown_time"] = utils.unpack_attribute(t["registers"], "THERMOSTAT_REG_MIN_COOLDOWN_TIME")
 
+		for i, schedule in enumerate(t["schedules"]):
+			tag = schedule
+			_, register, value = tag["command"].split(',')
+			register = int(register, 16)
+
+			if register == utils.register_id("THERMOSTAT_REG_TARGET_TEMPERATURE"):
+				target_temperature = interchange.reg_to_float({ str(register): { "value": value }}, reg_id = register)
+			else:
+				continue
+
+			t["schedules"][i] = { "attribute": "target_temperature", "value": target_temperature, "id_tag": tag }
+
 		utils.prune_device_data(t)
 		valid_devices.append(t)
 
@@ -75,11 +87,14 @@ def command(request):
 
 def set_schedule(request):
 	schedule_data = json.loads(request.data.decode())
-	message = build_command(schedule_data)
 	
-	del schedule_data["register"]
-	del schedule_data["data"]
+	if schedule_data["action"] == "create":
+		message = build_command(schedule_data)
+		del schedule_data["register"]
+		del schedule_data["data"]
 
-	schedule_data["command"] = message
+		schedule_data["command"] = message
+	elif schedule_data["action"] == "delete":
+		pass
 
 	return base.set_schedule(request, json.dumps(schedule_data), thermostat_processor, "SH_TYPE_THERMOSTAT")

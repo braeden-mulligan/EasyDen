@@ -19,12 +19,12 @@ function sleep(milliseconds) {
 		"register": data
 	}
 */
-function build_schedule(register, data, action, type, time_expression) {
+function build_schedule(register, data, action, recurring, time_expression) {
 	let schedule_data = {
 		register: register,
 		data: data,
 		action: action,
-		recurring: type,
+		recurring: recurring,
 		time: time_expression
 	}
 

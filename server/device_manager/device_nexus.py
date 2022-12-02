@@ -161,7 +161,7 @@ def handle_dashboard_message(dash_conn, msg):
 	elif "schedule" in words[0]:
 		data = "".join(words[2:])
 		jobs.submit_schedule(int(words[1]), data)
-		response = "SUCCESS: New schedule submitted"
+		response = "SUCCESS: Schedule submitted"
 
 	elif "debug" in words[0]:
 		response = "FAILURE: Unimplemented feature"

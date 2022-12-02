@@ -33,10 +33,13 @@ class Thermostat_Schedules extends React.Component {
 		this.current_minute = null;
 	}
 
-	render_schedule(obj, index) {
+	render_schedule(obj) {
 		return (
-			<li key={ index }>
+			<li key={ JSON.stringify(obj.id_tag) }>
 				{ JSON.stringify(obj) }
+			<button className="set" onClick={
+					() => this.props.set_schedule(JSON.stringify(Object.assign({ "action": "delete" }, obj.id_tag)))
+				} > Remove </button>
 			</li>
 		)
 	}

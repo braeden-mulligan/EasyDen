@@ -11,14 +11,6 @@ function sleep(milliseconds) {
   }
 }
 
-/*
-	{
-		"recurring": bool,
-		"time": "cron"/timestamp,
-		"action": add/delete,
-		"register": data
-	}
-*/
 function build_schedule(register, data, action, recurring, time_expression) {
 	let schedule_data = {
 		register: register,

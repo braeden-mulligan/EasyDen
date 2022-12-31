@@ -49,6 +49,10 @@ class Thermostat_Schedules extends React.Component {
 			return this.render_schedule(obj, i)
 		})
 
+		if (!schedules.length) {
+			schedules = <p>None</p>;
+		}
+
 		return (
 			<div>
 			<b>Schedules</b>
@@ -56,7 +60,6 @@ class Thermostat_Schedules extends React.Component {
 				{ schedules }
 			</ul>
 			<br />
-			<p>No schedules</p><br />
 			<b>New Schedule</b>
 			<p><span>Target temperature: &nbsp;
 				<input type="text" onChange={ 

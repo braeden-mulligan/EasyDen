@@ -59,6 +59,7 @@ def fetch_schedules(device_id):
 			existing_schedules.append(s.data)
 	return existing_schedules
 
+#{"action": "create", "recurring": true, "time": {"hour": "3", "minute": "14"}, "command": "02,66,42840000"}
 def submit_schedule(device_id, data):
 	global schedules
 

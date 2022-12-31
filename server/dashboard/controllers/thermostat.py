@@ -71,16 +71,11 @@ def build_command(request_data):
 	return None
 
 def command(request):
-	message = None
-	register = int(request.args.get("register"))
-
-	#TODO Fix this with front-end
-	value = request.data.decode()
-	attribute_data = {"register": register, "data": value}
-	message = build_command(attribute_data)
+	command_data = json.loads(request.data.decode())
+	message = build_command(command_data)
 
 	if message:
-		return base.command(request, message, thermostat_processor, "SH_TYPE_THERMOSTAT")
+		return base.command(request, command_data["register"], message, thermostat_processor, "SH_TYPE_THERMOSTAT")
 	
 	return base.error({ "error": None })
 

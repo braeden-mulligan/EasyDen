@@ -15,24 +15,24 @@ def fetch(request, processor, type_label):
 	
 	return Response(response = json.dumps(processor(devices)), mimetype = "application/json")
 
-def command(request, packet, processor, type_label):
+def command(request, target_register, packet, processor, type_label):
 	device_id = request.args.get("id")
 
 	interconnect.data_transaction(interconnect.device_command(device_id, packet))
 
 #TODO: Clean up...
-	#if request.args.get("all") = true
+	#if request.args.get("all") == true
 	# submit best-effort cmd
 	# else
-	timeout = time.monotonic() + 5.0
-	while time.monotonic() < timeout: #args.get("timeout")
+	timeout = time.monotonic() + (request.args.get("timeout") or 5.0)
+	while time.monotonic() < timeout:
 		time.sleep(0.15)
 		_, devices = interconnect.fetch_devices(device_id) 
 		if not devices:
 			continue 
 
-		last_query = devices[0]["registers"].get(request.args.get("register"), {}).get("queried_at")
-		last_update = devices[0]["registers"].get(request.args.get("register"), {}).get("updated_at")
+		last_query = devices[0]["registers"].get(str(target_register), {}).get("queried_at")
+		last_update = devices[0]["registers"].get(str(target_register), {}).get("updated_at")
 		if last_query is None or last_update is None:
 			continue
 

@@ -44,6 +44,7 @@ class Device extends React.Component {
 			device_schedules = <Thermostat_Schedules attributes={ this.props.attributes } schedules={ this.props.schedules } set_schedule={ this.props.set_schedule } />
 		} else if (this.props.device_type == "poweroutlet") {
 			device_attributes = <Poweroutlet_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
+			device_schedules = <Poweroutlet_Schedules attributes={ this.props.attributes } schedules={ this.props.schedules } set_schedule={ this.props.set_schedule } />
 		}
 
 		return (
@@ -172,14 +173,16 @@ function fetch_devices(type, response_processor, id = null) {
 function update_attribute(type, register, data, response_processor, id = null) {
 	console.log("Send reg: " + register.toString() + " data: " + data.toString() + " for id:" + id.toString()) 
 
-	let query_string = "?register=" + register.toString(); 
-	if (id) query_string += "&id=" + id.toString();
+	let payload = JSON.stringify({
+		register: register,
+		data: data
+	})
 
-	let url = "http://" + SERVER_ADDR + "/device/" + type + "/command" + query_string;
+	let url = "http://" + SERVER_ADDR + "/device/" + type + "/command" + (id ? ("?id=" + id.toString()) : "");
 
 	let request = build_request(response_processor);
 	request.open("PUT", url, true);
-	request.send(data);
+	request.send(payload);
 }
 
 function set_schedule(type, data, response_processor, id = null) {

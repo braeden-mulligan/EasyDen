@@ -51,7 +51,7 @@ def command_from_float(register, value):
 	if register_id is None:
 		return None
 
-	packed_float = struct.unpack("!i", struct.pack("!f", value))[0]
+	packed_float = struct.unpack("!I", struct.pack("!f", value))[0]
 	return template.format(_set, register_id, packed_float);
 
 def command_from_int(register, value):

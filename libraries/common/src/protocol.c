@@ -17,21 +17,21 @@ uint16_t generate_seq(void) {
 uint8_t sh_parse_packet(struct sh_packet* p, char* msg_buf) {
 	char* end;
 
-	p->seq = (uint16_t)strtol(msg_buf, &end, 16);
+	p->seq = (uint16_t)strtoul(msg_buf, &end, 16);
 	if (end == NULL) return SH_PROTOCOL_ERROR;
 	++end;
 
-	p->cmd = (uint8_t)strtol(end, &end, 16);
+	p->cmd = (uint8_t)strtoul(end, &end, 16);
 	if (end == NULL) return SH_PROTOCOL_ERROR;
 	++end;
 
-	p->reg = (uint8_t)strtol(end, &end, 16);
+	p->reg = (uint8_t)strtoul(end, &end, 16);
 	if (end == NULL) return SH_PROTOCOL_ERROR;
 	++end;
 
-	p->val = (uint32_t)strtol(end, &end, 16);
+	p->val = (uint32_t)strtoul(end, &end, 16);
 	if (end == NULL) return SH_PROTOCOL_ERROR;
-	
+
 	return SH_PROTOCOL_SUCCESS;
 }
 

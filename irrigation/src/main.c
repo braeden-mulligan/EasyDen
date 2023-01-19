@@ -31,15 +31,30 @@ void blink_identify(void) {
 
 uint32_t handle_server_get(uint16_t reg) {
 	union {
-		float sensor;
-		uint32_t reg;
+		float f;
+		uint32_t i;
 	} value_conversion; 
 
 	switch (reg) {
 
+	case IRRIGATION_REG_SENSOR_SELECT:
+		return sensor_select;
+
+	case IRRIGATION_REG_MOISTURE:
+		value_conversion.f = moisture[sensor_select];
+		return value_conversion.i;
+
+	case IRRIGATION_REG_TARGET_MOISTURE:
+		value_conversion.f = target_moisture[sensor_select];
+		return value_conversion.i;
+
 // Debug
 	case 200:
 		break;
+	case 201:
+		return sensor_recorded_max[sensor_select];
+	case 202:
+		return sensor_recorded_min[sensor_select];
 	}
 
 	return 0;
@@ -47,9 +62,9 @@ uint32_t handle_server_get(uint16_t reg) {
 
 uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 	union {
-		float sensor;
-		uint32_t reg;
-	} value_conversion = { .reg = val }; 
+		float f;
+		uint32_t i;
+	} value_conversion = { .i = val }; 
 
 	switch (reg) {
 	case GENERIC_REG_BLINK:
@@ -64,6 +79,15 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 		app_conf.application_interval = (val > 3) ? val : 3;
 		wifi_framework_init(app_conf);
 		return app_conf.application_interval;
+
+	case IRRIGATION_REG_SENSOR_SELECT:
+		sensor_select = value_conversion.i;
+		return sensor_select;
+
+	case IRRIGATION_REG_TARGET_MOISTURE:
+		target_moisture[sensor_select] = value_conversion.f;
+		return target_moisture[sensor_select];
+
 	}
 
 	return 0;
@@ -86,11 +110,6 @@ int main(void) {
 	app_conf.server_message_set_callback = handle_server_set;
 	app_conf.app_main_callback = main_loop;
 	app_conf.app_init_callback = irrigation_init;
-	
-	irrigation_init();
-	for (;;) {
-		irrigation_control();
-	}
 
 	wifi_framework_init(app_conf);
 

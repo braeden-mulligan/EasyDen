@@ -37,24 +37,44 @@ uint32_t handle_server_get(uint16_t reg) {
 
 	switch (reg) {
 
-	case IRRIGATION_REG_SENSOR_SELECT:
-		return sensor_select;
+	case IRRIGATION_REG_SENSOR_COUNT:
+		return sensor_count;
 
-	case IRRIGATION_REG_MOISTURE:
-		value_conversion.f = moisture[sensor_select];
+	case IRRIGATION_REG_MOISTURE_0:
+		value_conversion.f = moisture[0];
+		return value_conversion.i;
+	case IRRIGATION_REG_MOISTURE_1:
+		value_conversion.f = moisture[1];
+		return value_conversion.i;
+	case IRRIGATION_REG_MOISTURE_2:
+		value_conversion.f = moisture[2];
 		return value_conversion.i;
 
-	case IRRIGATION_REG_TARGET_MOISTURE:
-		value_conversion.f = target_moisture[sensor_select];
+	case IRRIGATION_REG_TARGET_MOISTURE_0:
+		value_conversion.f = target_moisture[0];
+		return value_conversion.i;
+	case IRRIGATION_REG_TARGET_MOISTURE_1:
+		value_conversion.f = target_moisture[1];
+		return value_conversion.i;
+	case IRRIGATION_REG_TARGET_MOISTURE_2:
+		value_conversion.f = target_moisture[2];
 		return value_conversion.i;
 
 // Debug
 	case 200:
 		break;
 	case 201:
-		return sensor_recorded_max[sensor_select];
+		return sensor_recorded_max[0];
 	case 202:
-		return sensor_recorded_min[sensor_select];
+		return sensor_recorded_min[0];
+	case 203:
+		return sensor_recorded_max[1];
+	case 204:
+		return sensor_recorded_min[1];
+	case 205:
+		return sensor_recorded_max[2];
+	case 206:
+		return sensor_recorded_min[2];
 	}
 
 	return 0;
@@ -80,13 +100,15 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 		wifi_framework_init(app_conf);
 		return app_conf.application_interval;
 
-	case IRRIGATION_REG_SENSOR_SELECT:
-		sensor_select = value_conversion.i;
-		return sensor_select;
-
-	case IRRIGATION_REG_TARGET_MOISTURE:
-		target_moisture[sensor_select] = value_conversion.f;
-		return target_moisture[sensor_select];
+	case IRRIGATION_REG_TARGET_MOISTURE_0:
+		target_moisture[0] = value_conversion.f;
+		return value_conversion.i;
+	case IRRIGATION_REG_TARGET_MOISTURE_1:
+		target_moisture[1] = value_conversion.f;
+		return value_conversion.i;
+	case IRRIGATION_REG_TARGET_MOISTURE_2:
+		target_moisture[2] = value_conversion.f;
+		return value_conversion.i;
 
 	}
 

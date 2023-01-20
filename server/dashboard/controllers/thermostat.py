@@ -22,23 +22,23 @@ INTEGER_REGISTER_VALUES = [
 
 def thermostat_processor(thermostats):
 	valid_devices = []
-	for t in thermostats:
-		if not t["initialized"]:
+	for device in thermostats:
+		if not device["initialized"]:
 			continue
 
-		t["attributes"] = {}
+		device["attributes"] = {}
 
-		t["attributes"]["enabled"] = utils.unpack_attribute(t["registers"], "GENERIC_REG_ENABLE")
-		t["attributes"]["temperature"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE")
-		t["attributes"]["target_temperature"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_TARGET_TEMPERATURE")
-		t["attributes"]["humidity"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_HUMIDITY")
-		t["attributes"]["threshold_high"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_THRESHOLD_HIGH")
-		t["attributes"]["threshold_low"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_THRESHOLD_LOW")
-		t["attributes"]["temperature_correction"] = utils.unpack_attribute_to_float(t["registers"], "THERMOSTAT_REG_TEMPERATURE_CORRECTION")
-		t["attributes"]["max_heat_time"] = utils.unpack_attribute(t["registers"], "THERMOSTAT_REG_MAX_HEAT_TIME")
-		t["attributes"]["min_cooldown_time"] = utils.unpack_attribute(t["registers"], "THERMOSTAT_REG_MIN_COOLDOWN_TIME")
+		device["attributes"]["enabled"] = utils.unpack_attribute(device["registers"], "GENERIC_REG_ENABLE")
+		device["attributes"]["temperature"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_TEMPERATURE")
+		device["attributes"]["target_temperature"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_TARGET_TEMPERATURE")
+		device["attributes"]["humidity"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_HUMIDITY")
+		device["attributes"]["threshold_high"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_THRESHOLD_HIGH")
+		device["attributes"]["threshold_low"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_THRESHOLD_LOW")
+		device["attributes"]["temperature_correction"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_TEMPERATURE_CORRECTION")
+		device["attributes"]["max_heat_time"] = utils.unpack_attribute(device["registers"], "THERMOSTAT_REG_MAX_HEAT_TIME")
+		device["attributes"]["min_cooldown_time"] = utils.unpack_attribute(device["registers"], "THERMOSTAT_REG_MIN_COOLDOWN_TIME")
 
-		for i, schedule in enumerate(t["schedules"]):
+		for i, schedule in enumerate(device["schedules"]):
 			tag = schedule
 			_, register, value = tag["command"].split(',')
 			register = int(register, 16)
@@ -48,10 +48,10 @@ def thermostat_processor(thermostats):
 			else:
 				continue
 
-			t["schedules"][i] = { "attribute": "target_temperature", "value": target_temperature, "id_tag": tag }
+			device["schedules"][i] = { "attribute": "target_temperature", "value": target_temperature, "id_tag": tag }
 
-		utils.prune_device_data(t)
-		valid_devices.append(t)
+		utils.prune_device_data(device)
+		valid_devices.append(device)
 
 	return valid_devices
 

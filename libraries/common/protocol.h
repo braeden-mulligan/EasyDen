@@ -15,7 +15,7 @@
 //#define CMD_DAT 6
 
 // max packet length 1024 including header.
-#define DATA_LEN_MAX 1010
+//#define DATA_LEN_MAX 1010
 
 struct sh_packet {
 	uint16_t seq;

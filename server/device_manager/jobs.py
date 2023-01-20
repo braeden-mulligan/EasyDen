@@ -10,6 +10,7 @@ import json, datetime, schedule, time
 schedules = []
 
 last_thermostat_query = time.time()
+last_irrigation_query = time.time()
 
 def keepalive(device_list):
 	for d in device_list:
@@ -30,6 +31,20 @@ def query_thermostats(device_list):
 		#t.device_send(messaging.thermostat_get_humidity())
 
 	last_thermostat_query = time.time()
+
+def query_irrigation(device_list):
+	global last_irrigation_query
+	
+	if time.time() < last_irrigation_query + (config.DEVICE_KEEPALIVE  * 0.95):
+		return
+
+	irrigators = [d for d in device_list if d.device_type == SH_defs.type_id("SH_TYPE_IRRIGATION")]
+	for device in irrigators:
+		device.device_send(messaging.irrigation_get_moisture(0))
+		device.device_send(messaging.irrigation_get_moisture(1))
+		device.device_send(messaging.irrigation_get_moisture(2))
+
+	last_irrigation_query = time.time()
 
 class Device_Schedule:
 	def __init__(self, device_id, data):
@@ -92,6 +107,7 @@ def submit_schedule(device_id, data):
 def run_tasks(device_list):
 	keepalive(device_list)
 	query_thermostats(device_list)
+	query_irrigation(device_list)
 
 	schedule.run_pending()
 	return

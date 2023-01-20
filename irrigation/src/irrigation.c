@@ -11,8 +11,7 @@
 #include <util/delay.h>
 
 #define MEM_ENABLE 512
-#define MEM_SENSOR_SELECT (MEM_ENABLE + sizeof(irrigation_enabled))
-#define MEM_TARGET_MOISTURE (MEM_SENSOR_SELECT + sizeof(sensor_select))
+#define MEM_TARGET_MOISTURE (MEM_ENABLE + sizeof(irrigation_enabled))
 // ...
 #define MEM_SENSOR_RECORDED_MAX (MEM_TARGET_MOISTURE + sizeof(target_moisture))
 #define MEM_SENSOR_RECORDED_MIN (MEM_SENSOR_RECORDED_MAX + sizeof(sensor_recorded_max))
@@ -58,7 +57,6 @@ void read_moisture(void) {
 void irrigation_init(void) {
 	sensor_count = eeprom_read_byte((uint8_t*)IRRIGATION_EEPROM_ADDR_SENSOR_COUNT);
 	irrigation_enabled = eeprom_read_byte((uint8_t*)MEM_ENABLE);
-	sensor_select = eeprom_read_byte((uint8_t*)MEM_SENSOR_SELECT);
 
 	for (uint8_t i = 0; i < sensor_count; ++i) {
 		target_moisture[i] = eeprom_read_float((float*)(MEM_TARGET_MOISTURE + (sizeof(float) * i)));
@@ -66,8 +64,7 @@ void irrigation_init(void) {
 		sensor_recorded_min[i] = eeprom_read_word((uint16_t*)(MEM_SENSOR_RECORDED_MIN + (sizeof(uint16_t) * i)));
 	}
 
-	// threshold_high[]
-	// threshold_low[]
+	// moiture_low[]
 	// moisture_change_hysteresis_time
 	// moisture_change_hysteresis_amount
 	// ?? max_water_time

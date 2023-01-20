@@ -3,15 +3,15 @@
 
 #include <stdint.h>
 
-#define SENSOR_COUNT_MAX 4
+#define SENSOR_COUNT_MAX 3
 
 uint8_t sensor_count;
 uint8_t irrigation_enabled;
-uint8_t sensor_select;
+uint8_t plant_enable_mask;
+
 float moisture[SENSOR_COUNT_MAX];
 float target_moisture[SENSOR_COUNT_MAX];
-float threshold_high[SENSOR_COUNT_MAX];
-float threshold_low[SENSOR_COUNT_MAX];
+float moisture_low[SENSOR_COUNT_MAX];
 uint16_t moisture_change_hysteresis_time;
 uint16_t moisture_change_hysteresis_amount;
 // ?? max_water_time

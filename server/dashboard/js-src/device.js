@@ -45,6 +45,9 @@ class Device extends React.Component {
 		} else if (this.props.device_type == "poweroutlet") {
 			device_attributes = <Poweroutlet_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
 			device_schedules = <Poweroutlet_Schedules attributes={ this.props.attributes } schedules={ this.props.schedules } set_schedule={ this.props.set_schedule } />
+		} else if (this.props.device_type == "irrigation") {
+			device_attributes = <Irrigation_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
+			device_schedules = <Irrigation_Schedules attributes={ this.props.attributes } schedules={ this.props.schedules } set_schedule={ this.props.set_schedule } />
 		}
 
 		return (

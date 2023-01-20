@@ -124,3 +124,13 @@ def thermostat_set_temperature(value):
 	#TODO: check value is float
 	packed_float = struct.unpack("!i", struct.pack("!f", value))[0]
 	return template.format(_set, _reg_id("THERMOSTAT_REG_TARGET_TEMPERATURE"), packed_float);
+
+
+def irrigation_get_moisture(sensor):
+	if sensor == 0:
+		return template.format(_get, _reg_id("IRRIGATION_REG_MOISTURE_0"), 0)
+	elif sensor == 1:
+		return template.format(_get, _reg_id("IRRIGATION_REG_MOISTURE_1"), 0)
+	elif sensor == 2:
+		return template.format(_get, _reg_id("IRRIGATION_REG_MOISTURE_2"), 0)
+	return None

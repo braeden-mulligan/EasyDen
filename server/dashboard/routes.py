@@ -6,6 +6,7 @@ import server_interconnect as interconnect
 
 import controllers.thermostat as thermostat
 import controllers.poweroutlet as poweroutlet
+import controllers.irrigation as irrigation
 
 import json, os 
  
@@ -40,9 +41,21 @@ def debug():
 		response = interconnect.data_transaction(debug_text)
 		return render_template("debug.html", response = response)
 
-@dashboard_app.route("/device/irrigator")
-def irrigator_dash():
+@dashboard_app.route("/device/irrigation")
+def irrigation_dash():
 	return render_template("irrigation.html", title="Irrigation")
+
+@dashboard_app.route("/device/irrigation/refresh", methods=["GET"])
+def irrigation_fetch():
+	return irrigation.fetch(request)
+
+@dashboard_app.route("/device/irrigation/command", methods=["PUT"])
+def irrigation_command():
+	return irrigation.command(request)
+
+@dashboard_app.route("/device/irrigation/schedule", methods=["POST"])
+def irrigation_schedule():
+	return irrigation.set_schedule(request)
 
 
 @dashboard_app.route("/device/thermostat")

@@ -12,7 +12,7 @@ class SH_Device:
 	MAX_SEQUENCE_NUM = 32767
 	MAX_TX_RETRIES = 1
 	TX_TIMEOUT = 3.0
-	TX_BUFFER_SIZE = 32
+	TX_BUFFER_SIZE = 128
 
 	def __init__(self, socket_connection = None):
 		# Attributes returned on device query.
@@ -264,7 +264,10 @@ class SH_Device:
 			necessary_attributes.append(SH_defs.register_id("THERMOSTAT_REG_HUMIDITY_SENSOR_COUNT"))
 
 		elif self.device_type == SH_defs.type_id("SH_TYPE_IRRIGATION"):
-			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE"))
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_COUNT"))
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_0"))
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_1"))
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_2"))
 
 		else:
 			return self.fully_initialized

@@ -18,6 +18,8 @@ def unpack_attribute(registers, register_label):
 def unpack_attribute_to_float(registers, reg_label):
 	attr = unpack_attribute(registers, reg_label)
 	attr["value"] = interchange.reg_to_float(registers, reg_label)
+	if attr["value"] == float("inf") or attr["value"] == float("-inf"):
+		attr["value"] = None
 	return attr
 
 def prune_device_data(device):

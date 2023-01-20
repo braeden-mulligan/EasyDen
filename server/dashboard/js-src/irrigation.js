@@ -13,8 +13,8 @@ class Irrigation_Attributes extends React.Component {
 						() => this.props.update_attribute(attrs.enabled.register, + !attrs.enabled.value)
 					} > Toggle </button>
 				</p>
-				<p>moisture 0: { attrs.moisture[0].value?.toFixed(1) + " %" }</p>
-				<p>moisture 1: { attrs.moisture[1].value?.toFixed(1) + " %" }</p>
+				<p>moisture 0: { attrs.moisture[0].value?.toFixed(1) + " %" }  ({ attrs.sensor_raw[0]?.value })</p>
+				<p>moisture 1: { attrs.moisture[1].value?.toFixed(1) + " %" }  ({ attrs.sensor_raw[1]?.value })</p>
 			</div>
 		)
 	}

@@ -30,12 +30,14 @@ def irrigation_processor(irrigators):
 		device["attributes"]["sensor_count"] = utils.unpack_attribute(device["registers"], "IRRIGATION_REG_SENSOR_COUNT")
 
 		device["attributes"]["moisture"] = [ utils.unpack_attribute_to_float(device["registers"], "IRRIGATION_REG_MOISTURE_0") ]
+		device["attributes"]["sensor_raw"] = [ utils.unpack_attribute(device["registers"], "IRRIGATION_REG_SENSOR_RAW_0") ]
 		# Assuming at least one sensor exists
 		if device["attributes"]["sensor_count"]["value"] > 1:
 			device["attributes"]["moisture"].append(utils.unpack_attribute_to_float(device["registers"], "IRRIGATION_REG_MOISTURE_1"))
+			device["attributes"]["sensor_raw"].append(utils.unpack_attribute(device["registers"], "IRRIGATION_REG_SENSOR_RAW_1"))
 		if device["attributes"]["sensor_count"]["value"] > 2:
 			device["attributes"]["moisture"].append(utils.unpack_attribute_to_float(device["registers"], "IRRIGATION_REG_MOISTURE_2")) 
-		
+			device["attributes"]["sensor_raw"].append(utils.unpack_attribute(device["registers"], "IRRIGATION_REG_SENSOR_RAW_2"))
 
 		# for i, schedule in enumerate(device["schedules"]):
 		# 	tag = schedule

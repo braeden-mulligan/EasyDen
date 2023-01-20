@@ -134,3 +134,12 @@ def irrigation_get_moisture(sensor):
 	elif sensor == 2:
 		return template.format(_get, _reg_id("IRRIGATION_REG_MOISTURE_2"), 0)
 	return None
+
+def irrigation_get_moisture_raw(sensor):
+	if sensor == 0:
+		return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_0"), 0)
+	elif sensor == 1:
+		return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_1"), 0)
+	elif sensor == 2:
+		return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_2"), 0)
+	return None

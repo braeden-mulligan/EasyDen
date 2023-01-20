@@ -18,7 +18,7 @@ uint16_t moisture_change_hysteresis_amount;
 uint32_t min_cooldown_time;
 uint32_t moisture_low_delay[SENSOR_COUNT_MAX];
 uint16_t sensor_raw[SENSOR_COUNT_MAX];
-int16_t sensor_correction[SENSOR_COUNT_MAX];
+//int16_t sensor_correction[SENSOR_COUNT_MAX];
 uint16_t sensor_raw_max[SENSOR_COUNT_MAX];
 uint16_t sensor_raw_min[SENSOR_COUNT_MAX];
 uint16_t sensor_recorded_max[SENSOR_COUNT_MAX];

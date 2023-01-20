@@ -46,11 +46,7 @@ void read_moisture(void) {
 		// 	if sensor_raw < sensor_recorded_min: sensor_raw_min = sensor_recorded_min
 		// 	if sensor_raw > sensor_recorded_min: sensor_raw_max = sensor_recorded_max
 
-		int32_t sensor_value = (int32_t)sensor_raw[i] + (int32_t)sensor_correction[i];
-		if (sensor_value < 0) sensor_value = 0;
-		if (sensor_value > 1023) sensor_value = 1023;
-
-		moisture[i] = 100.0 - (float)sensor_value / (float)(sensor_raw_max[i] - sensor_raw_min[i]);
+		moisture[i] = 100.0 - (100.0 * (float)((int32_t)sensor_raw[i] - (int32_t)sensor_raw_min[i]) / (float)(sensor_raw_max[i] - sensor_raw_min[i]));
 	}
 }
 
@@ -70,8 +66,10 @@ void irrigation_init(void) {
 	// ?? max_water_time
 	// min_cooldown_time
 	// moisture_low_delay[]
-	// sensor_raw_max[]
-	// sensor_raw_min[]
+	sensor_raw_max[0] = 750;
+	sensor_raw_min[0] = 250;	
+	sensor_raw_max[1] = 750;
+	sensor_raw_min[1] = 250;
 
 	ADC_init(0x3F);
 

@@ -60,6 +60,12 @@ uint32_t handle_server_get(uint16_t reg) {
 		value_conversion.f = target_moisture[2];
 		return value_conversion.i;
 
+	case IRRIGATION_REG_SENSOR_RAW_0:
+		return sensor_raw[0];
+	case IRRIGATION_REG_SENSOR_RAW_1:
+		return sensor_raw[1];
+	case IRRIGATION_REG_SENSOR_RAW_2:
+		return sensor_raw[2];
 // Debug
 	case 200:
 		break;

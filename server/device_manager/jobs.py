@@ -40,9 +40,10 @@ def query_irrigation(device_list):
 
 	irrigators = [d for d in device_list if d.device_type == SH_defs.type_id("SH_TYPE_IRRIGATION")]
 	for device in irrigators:
-		device.device_send(messaging.irrigation_get_moisture(0))
-		device.device_send(messaging.irrigation_get_moisture(1))
-		device.device_send(messaging.irrigation_get_moisture(2))
+		for i in range(3):
+			device.device_send(messaging.irrigation_get_moisture(i))
+			device.device_send(messaging.irrigation_get_moisture_raw(i))
+			
 
 	last_irrigation_query = time.time()
 

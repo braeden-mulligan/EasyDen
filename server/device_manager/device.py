@@ -268,6 +268,9 @@ class SH_Device:
 			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_0"))
 			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_1"))
 			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_2"))
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_RAW_0"))
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_RAW_1"))
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_RAW_2"))
 
 		else:
 			return self.fully_initialized

@@ -156,7 +156,7 @@ void read_moisture(void) {
 			auto_calibrate();
 		}
 
-		moisture[i] = 100.0 - (100.0 * (float)((int32_t)sensor_raw[i] - (int32_t)sensor_raw_min[i]) / (float)(sensor_raw_max[i] - sensor_raw_min[i]));
+		moisture[i] = 100.0 - (100.0 * ((float)((int32_t)sensor_raw[i] - (int32_t)sensor_raw_min[i]) / (float)(sensor_raw_max[i] - sensor_raw_min[i])));
 	}
 }
 

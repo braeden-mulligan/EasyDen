@@ -171,7 +171,7 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 		return value_conversion.i;
 	case IRRIGATION_REG_TARGET_MOISTURE_2:
 		set_target_moisture(2, value_conversion.f);
-		value_conversion.f = target_moisture[3];
+		value_conversion.f = target_moisture[2];
 		return value_conversion.i;
 
 	case IRRIGATION_REG_MOISTURE_LOW_0:

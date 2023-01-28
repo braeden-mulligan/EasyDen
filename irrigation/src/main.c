@@ -133,7 +133,7 @@ int main(void) {
 
 	app_conf.wifi_startup_timeout = 7;
 	app_conf.connection_interval = 20;
-	app_conf.application_interval = 15;
+	app_conf.application_interval = 7;
 	app_conf.server_message_get_callback = handle_server_get;
 	app_conf.server_message_set_callback = handle_server_set;
 	app_conf.app_main_callback = main_loop;

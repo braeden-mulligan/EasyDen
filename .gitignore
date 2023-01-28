@@ -73,3 +73,5 @@ js/
 secret_script.sh
 tools/
 **/static/lib/
+
+.vscode/

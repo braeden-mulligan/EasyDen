@@ -12,8 +12,8 @@
 
 #define MEM_ENABLE 512
 #define MEM_PLANT_ENABLE_MASK (MEM_ENABLE + sizeof(irrigation_enabled))
-#define MEM_AUTO_CALIBRATION (MEM_PLANT_ENABLE_MASK + sizeof(plant_enable_mask))
-#define MEM_TARGET_MOISTURE (MEM_AUTO_CALIBRATION + sizeof(auto_calibration))
+#define MEM_CALIBRATION_MODE (MEM_PLANT_ENABLE_MASK + sizeof(plant_enable_mask))
+#define MEM_TARGET_MOISTURE (MEM_CALIBRATION_MODE + sizeof(calibration_mode))
 #define MEM_MOISTURE_LOW (MEM_TARGET_MOISTURE + sizeof(target_moisture))
 #define MEM_MOISTURE_LOW_DELAY (MEM_MOISTURE_LOW + sizeof(moisture_low))
 #define MEM_MOISTURE_CHANGE_HYSTERESIS_TIME (MEM_MOISTURE_LOW_DELAY + sizeof(moisture_low_delay))
@@ -28,6 +28,10 @@
 #define PLANT_3_MASK 4
 
 #define pump_active (!!(PORTD & (1 << PD4)))
+
+const float target_moisture_limit = 95.0;
+
+const float moisture_low_limit = 5.0;
 
 enum {
 	OFF = 0,
@@ -61,18 +65,58 @@ void set_irrigation_enabled(uint8_t setting) {
 	eeprom_update_byte((uint8_t*)MEM_ENABLE, irrigation_enabled);
 }
 
-void set_sensor_raw_min(uint8_t sensor_select, uint16_t value) {
-	sensor_raw_min[sensor_select] = value;
-	eeprom_update_word
+void set_plant_enable(uint8_t bitmask) {
+	plant_enable_mask = bitmask;
+	eeprom_update_byte((uint8_t*)MEM_PLANT_ENABLE_MASK, plant_enable_mask);
+}
+
+void set_target_moisture(uint8_t plant_select, float value) {
+	if (value > target_moisture_limit) value = target_moisture_limit;
+	if (value < moisture_low_limit) value = moisture_low_limit;
+
+	target_moisture[plant_select] = value;
+	eeprom_update_float((float*)(MEM_TARGET_MOISTURE + (sizeof(float) * plant_select)), target_moisture[plant_select]);
+}
+
+void set_moisture_low(uint8_t plant_select, float value) {
+	if (value > target_moisture_limit) value = target_moisture_limit;
+	if (value < moisture_low_limit) value = moisture_low_limit;
+
+	moisture_low[plant_select] = value;
+	eeprom_update_float((float*)(MEM_MOISTURE_LOW + (sizeof(float) * plant_select)), moisture_low[plant_select]);
+}
+
+void set_moisture_low_delay(uint8_t plant_select, uint32_t time_s) {
+	moisture_low_delay[plant_select] = time_s;
+	eeprom_update_dword((uint32_t*)(MEM_MOISTURE_LOW_DELAY + (sizeof(uint32_t) * plant_select)), moisture_low_delay[plant_select]);
+}
+
+void set_moisture_change_hysteresis_time(uint16_t time_s) {
+	moisture_change_hysteresis_time = time_s;
+	eeprom_update_word((uint16_t*)MEM_MOISTURE_CHANGE_HYSTERESIS_TIME, moisture_change_hysteresis_time);
+}
+
+void set_moisture_change_hysteresis_amount(uint16_t sensor_raw_delta) {
+	moisture_change_hysteresis_amount = sensor_raw_delta;
+	eeprom_update_word((uint16_t*)MEM_MOISTURE_CHANGE_HYSTERESIS_AMOUNT, moisture_change_hysteresis_amount);
 }
 
 void set_sensor_raw_max(uint8_t sensor_select, uint16_t value) {
-	sensor_raw_max[sensor_select] = value;
-	eeprom_update_word
+	if (calibration_mode == manual || calibration_mode == active_manual) {
+		sensor_raw_max[sensor_select] = value;
+		eeprom_update_word((uint16_t*)(MEM_SENSOR_RAW_MAX + (sizeof(uint16_t) * sensor_select)), sensor_raw_max[sensor_select]);
+	}
+}
+
+void set_sensor_raw_min(uint8_t sensor_select, uint16_t value) {
+	if (calibration_mode == manual || calibration_mode == active_manual) {
+		sensor_raw_min[sensor_select] = value;
+		eeprom_update_word((uint16_t*)(MEM_SENSOR_RAW_MIN + (sizeof(uint16_t) * sensor_select)), sensor_raw_min[sensor_select]);
+	}
 }
 
 void auto_calibrate(void) {
-	if (auto_calibration) {
+	if (calibration_mode == automatic || calibration_mode == active_automatic) {
 		for (uint8_t i = 0; i < sensor_count; ++i) {
 			set_sensor_raw_min(i, sensor_recorded_min[i]);
 			set_sensor_raw_max(i, sensor_recorded_max[i]);
@@ -80,8 +124,10 @@ void auto_calibrate(void) {
 	}
 } 
 
-void set_auto_calibration(uint8_t setting) {
-	auto_calibration = !!setting;
+void set_calibration_mode(uint8_t setting) {
+	calibration_mode = setting;
+	eeprom_update_byte((uint8_t*)MEM_CALIBRATION_MODE, setting);
+	
 	auto_calibrate();
 }
 
@@ -98,13 +144,15 @@ void read_moisture(void) {
 		_delay_ms(10);
 		sensor_raw[i] = ADC_read(i);
 
-		if (sensor_raw[i] < sensor_recorded_min[i]) {
-			sensor_recorded_min[i] = sensor_raw[i];
+		if (sensor_raw[i] > sensor_recorded_max[i]) {
+			sensor_recorded_max[i] = sensor_raw[i];
+			eeprom_update_word((uint16_t*)(MEM_SENSOR_RECORDED_MAX + (sizeof(uint16_t) * i)), sensor_recorded_max[i]);
 			auto_calibrate();
 		}
 
 		if (sensor_raw[i] < sensor_recorded_min[i]) {
 			sensor_recorded_min[i] = sensor_raw[i];
+			eeprom_update_word((uint16_t*)(MEM_SENSOR_RECORDED_MIN + (sizeof(uint16_t) * i)), sensor_recorded_min[i]);
 			auto_calibrate();
 		}
 
@@ -129,14 +177,14 @@ void irrigation_init(void) {
 	sensor_count = eeprom_read_byte((uint8_t*)IRRIGATION_EEPROM_ADDR_SENSOR_COUNT);
 	irrigation_enabled = eeprom_read_byte((uint8_t*)MEM_ENABLE);
 	plant_enable_mask = eeprom_read_byte((uint8_t*)MEM_PLANT_ENABLE_MASK);
-	auto_calibration = eeprom_read_byte((uint8_t*)MEM_AUTO_CALIBRATION);
+	calibration_mode = eeprom_read_byte((uint8_t*)MEM_CALIBRATION_MODE);
 	moisture_change_hysteresis_time = eeprom_read_word((uint16_t*)MEM_MOISTURE_CHANGE_HYSTERESIS_TIME);
 	moisture_change_hysteresis_amount = eeprom_read_word((uint16_t*)MEM_MOISTURE_CHANGE_HYSTERESIS_AMOUNT);
 
 	for (uint8_t i = 0; i < sensor_count; ++i) {
 		target_moisture[i] = eeprom_read_float((float*)(MEM_TARGET_MOISTURE + (sizeof(float) * i)));
 		moisture_low[i] = eeprom_read_float((float*)(MEM_MOISTURE_LOW + (sizeof(float) * i)));
-		moisture_low_delay[i] = eeprom_read_dword((uint32_t*)MEM_MOISTURE_LOW_DELAY);
+		moisture_low_delay[i] = eeprom_read_dword((uint32_t*)MEM_MOISTURE_LOW_DELAY + (sizeof(uint32_t) * i));
 		sensor_raw_max[i] = eeprom_read_word((uint16_t*)(MEM_SENSOR_RAW_MAX + (sizeof(uint16_t) * i)));
 		sensor_raw_min[i] = eeprom_read_word((uint16_t*)(MEM_SENSOR_RAW_MIN + (sizeof(uint16_t) * i)));
 		sensor_recorded_max[i] = eeprom_read_word((uint16_t*)(MEM_SENSOR_RECORDED_MAX + (sizeof(uint16_t) * i)));
@@ -156,7 +204,7 @@ void irrigation_control(void) {
 	if (!irrigation_enabled) return;
 
 /*
-	if auto_calibration
+	if calibration_mode active_x
 		do stuff
 		return;
 */
@@ -178,5 +226,3 @@ void irrigation_control(void) {
 	}
 */
 }
-
-// TODO handle bad reads?

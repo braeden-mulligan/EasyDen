@@ -37,8 +37,17 @@ uint32_t handle_server_get(uint16_t reg) {
 
 	switch (reg) {
 
+	case GENERIC_REG_ENABLE:
+		return irrigation_enabled;
+
+	case GENERIC_REG_APP_INTERVAL:
+		return app_conf.application_interval;
+
 	case IRRIGATION_REG_SENSOR_COUNT:
 		return sensor_count;
+
+	case IRRIGATION_REG_PLANT_ENABLE:
+		return plant_enable_mask;
 
 	case IRRIGATION_REG_MOISTURE_0:
 		value_conversion.f = moisture[0];
@@ -60,25 +69,66 @@ uint32_t handle_server_get(uint16_t reg) {
 		value_conversion.f = target_moisture[2];
 		return value_conversion.i;
 
+	case IRRIGATION_REG_MOISTURE_LOW_0:
+		value_conversion.f = moisture_low[0];
+		return value_conversion.i;
+	case IRRIGATION_REG_MOISTURE_LOW_1:
+		value_conversion.f = moisture_low[1];
+		return value_conversion.i;
+	case IRRIGATION_REG_MOISTURE_LOW_2:
+		value_conversion.f = moisture_low[2];
+		return value_conversion.i;
+
+	case IRRIGATION_REG_MOISTURE_LOW_DELAY_0:
+		return moisture_low_delay[0];
+	case IRRIGATION_REG_MOISTURE_LOW_DELAY_1:
+		return moisture_low_delay[1];
+	case IRRIGATION_REG_MOISTURE_LOW_DELAY_2:
+		return moisture_low_delay[2];
+
 	case IRRIGATION_REG_SENSOR_RAW_0:
 		return sensor_raw[0];
 	case IRRIGATION_REG_SENSOR_RAW_1:
 		return sensor_raw[1];
 	case IRRIGATION_REG_SENSOR_RAW_2:
 		return sensor_raw[2];
+
+	case IRRIGATION_REG_SENSOR_RAW_MAX_0:
+		return sensor_raw_max[0];
+	case IRRIGATION_REG_SENSOR_RAW_MAX_1:
+		return sensor_raw_max[1];
+	case IRRIGATION_REG_SENSOR_RAW_MAX_2:
+		return sensor_raw_max[2];
+
+	case IRRIGATION_REG_SENSOR_RAW_MIN_0:
+		return sensor_raw_min[0];
+	case IRRIGATION_REG_SENSOR_RAW_MIN_1:
+		return sensor_raw_min[1];
+	case IRRIGATION_REG_SENSOR_RAW_MIN_2:
+		return sensor_raw_min[2];
+
+	case IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_TIME:
+		return moisture_change_hysteresis_time;
+
+	case IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_AMOUNT:
+		return moisture_change_hysteresis_amount;
+
+	case IRRIGATION_REG_CALIBRATION_MODE:
+		return calibration_mode;
+
 // Debug
 	case 200:
 		break;
 	case 201:
 		return sensor_recorded_max[0];
 	case 202:
-		return sensor_recorded_min[0];
-	case 203:
 		return sensor_recorded_max[1];
-	case 204:
-		return sensor_recorded_min[1];
-	case 205:
+	case 203:
 		return sensor_recorded_max[2];
+	case 204:
+		return sensor_recorded_min[0];
+	case 205:
+		return sensor_recorded_min[1];
 	case 206:
 		return sensor_recorded_min[2];
 	}
@@ -99,6 +149,7 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 		break;
 
 	case GENERIC_REG_ENABLE:
+		set_irrigation_enabled(val);
 		return irrigation_enabled;
 
 	case GENERIC_REG_APP_INTERVAL:
@@ -106,15 +157,77 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 		wifi_framework_init(app_conf);
 		return app_conf.application_interval;
 
+	case IRRIGATION_REG_PLANT_ENABLE:
+		set_plant_enable(val);
+		return plant_enable_mask;
+
 	case IRRIGATION_REG_TARGET_MOISTURE_0:
-		target_moisture[0] = value_conversion.f;
+		set_target_moisture(0, value_conversion.f);
+		value_conversion.f = target_moisture[0];
 		return value_conversion.i;
 	case IRRIGATION_REG_TARGET_MOISTURE_1:
-		target_moisture[1] = value_conversion.f;
+		set_target_moisture(1, value_conversion.f);
+		value_conversion.f = target_moisture[1];
 		return value_conversion.i;
 	case IRRIGATION_REG_TARGET_MOISTURE_2:
-		target_moisture[2] = value_conversion.f;
+		set_target_moisture(2, value_conversion.f);
+		value_conversion.f = target_moisture[3];
 		return value_conversion.i;
+
+	case IRRIGATION_REG_MOISTURE_LOW_0:
+		set_moisture_low(0, value_conversion.f);
+		value_conversion.f = moisture_low[0];		
+		return value_conversion.i;
+	case IRRIGATION_REG_MOISTURE_LOW_1:
+		set_moisture_low(1, value_conversion.f);
+		value_conversion.f = moisture_low[1];		
+		return value_conversion.i;
+	case IRRIGATION_REG_MOISTURE_LOW_2:
+		set_moisture_low(2, value_conversion.f);
+		value_conversion.f = moisture_low[2];		
+		return value_conversion.i;
+
+	case IRRIGATION_REG_MOISTURE_LOW_DELAY_0:
+		set_moisture_low_delay(0, val);
+		return moisture_low_delay[0];
+	case IRRIGATION_REG_MOISTURE_LOW_DELAY_1:
+		set_moisture_low_delay(1, val);
+		return moisture_low_delay[1];
+	case IRRIGATION_REG_MOISTURE_LOW_DELAY_2:
+		set_moisture_low_delay(2, val);
+		return moisture_low_delay[2];
+
+	case IRRIGATION_REG_SENSOR_RAW_MAX_0:
+		set_sensor_raw_max(0, val);
+		return sensor_raw_max[0];
+	case IRRIGATION_REG_SENSOR_RAW_MAX_1:
+		set_sensor_raw_max(1, val);
+		return sensor_raw_max[1];
+	case IRRIGATION_REG_SENSOR_RAW_MAX_2:
+		set_sensor_raw_max(2, val);
+		return sensor_raw_max[2];
+
+	case IRRIGATION_REG_SENSOR_RAW_MIN_0:
+		set_sensor_raw_min(0, val);
+		return sensor_raw_min[0];
+	case IRRIGATION_REG_SENSOR_RAW_MIN_1:
+		set_sensor_raw_min(1, val);
+		return sensor_raw_min[1];
+	case IRRIGATION_REG_SENSOR_RAW_MIN_2:
+		set_sensor_raw_min(2, val);
+		return sensor_raw_min[2];
+
+	case IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_TIME:
+		set_moisture_change_hysteresis_time(val);
+		return moisture_change_hysteresis_time;
+
+	case IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_AMOUNT:
+		set_moisture_change_hysteresis_amount(val);
+		return moisture_change_hysteresis_amount;
+
+	case IRRIGATION_REG_CALIBRATION_MODE:
+		set_calibration_mode(val);
+		return calibration_mode;
 
 	}
 

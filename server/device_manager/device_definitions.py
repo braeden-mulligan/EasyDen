@@ -20,7 +20,7 @@ def build_definition_mapping(search_term):
 			def_pair = definition.split(" ")
 			reg = def_pair[0]
 			index = def_pair[-1] # In case of multple spaces in line.
-			def_map.append((reg, int(index)))
+			def_map.append((reg, int(index, 16)))
 	return def_map
 
 #TODO: Hashify these?

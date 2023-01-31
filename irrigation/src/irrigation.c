@@ -23,21 +23,14 @@
 #define MEM_SENSOR_RECORDED_MAX (MEM_SENSOR_RAW_MIN + sizeof(sensor_raw_min))
 #define MEM_SENSOR_RECORDED_MIN (MEM_SENSOR_RECORDED_MAX + sizeof(sensor_recorded_max))
 
-#define PLANT_1_MASK 1
-#define PLANT_2_MASK 2
-#define PLANT_3_MASK 4
-
+#define switch_pump_off() ( PORTD &= ~(1 << PD4) )
+#define switch_pump_on() ( PORTD |= 1 << PD4 )
 #define pump_active ( !!(PORTD & (1 << PD4)) )
 #define button_down ( !(PINB & (1 << PB0)) )
 
 const float target_moisture_limit = 95.0;
 
 const float moisture_low_limit = 5.0;
-
-enum {
-	OFF = 0,
-	ON
-};
 
 uint8_t active_plant;
 
@@ -57,8 +50,8 @@ void valve_switch(uint8_t select) {
 }
 
 void set_irrigation_enabled(uint8_t setting) {
-	if (setting == OFF) {
-		switch_pump(OFF);
+	if (!setting) {
+		switch_pump_off();
 		valve_switch(0);
 	}
 
@@ -132,14 +125,6 @@ void set_calibration_mode(uint8_t setting, uint8_t plant_select) {
 	active_plant = plant_select;
 
 	auto_calibrate();
-}
-
-void switch_pump(uint8_t setting) {
-	if (setting) {
-		PORTD |= 1 << PD4;
-	} else {
-		PORTD &= ~(1 << PD4);
-	}
 }
 
 void update_sensor_recorded_max(uint8_t sensor_select, uint16_t value) {
@@ -220,10 +205,11 @@ void irrigation_control(void) {
 
 	if (calibration_mode == interactive_manual || calibration_mode == interactive_automatic) {
 		valve_switch(active_plant);
+		
 		if (button_down) {
-			switch_pump(ON);
+			switch_pump_on();
 		} else {
-			switch_pump(OFF);
+			switch_pump_off();
 		}
 
 		return;
@@ -231,6 +217,7 @@ void irrigation_control(void) {
 
 /*
 	if (pump_active) {
+		if moisture[active_plant]
 		do checks for current_plant
 			- moisture target reached
 			- hysteresis limits

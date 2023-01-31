@@ -51,9 +51,6 @@ void set_moisture_change_hysteresis_time(uint16_t time_s);
 
 void set_moisture_change_hysteresis_amount(uint16_t sensor_raw_delta);
 
-// TODO: For debugging? 
-void switch_pump(uint8_t setting);
-
 void irrigation_init(void);
 
 void system_error_lock(void);

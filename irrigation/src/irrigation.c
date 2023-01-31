@@ -27,7 +27,8 @@
 #define PLANT_2_MASK 2
 #define PLANT_3_MASK 4
 
-#define pump_active (!!(PORTD & (1 << PD4)))
+#define pump_active ( !!(PORTD & (1 << PD4)) )
+#define button_down ( !(PINB & (1 << PB0)) )
 
 const float target_moisture_limit = 95.0;
 
@@ -38,7 +39,7 @@ enum {
 	ON
 };
 
-uint8_t plant_select;
+uint8_t active_plant;
 
 void valve_switch(uint8_t select) {
 	switch (select) {
@@ -102,21 +103,21 @@ void set_moisture_change_hysteresis_amount(uint16_t sensor_raw_delta) {
 }
 
 void set_sensor_raw_max(uint8_t sensor_select, uint16_t value) {
-	if (calibration_mode == manual || calibration_mode == active_manual) {
+	if (calibration_mode == manual || calibration_mode == interactive_manual) {
 		sensor_raw_max[sensor_select] = value;
 		eeprom_update_word((uint16_t*)(MEM_SENSOR_RAW_MAX + (sizeof(uint16_t) * sensor_select)), sensor_raw_max[sensor_select]);
 	}
 }
 
 void set_sensor_raw_min(uint8_t sensor_select, uint16_t value) {
-	if (calibration_mode == manual || calibration_mode == active_manual) {
+	if (calibration_mode == manual || calibration_mode == interactive_manual) {
 		sensor_raw_min[sensor_select] = value;
 		eeprom_update_word((uint16_t*)(MEM_SENSOR_RAW_MIN + (sizeof(uint16_t) * sensor_select)), sensor_raw_min[sensor_select]);
 	}
 }
 
 void auto_calibrate(void) {
-	if (calibration_mode == automatic || calibration_mode == active_automatic) {
+	if (calibration_mode == automatic || calibration_mode == interactive_automatic) {
 		for (uint8_t i = 0; i < sensor_count; ++i) {
 			set_sensor_raw_min(i, sensor_recorded_min[i]);
 			set_sensor_raw_max(i, sensor_recorded_max[i]);
@@ -124,10 +125,12 @@ void auto_calibrate(void) {
 	}
 } 
 
-void set_calibration_mode(uint8_t setting) {
-	calibration_mode = setting;
+void set_calibration_mode(uint8_t setting, uint8_t plant_select) {
+	calibration_mode = setting;	
 	eeprom_update_byte((uint8_t*)MEM_CALIBRATION_MODE, setting);
-	
+
+	active_plant = plant_select;
+
 	auto_calibrate();
 }
 
@@ -139,20 +142,28 @@ void switch_pump(uint8_t setting) {
 	}
 }
 
+void update_sensor_recorded_max(uint8_t sensor_select, uint16_t value) {
+	sensor_recorded_max[sensor_select] = value;
+	eeprom_update_word((uint16_t*)(MEM_SENSOR_RECORDED_MAX + (sizeof(uint16_t) * sensor_select)), sensor_recorded_max[sensor_select]);
+}
+
+void update_sensor_recorded_min(uint8_t sensor_select, uint16_t value) {
+	sensor_recorded_min[sensor_select] = value;
+	eeprom_update_word((uint16_t*)(MEM_SENSOR_RECORDED_MIN + (sizeof(uint16_t) * sensor_select)), sensor_recorded_min[sensor_select]);
+}
+
 void read_moisture(void) {
 	for (uint8_t i = 0; i < sensor_count; ++i) {
 		_delay_ms(10);
 		sensor_raw[i] = ADC_read(i);
 
 		if (sensor_raw[i] > sensor_recorded_max[i]) {
-			sensor_recorded_max[i] = sensor_raw[i];
-			eeprom_update_word((uint16_t*)(MEM_SENSOR_RECORDED_MAX + (sizeof(uint16_t) * i)), sensor_recorded_max[i]);
+			update_sensor_recorded_max(i, sensor_raw[i]);
 			auto_calibrate();
 		}
 
 		if (sensor_raw[i] < sensor_recorded_min[i]) {
-			sensor_recorded_min[i] = sensor_raw[i];
-			eeprom_update_word((uint16_t*)(MEM_SENSOR_RECORDED_MIN + (sizeof(uint16_t) * i)), sensor_recorded_min[i]);
+			update_sensor_recorded_min(i, sensor_raw[i]);
 			auto_calibrate();
 		}
 
@@ -161,7 +172,7 @@ void read_moisture(void) {
 }
 
 void irrigation_init(void) {
-	plant_select = 0;
+	active_plant = 0;
 
 	ADC_init(0x3F);
 
@@ -172,7 +183,11 @@ void irrigation_init(void) {
 	// Selection valve relays
 	DDRD |= 1 << PD5;
 	DDRD |= 1 << PD6;
-	valve_switch(plant_select);
+	valve_switch(active_plant);
+
+	// Run pump button.
+	DDRB &= ~(1 << PB0);
+	PORTB |= 1 << PB0;
 
 	sensor_count = eeprom_read_byte((uint8_t*)IRRIGATION_EEPROM_ADDR_SENSOR_COUNT);
 	irrigation_enabled = eeprom_read_byte((uint8_t*)MEM_ENABLE);
@@ -203,11 +218,16 @@ void irrigation_control(void) {
 
 	if (!irrigation_enabled) return;
 
-/*
-	if calibration_mode active_x
-		do stuff
+	if (calibration_mode == interactive_manual || calibration_mode == interactive_automatic) {
+		valve_switch(active_plant);
+		if (button_down) {
+			switch_pump(ON);
+		} else {
+			switch_pump(OFF);
+		}
+
 		return;
-*/
+	}
 
 /*
 	if (pump_active) {
@@ -218,11 +238,22 @@ void irrigation_control(void) {
 	} else {
 		for (uint8_t i; i < SENSOR_COUNT_MAX; ++i) {
 			if (plant_enable_mask & (1 << i) && moisture[i] < moisture_low[i] && timer > moisture_low_delay[i]) {
-				plant_select = i;
+				active_plant = i;
 				start pump, set pump start time, set raw sensor start value;
 				return;
 			} 
 		}
 	}
 */
+}
+
+void reset_configurations(uint8_t plant_select_mask) {
+	//TODO: reset to defaults
+
+	for (uint8_t i = 0; i < sensor_count; ++i) {
+		if (plant_select_mask & (1 << i)) {
+			update_sensor_recorded_max(i, 0);
+			update_sensor_recorded_min(i, 1024);
+		}
+	}
 }

@@ -153,9 +153,13 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 		return irrigation_enabled;
 
 	case GENERIC_REG_APP_INTERVAL:
-		app_conf.application_interval = (val > 3) ? val : 3;
+		app_conf.application_interval = val; // (val > 3) ? val : 3;
 		wifi_framework_init(app_conf);
 		return app_conf.application_interval;
+
+	case GENERIC_REG_RESET_CONFIGS:
+		reset_configurations(val);
+		break;
 
 	case IRRIGATION_REG_PLANT_ENABLE:
 		set_plant_enable(val);
@@ -226,7 +230,7 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 		return moisture_change_hysteresis_amount;
 
 	case IRRIGATION_REG_CALIBRATION_MODE:
-		set_calibration_mode(val);
+		set_calibration_mode((val & 0x000000FF), val >> 8);
 		return calibration_mode;
 
 	}

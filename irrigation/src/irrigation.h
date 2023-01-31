@@ -9,8 +9,8 @@ typedef enum {
     cal_disabled = 0,
 	manual,
 	automatic,
-	active_manual,
-	active_automatic
+	interactive_manual,
+	interactive_automatic
 } calibration_mode_t;
 
 uint8_t sensor_count;
@@ -35,7 +35,7 @@ void set_irrigation_enabled(uint8_t setting);
 
 void set_plant_enable(uint8_t bitmask);
 
-void set_calibration_mode(uint8_t setting);
+void set_calibration_mode(uint8_t setting, uint8_t plant_select);
 
 void set_target_moisture(uint8_t plant_select, float value);
 
@@ -59,5 +59,7 @@ void irrigation_init(void);
 void system_error_lock(void);
 
 void irrigation_control(void);
+
+void reset_configurations(uint8_t plant_select_mask);
 
 #endif

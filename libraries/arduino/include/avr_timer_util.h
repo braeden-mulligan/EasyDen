@@ -23,7 +23,7 @@ void timer8_stop(void);
 void timer8_restart(void);
 
 
-volatile uint8_t timer16_flag;
+volatile uint16_t timer16_flag;
 
 uint8_t timer16_running;
 

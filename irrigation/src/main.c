@@ -5,18 +5,20 @@
 
 #include "irrigation.h"
 
+#include <stdint.h>
+
 struct wifi_framework_config app_conf;
 struct wifi_framework_config tmp_conf;
 
 uint8_t blink_trigger;
 
-void set_conf_fast_period(void) {
+void set_app_interval(uint16_t interval_s) {
 	tmp_conf = app_conf;
-	tmp_conf.application_interval = 1;
+	tmp_conf.application_interval = interval_s;
 	wifi_framework_init(tmp_conf);
 }
 
-void restore_app_conf(void) {
+void restore_default_app_interval(void) {
 	wifi_framework_init(app_conf);
 }
 
@@ -25,7 +27,7 @@ void blink_identify(void) {
 		blink_trigger = 0;
 		//TODO: run pump?
 		//nano_onboard_led_blink(8, 300);
-		restore_app_conf();
+		restore_default_app_interval();
 	}
 }
 
@@ -116,21 +118,20 @@ uint32_t handle_server_get(uint16_t reg) {
 	case IRRIGATION_REG_CALIBRATION_MODE:
 		return calibration_mode;
 
-// Debug
-	case 200:
-		break;
-	case 201:
+	case IRRIGATION_REG_SENSOR_RECORDED_MAX_0:
 		return sensor_recorded_max[0];
-	case 202:
+	case IRRIGATION_REG_SENSOR_RECORDED_MAX_1:
 		return sensor_recorded_max[1];
-	case 203:
+	case IRRIGATION_REG_SENSOR_RECORDED_MAX_2:
 		return sensor_recorded_max[2];
-	case 204:
+		
+	case IRRIGATION_REG_SENSOR_RECORDED_MIN_0:
 		return sensor_recorded_min[0];
-	case 205:
+	case IRRIGATION_REG_SENSOR_RECORDED_MIN_1:
 		return sensor_recorded_min[1];
-	case 206:
+	case IRRIGATION_REG_SENSOR_RECORDED_MIN_2:
 		return sensor_recorded_min[2];
+		
 	}
 
 	return 0;
@@ -144,7 +145,7 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 
 	switch (reg) {
 	case GENERIC_REG_BLINK:
-		set_conf_fast_period();
+		set_app_interval(1);
 		blink_trigger = 1;
 		break;
 

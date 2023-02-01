@@ -1,3 +1,4 @@
+#include "app_config.h"
 #include "irrigation.h"
 
 #include "avr_adc.h"
@@ -28,11 +29,18 @@
 #define pump_active ( !!(PORTD & (1 << PD4)) )
 #define button_down ( !(PINB & (1 << PB0)) )
 
+# define abs(x) ( ((x) < 0) ? -(x) : (x) )
+
 const float target_moisture_limit = 95.0;
 
 const float moisture_low_limit = 5.0;
 
+uint32_t app_system_time;
 uint8_t active_plant;
+uint16_t watering_sensor_raw_initial;
+uint32_t watering_time_start;
+uint8_t moisture_low_flag[SENSOR_COUNT_MAX];
+uint32_t moisture_low_time_start[SENSOR_COUNT_MAX];
 
 void valve_switch(uint8_t select) {
 	switch (select) {
@@ -59,9 +67,18 @@ void set_irrigation_enabled(uint8_t setting) {
 	eeprom_update_byte((uint8_t*)MEM_ENABLE, irrigation_enabled);
 }
 
+
 void set_plant_enable(uint8_t bitmask) {
 	plant_enable_mask = bitmask;
 	eeprom_update_byte((uint8_t*)MEM_PLANT_ENABLE_MASK, plant_enable_mask);
+
+	for (uint8_t i = 0; i < sensor_count; ++i) {
+		if (pump_active && !(plant_enable_mask & (1 << i))) {
+			switch_pump_off();
+			
+			if (calibration_mode != interactive_automatic && calibration_mode != interactive_manual) restore_default_app_interval();
+		}
+	}
 }
 
 void set_target_moisture(uint8_t plant_select, float value) {
@@ -125,6 +142,12 @@ void set_calibration_mode(uint8_t setting, uint8_t plant_select) {
 	active_plant = plant_select;
 
 	auto_calibrate();
+
+	if (calibration_mode == interactive_automatic || calibration_mode == interactive_manual) {
+		set_app_interval(1);
+	} else {
+		restore_default_app_interval();
+	}
 }
 
 void update_sensor_recorded_max(uint8_t sensor_select, uint16_t value) {
@@ -192,6 +215,10 @@ void irrigation_init(void) {
 	}
 	
 	read_moisture();
+
+	app_system_time = 0;
+	timer16_init(1);
+	timer16_start();
 }
 
 void system_error_lock(void) {
@@ -199,6 +226,9 @@ void system_error_lock(void) {
 }
 
 void irrigation_control(void) {
+	app_system_time += timer16_flag;
+	timer16_flag = 0;
+
 	read_moisture();
 
 	if (!irrigation_enabled) return;
@@ -215,23 +245,50 @@ void irrigation_control(void) {
 		return;
 	}
 
-/*
 	if (pump_active) {
-		if moisture[active_plant]
-		do checks for current_plant
-			- moisture target reached
-			- hysteresis limits
-			- water time/amount limit
+		if (moisture[active_plant] >= target_moisture[active_plant]) {
+			switch_pump_off();
+			moisture_low_flag[active_plant] = 0;
+			restore_default_app_interval();
+			return;
+		}
+
+		if (app_system_time - watering_time_start > moisture_change_hysteresis_time) {
+			if ((uint16_t)abs((int32_t)watering_sensor_raw_initial - (int32_t)sensor_raw[active_plant]) < moisture_change_hysteresis_amount) {
+				switch_pump_off();
+				restore_default_app_interval();
+
+				// TODO: alert or error counter?
+				nano_onboard_led_blink(-1, 1000); 
+			} else {
+				watering_sensor_raw_initial = sensor_raw[active_plant];
+				watering_time_start = app_system_time;
+			}
+		}
+
+		// do other checks?
+
 	} else {
-		for (uint8_t i; i < SENSOR_COUNT_MAX; ++i) {
-			if (plant_enable_mask & (1 << i) && moisture[i] < moisture_low[i] && timer > moisture_low_delay[i]) {
+		for (uint8_t i = 0; i < sensor_count; ++i) {
+			if (!(plant_enable_mask & (1 << i))) continue;
+
+			if (moisture[i] <= moisture_low[i] && !moisture_low_flag[i]) {
+				moisture_low_time_start[active_plant] = app_system_time;
+				moisture_low_flag[i] = 1;
+			}
+
+			if (moisture_low_flag[i] && moisture[i] <= moisture_low[i] && (app_system_time - moisture_low_time_start[i]) > moisture_low_delay[i]) {
 				active_plant = i;
-				start pump, set pump start time, set raw sensor start value;
+				watering_time_start = app_system_time;
+				watering_sensor_raw_initial = sensor_raw[i];
+				valve_switch(i);
+				switch_pump_on();
+				set_app_interval(1);
+				
 				return;
 			} 
 		}
 	}
-*/
 }
 
 void reset_configurations(uint8_t plant_select_mask) {

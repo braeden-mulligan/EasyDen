@@ -16,11 +16,12 @@ typedef enum {
 uint8_t sensor_count;
 float moisture[SENSOR_COUNT_MAX];
 uint16_t sensor_raw[SENSOR_COUNT_MAX];
+uint8_t active_plant;
 
 // Mostly user settings; non-volatile storage needed.
 uint8_t irrigation_enabled;
 uint8_t plant_enable_mask;
-uint8_t calibration_mode;
+uint16_t calibration_mode;
 float target_moisture[SENSOR_COUNT_MAX];
 float moisture_low[SENSOR_COUNT_MAX];
 uint32_t moisture_low_delay[SENSOR_COUNT_MAX];
@@ -35,7 +36,7 @@ void set_irrigation_enabled(uint8_t setting);
 
 void set_plant_enable(uint8_t bitmask);
 
-void set_calibration_mode(uint8_t setting, uint8_t plant_select);
+void set_calibration_mode(uint16_t setting);
 
 void set_target_moisture(uint8_t plant_select, float value);
 

@@ -11,6 +11,7 @@ FLOAT_REGISTER_VALUES = []
 
 INTEGER_REGISTER_VALUES = [
 	utils.register_id("GENERIC_REG_ENABLE"),
+	utils.register_id("GENERIC_REG_RESET_CONFIGS"),
 	utils.register_id("IRRIGATION_REG_SENSOR_COUNT"),
 	utils.register_id("IRRIGATION_REG_PLANT_ENABLE"),
 	utils.register_id("IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_TIME"),
@@ -44,6 +45,7 @@ def irrigation_processor(irrigators):
 
 		device["attributes"] = {
 			"enabled": utils.unpack_attribute(device["registers"], "GENERIC_REG_ENABLE"),
+			"reset_configs": 0,
 			"sensor_count": sensor_count,
 			"plant_enable": enabled_plants,
 			"moisture_change_hysteresis_time": utils.unpack_attribute(device["registers"], "IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_TIME"),

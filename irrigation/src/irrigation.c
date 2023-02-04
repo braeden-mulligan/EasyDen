@@ -36,7 +36,6 @@ const float target_moisture_limit = 95.0;
 const float moisture_low_limit = 5.0;
 
 uint32_t app_system_time;
-uint8_t active_plant;
 uint16_t watering_sensor_raw_initial;
 uint32_t watering_time_start;
 uint8_t moisture_low_flag[SENSOR_COUNT_MAX];
@@ -115,44 +114,52 @@ void set_moisture_change_hysteresis_amount(uint16_t sensor_raw_delta) {
 }
 
 void set_sensor_raw_max(uint8_t sensor_select, uint16_t value) {
-	if (calibration_mode == manual || calibration_mode == interactive_manual) {
+	if (calibration_mode != cal_disabled) {
 		sensor_raw_max[sensor_select] = value;
 		eeprom_update_word((uint16_t*)(MEM_SENSOR_RAW_MAX + (sizeof(uint16_t) * sensor_select)), sensor_raw_max[sensor_select]);
 	}
 }
 
 void set_sensor_raw_min(uint8_t sensor_select, uint16_t value) {
-	if (calibration_mode == manual || calibration_mode == interactive_manual) {
+	if (calibration_mode != cal_disabled) {
 		sensor_raw_min[sensor_select] = value;
 		eeprom_update_word((uint16_t*)(MEM_SENSOR_RAW_MIN + (sizeof(uint16_t) * sensor_select)), sensor_raw_min[sensor_select]);
 	}
 }
 
 void auto_calibrate(void) {
-	if (calibration_mode == automatic || calibration_mode == interactive_automatic) {
+	if (calibration_mode == automatic) {
 		for (uint8_t i = 0; i < sensor_count; ++i) {
 			set_sensor_raw_min(i, sensor_recorded_min[i]);
 			set_sensor_raw_max(i, sensor_recorded_max[i]);
 		}
+
+	} else if (calibration_mode == interactive_automatic) {
+		set_sensor_raw_min(active_plant, sensor_recorded_min[active_plant]);
+		set_sensor_raw_max(active_plant, sensor_recorded_max[active_plant]);
 	}
 } 
 
-void set_calibration_mode(uint8_t setting, uint8_t plant_select) {
-	calibration_mode = setting;	
-	eeprom_update_byte((uint8_t*)MEM_CALIBRATION_MODE, setting);
-
+void set_calibration_mode(uint16_t setting) {	
 	auto_calibrate();
+
+	calibration_mode = setting & 0x00FF;
 
 	if (calibration_mode == interactive_automatic || calibration_mode == interactive_manual) {
 		switch_pump_off();
-		active_plant = plant_select;
+		
+		active_plant = setting >> 8;		
 		valve_switch(active_plant);
 
 		set_app_interval(1);
 		nano_onboard_led_blink(10, 100);
+		
 	} else {
+		valve_switch(0);
 		restore_default_app_interval();
 	}
+
+	eeprom_update_byte((uint8_t*)MEM_CALIBRATION_MODE, setting);
 }
 
 void update_sensor_recorded_max(uint8_t sensor_select, uint16_t value) {
@@ -180,7 +187,7 @@ void read_moisture(void) {
 			auto_calibrate();
 		}
 
-		moisture[i] = 100.0 - (100.0 * ((float)((int32_t)sensor_raw[i] - (int32_t)sensor_raw_min[i]) / (float)(sensor_raw_max[i] - sensor_raw_min[i])));
+		moisture[i] = 100.0 - (100.0 * ((float)sensor_raw[i] - (float)sensor_raw_min[i]) / (float)(sensor_raw_max[i] - sensor_raw_min[i]));
 	}
 }
 
@@ -198,7 +205,7 @@ void irrigation_init(void) {
 	DDRD |= 1 << PD6;
 	valve_switch(active_plant);
 
-	// Run pump button.
+	// Button to manually run pump
 	DDRB &= ~(1 << PB0);
 	PORTB |= 1 << PB0;
 
@@ -219,8 +226,7 @@ void irrigation_init(void) {
 		sensor_recorded_min[i] = eeprom_read_word((uint16_t*)(MEM_SENSOR_RECORDED_MIN + (sizeof(uint16_t) * i)));
 	}
 	
-	//TODO: also restore active_plant when mode is interactive?
-	set_calibration_mode(calibration_mode, active_plant);
+	set_calibration_mode(calibration_mode);
 
 	read_moisture();
 
@@ -249,6 +255,8 @@ void irrigation_control(void) {
 		} else {
 			switch_pump_off();
 		}
+
+		auto_calibrate();
 
 		return;
 	}

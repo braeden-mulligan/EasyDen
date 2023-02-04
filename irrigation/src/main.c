@@ -25,13 +25,12 @@ void restore_default_app_interval(void) {
 void blink_identify(void) {
 	if (blink_trigger) {
 		blink_trigger = 0;
-		//TODO: run pump?
-		//nano_onboard_led_blink(8, 300);
+		nano_onboard_led_blink(8, 300);
 		restore_default_app_interval();
 	}
 }
 
-uint32_t handle_server_get(uint16_t reg) {
+uint32_t handle_message_get(uint16_t reg) {
 	union {
 		float f;
 		uint32_t i;
@@ -116,7 +115,7 @@ uint32_t handle_server_get(uint16_t reg) {
 		return moisture_change_hysteresis_amount;
 
 	case IRRIGATION_REG_CALIBRATION_MODE:
-		return calibration_mode;
+		return calibration_mode | (active_plant << 8);
 
 	case IRRIGATION_REG_SENSOR_RECORDED_MAX_0:
 		return sensor_recorded_max[0];
@@ -137,7 +136,7 @@ uint32_t handle_server_get(uint16_t reg) {
 	return 0;
 }
 
-uint32_t handle_server_set(uint16_t reg, uint32_t val) {
+uint32_t handle_message_set(uint16_t reg, uint32_t val) {
 	union {
 		float f;
 		uint32_t i;
@@ -231,8 +230,8 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 		return moisture_change_hysteresis_amount;
 
 	case IRRIGATION_REG_CALIBRATION_MODE:
-		set_calibration_mode((val & 0x000000FF), val >> 8);
-		return calibration_mode;
+		set_calibration_mode(val);
+		return calibration_mode | (active_plant << 8);
 
 	}
 
@@ -252,8 +251,8 @@ int main(void) {
 	app_conf.wifi_startup_timeout = 7;
 	app_conf.connection_interval = 20;
 	app_conf.application_interval = 7;
-	app_conf.server_message_get_callback = handle_server_get;
-	app_conf.server_message_set_callback = handle_server_set;
+	app_conf.server_message_get_callback = handle_message_get;
+	app_conf.server_message_set_callback = handle_message_set;
 	app_conf.app_main_callback = main_loop;
 	app_conf.app_init_callback = irrigation_init;
 

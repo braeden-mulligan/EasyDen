@@ -144,6 +144,16 @@ def irrigation_get_moisture_raw(sensor):
 		return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_2"), 0)
 	return None
 
+def irrigation_get_sensor_raw_max(sensor):
+	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_MAX_" + str(sensor)), 0)
+def irrigation_get_sensor_raw_min(sensor):
+	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_MIN_" + str(sensor)), 0)
+
+def irrigation_get_sensor_recorded_max(sensor):
+	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RECORDED_MAX_" + str(sensor)), 0)
+def irrigation_get_sensor_recorded_min(sensor):
+	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RECORDED_MIN_" + str(sensor)), 0)
+
 # TODO: This is copy-pasted from poweroutlet. Refactor this garbage
 def irrigation_read_plant_enable(reg_value, sensor_count):
 	if isinstance(reg_value, str):
@@ -180,4 +190,20 @@ def irrigation_set_plant_enable(status_list):
 	print("REG VAL: " + str(reg_value))
 
 	return template.format(_set, _reg_id("IRRIGATION_REG_PLANT_ENABLE"), reg_value)
+
+# def irrigation_read_calibration_settings(reg_value):
+# 	if isinstance(reg_value, str):
+# 		reg_value = int(reg_value, 16)
+
+# 	calibration_mode = reg_value & 0XFF
+# 	plant_select = reg_value & (0xFF << 8)
 	
+# 	for i in range(8):
+# 		if plant_select & (1 << i):
+# 			return (calibration_mode, i)
+	
+# 	return (None, None)
+
+# def irrigation_set_calibration_settings(mode, plant_select):
+# 	reg_value = mode | (1 << (plant_select + 8))
+# 	return template.format(_set, _reg_id("IRRIGATION_REG_CALIBRATION_MODE"), reg_value)

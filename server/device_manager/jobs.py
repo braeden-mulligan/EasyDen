@@ -35,7 +35,7 @@ def query_thermostats(device_list):
 def query_irrigation(device_list):
 	global last_irrigation_query
 	
-	if time.time() < last_irrigation_query + (config.DEVICE_KEEPALIVE  * 0.95):
+	if time.time() < last_irrigation_query + 5.0:
 		return
 
 	irrigators = [d for d in device_list if d.device_type == SH_defs.type_id("SH_TYPE_IRRIGATION")]
@@ -43,7 +43,10 @@ def query_irrigation(device_list):
 		for i in range(3):
 			device.device_send(messaging.irrigation_get_moisture(i))
 			device.device_send(messaging.irrigation_get_moisture_raw(i))
-			
+			device.device_send(messaging.irrigation_get_sensor_raw_max(i))
+			device.device_send(messaging.irrigation_get_sensor_raw_min(i))
+			device.device_send(messaging.irrigation_get_sensor_recorded_max(i))
+			device.device_send(messaging.irrigation_get_sensor_recorded_min(i))
 
 	last_irrigation_query = time.time()
 

@@ -57,6 +57,9 @@ class Irrigation_Attributes extends React.Component {
 			return this.render_plant_status(obj)
 		})
 
+		//TODO: Fix nasty calibration handling code; do it in backend 
+		let calibration_mode_target;
+
 		return (
 			<div>
 				<p>Device enabled: { attrs.enabled.value } &nbsp;
@@ -67,8 +70,20 @@ class Irrigation_Attributes extends React.Component {
 				<p>Plants enabled: { attrs.plant_enable.value }</p>
 				<p>Time until pump shutoff if no moisture change: { attrs.moisture_change_hysteresis_time.value }</p>
 				<p>Sensor value difference threshold to be considered changing moisture: { attrs.moisture_change_hysteresis_amount.value }</p>
-				<Mutable_Attribute description="Calibration mode" attribute={ attrs.calibration_mode } update_attribute={ this.props.update_attribute } />
-
+				
+				<p><span>Calibration mode: { attrs.calibration_mode.value & 0xFF} &nbsp;
+					<input type="text" onChange={ 
+						(e) => { calibration_mode_target = e.target.value; }
+					} />
+					&nbsp; Calibration plant_select: { (parseInt(attrs.calibration_mode.value) >> 8) + 1 } &nbsp;
+					<input type="text" onChange={
+						(e) => { calibration_mode_target |= (parseInt(e.target.value - 1) << 8); }
+					} />
+					<button className="set" onClick={
+						() => this.props.update_attribute(attrs.calibration_mode.register, calibration_mode_target)
+					} > Set </button>
+				</span></p>
+				
 				<ul>
 					{ rendered_plant_statuses }
 				</ul>

@@ -265,12 +265,21 @@ class SH_Device:
 
 		elif self.device_type == SH_defs.type_id("SH_TYPE_IRRIGATION"):
 			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_COUNT"))
-			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_0"))
-			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_1"))
-			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_2"))
-			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_RAW_0"))
-			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_RAW_1"))
-			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_RAW_2"))
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_PLANT_ENABLE"))
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_TIME"))
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_AMOUNT"))
+			necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_CALIBRATION_MODE"))
+			
+			# This number would have to change if irrigation device maximum moisture sensor count did. 
+			for i in range(3):
+				necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_" + str(i)))
+				necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_LOW_" + str(i)))
+				necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_MOISTURE_LOW_DELAY_" + str(i)))
+				necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_RAW_" + str(i)))
+				necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_RAW_MAX_" + str(i)))
+				necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_RAW_MIN_" + str(i)))
+				necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_RECORDED_MAX_" + str(i)))
+				necessary_attributes.append(SH_defs.register_id("IRRIGATION_REG_SENSOR_RECORDED_MIN_" + str(i)))
 
 		else:
 			return self.fully_initialized

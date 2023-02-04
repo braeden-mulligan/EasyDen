@@ -7,7 +7,7 @@ class Device_Info extends React.Component {
 	render() {
 		return (
 		<div>
-			<p>Device { this.props.id } reporting for duty</p>
+			<p>Device { this.props.id } </p>
 			<p>Name: { this.props.name }</p>
 			<p>Online: { this.props.online.toString() }</p>
 		</div>

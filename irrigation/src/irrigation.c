@@ -69,6 +69,8 @@ void set_irrigation_enabled(uint8_t setting) {
 
 
 void set_plant_enable(uint8_t bitmask) {
+	// TODO Use a high byte to decide which plants the mask toggle.
+
 	plant_enable_mask = bitmask;
 	eeprom_update_byte((uint8_t*)MEM_PLANT_ENABLE_MASK, plant_enable_mask);
 
@@ -139,12 +141,15 @@ void set_calibration_mode(uint8_t setting, uint8_t plant_select) {
 	calibration_mode = setting;	
 	eeprom_update_byte((uint8_t*)MEM_CALIBRATION_MODE, setting);
 
-	active_plant = plant_select;
-
 	auto_calibrate();
 
 	if (calibration_mode == interactive_automatic || calibration_mode == interactive_manual) {
+		switch_pump_off();
+		active_plant = plant_select;
+		valve_switch(active_plant);
+
 		set_app_interval(1);
+		nano_onboard_led_blink(10, 100);
 	} else {
 		restore_default_app_interval();
 	}
@@ -214,6 +219,9 @@ void irrigation_init(void) {
 		sensor_recorded_min[i] = eeprom_read_word((uint16_t*)(MEM_SENSOR_RECORDED_MIN + (sizeof(uint16_t) * i)));
 	}
 	
+	//TODO: also restore active_plant when mode is interactive?
+	set_calibration_mode(calibration_mode, active_plant);
+
 	read_moisture();
 
 	app_system_time = 0;
@@ -256,6 +264,7 @@ void irrigation_control(void) {
 		if (app_system_time - watering_time_start > moisture_change_hysteresis_time) {
 			if ((uint16_t)abs((int32_t)watering_sensor_raw_initial - (int32_t)sensor_raw[active_plant]) < moisture_change_hysteresis_amount) {
 				switch_pump_off();
+				valve_switch(0);
 				restore_default_app_interval();
 
 				// TODO: alert or error counter?

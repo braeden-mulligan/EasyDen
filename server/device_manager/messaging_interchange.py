@@ -143,3 +143,41 @@ def irrigation_get_moisture_raw(sensor):
 	elif sensor == 2:
 		return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_2"), 0)
 	return None
+
+# TODO: This is copy-pasted from poweroutlet. Refactor this garbage
+def irrigation_read_plant_enable(reg_value, sensor_count):
+	if isinstance(reg_value, str):
+		reg_value = int(reg_value, 16)
+
+	if isinstance(sensor_count, str):
+		sensor_count = int(sensor_count, 16)
+
+	if sensor_count > 8:
+		# TODO: Throw error instead?
+		print("WARNING: irrigation_read_plant_enable invalid argument passed.")
+		sensor_count = 8
+	
+	plant_enable_states = []
+
+	for i in range(sensor_count):
+		if reg_value & (1 << i):
+			plant_enable_states.append(1)
+		else:
+			plant_enable_states.append(0)
+
+	return plant_enable_states
+
+# TODO: This is also a (temporary!) copy-pasted hack.
+def irrigation_set_plant_enable(status_list):
+	high_byte = 0
+	low_byte = 0
+	for i, val in enumerate(status_list):
+		if val >= 0:
+			high_byte |= (1 << i)
+		if val > 0:
+			low_byte |= (1 << i)
+	reg_value = high_byte << 8 | low_byte
+	print("REG VAL: " + str(reg_value))
+
+	return template.format(_set, _reg_id("IRRIGATION_REG_PLANT_ENABLE"), reg_value)
+	

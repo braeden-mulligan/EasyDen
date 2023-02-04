@@ -11,20 +11,19 @@ struct sh_device_metadata {
 /*
 	Device type enumeration.
 */
-#define SH_TYPE_NULL 0x01
-#define SH_TYPE_RESERVED_1 0x02
-#define SH_TYPE_RESERVED_2 0x03
-#define SH_TYPE_RESERVED_3 0x04
-#define SH_TYPE_RESERVED_4 0x05
-#define SH_TYPE_RESERVED_5 0x06
-#define SH_TYPE_IRRIGATION 0x07
-#define SH_TYPE_POWEROUTLET 0x08
-#define SH_TYPE_THERMOSTAT 0x09
-#define SH_TYPE_CAMERA 0x0A
+#define SH_TYPE_NULL 0x00
+#define SH_TYPE_RESERVED_1 0x01
+#define SH_TYPE_RESERVED_2 0x02
+#define SH_TYPE_RESERVED_3 0x03
+#define SH_TYPE_RESERVED_4 0x04
+#define SH_TYPE_RESERVED_5 0x05
+#define SH_TYPE_IRRIGATION 0x06
+#define SH_TYPE_POWEROUTLET 0x07
+#define SH_TYPE_THERMOSTAT 0x08
+#define SH_TYPE_CAMERA 0x09
 
 /*
-	Registers per device.
-	All values are passed as unsigned 32-bit integers but may represent non-integer types.
+	Registers common to all devices.
 */
 #define GENERIC_REG_NULL 0x01
 #define GENERIC_REG_RESERVED_1 0x01
@@ -52,9 +51,11 @@ struct sh_device_metadata {
 #define GENERIC_REG_RESET_CONFIGS 0x15
 
 
+/*
+	Device-specific registers. 
+*/
 #define POWEROUTLET_REG_STATE 0x80
 #define POWEROUTLET_REG_SOCKET_COUNT 0x81
-
 
 #define THERMOSTAT_REG_TEMPERATURE 0x80
 #define THERMOSTAT_REG_TARGET_TEMPERATURE 0x81
@@ -67,7 +68,6 @@ struct sh_device_metadata {
 #define THERMOSTAT_REG_HUMIDITY_CORRECTION 0x88
 #define THERMOSTAT_REG_THERMOMETER_COUNT 0x89
 #define THERMOSTAT_REG_HUMIDITY_SENSOR_COUNT 0x8A
-
 
 #define IRRIGATION_REG_PLANT_ENABLE 0x80
 #define IRRIGATION_REG_SENSOR_COUNT 0x81

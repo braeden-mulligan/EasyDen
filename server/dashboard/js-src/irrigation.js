@@ -1,11 +1,62 @@
-
-class Irrigation_Attributes extends React.Component {
+class Plant_Status extends React.Component {
 	constructor(props) {
 		super(props);
 	}
 
 	render() {
 		let attrs = this.props.attributes;
+
+		return (
+			<div>
+				<b>Plant { attrs.id }</b>
+				<p>Current moisture: { attrs.moisture.value?.toFixed(1) + " %" }  ({ attrs.sensor_raw?.value })</p>
+				<p>Target moisture: { attrs.target_moisture.value?.toFixed(1) + " %" }  ({ attrs.sensor_raw?.value })</p>
+				<p>Moisture low threshold: { attrs.moisture_low.value?.toFixed(1) + " %" }</p>
+				<p>Watering delay after moisture low { attrs.moisture_low_delay.value + " s" }</p>
+				<p>Raw sensor value limits (configured) - Max: { attrs.sensor_raw_max.value }, Min: { attrs.sensor_raw_min.value }</p>
+				<p>Raw sensor value limits (recorded) - Max: { attrs.sensor_recorded_max.value }, Min: { attrs.sensor_recorded_min.value }</p>
+			</div>
+		);
+	}
+}
+
+class Irrigation_Attributes extends React.Component {
+	constructor(props) {
+		super(props);
+	}
+
+	render_plant_status(obj) {
+		return (
+			<li key={ obj.id }>
+				<Plant_Status attributes={ obj } />
+			</li>
+		)
+	}
+
+	render() {
+		let attrs = this.props.attributes;
+
+		let plant_statuses = [];
+		for (let i = 0; i < attrs.sensor_count?.value; ++i) {
+			// error check indicies
+			plant_statuses.push({
+				id: i,
+				moisture: attrs.moisture[i],
+				target_moisture: attrs.target_moisture[i],
+				moisture_low: attrs.moisture_low[i],
+				moisture_low_delay: attrs.moisture_low_delay[i],
+				sensor_raw: attrs.sensor_raw[i],
+				sensor_raw_max: attrs.sensor_raw_max[i],
+				sensor_raw_min: attrs.sensor_raw_min[i],
+				sensor_recorded_max: attrs.sensor_recorded_max[i],
+				sensor_recorded_min: attrs.sensor_recorded_min[i]
+			});
+		}
+
+		let rendered_plant_statuses = plant_statuses.map((obj) => {
+			return this.render_plant_status(obj)
+		})
+
 		return (
 			<div>
 				<p>Device enabled: { attrs.enabled.value } &nbsp;
@@ -13,8 +64,14 @@ class Irrigation_Attributes extends React.Component {
 						() => this.props.update_attribute(attrs.enabled.register, + !attrs.enabled.value)
 					} > Toggle </button>
 				</p>
-				<p>moisture 0: { attrs.moisture[0].value?.toFixed(1) + " %" }  ({ attrs.sensor_raw[0]?.value })</p>
-				<p>moisture 1: { attrs.moisture[1].value?.toFixed(1) + " %" }  ({ attrs.sensor_raw[1]?.value })</p>
+				<p>Plants enabled: { attrs.plant_enable.value }</p>
+				<p>Time until pump shutoff if no moisture change: { attrs.moisture_change_hysteresis_time.value }</p>
+				<p>Sensor value difference threshold to be considered changing moisture: { attrs.moisture_change_hysteresis_amount.value }</p>
+				<Mutable_Attribute description="Calibration mode" attribute={ attrs.calibration_mode } update_attribute={ this.props.update_attribute } />
+
+				<ul>
+					{ rendered_plant_statuses }
+				</ul>
 			</div>
 		)
 	}
@@ -45,32 +102,6 @@ class Irrigation_Schedules extends React.Component {
 			schedules = <p>None</p>;
 		}
 
-		return (
-			<div>
-			<b>Schedules</b>
-			<ul>
-				{ schedules }
-			</ul>
-			<br />
-			<b>New Schedule</b>
-			<p><span>Target moisture: &nbsp;
-				<input type="text" onChange={ 
-					(e) => { }
-				} />
-				<br />
-				<span><input type="text" placeholder="Hour" onChange={ 
-					(e) => { this.current_hour = e.target.value; }
-				} /></span> 
-				<span>:<input type="text" placeholder="Minute" onChange={ 
-					(e) => { this.current_minute = e.target.value; }
-				} /></span> 
-				<button className="set" onClick={
-					() => this.props.set_schedule(
-			build_schedule(this.props.attributes.target_temperature.register, this.current_target, "create", true, {hour: this.current_hour, minute: this.current_minute}) 
-					)
-				} > Add </button>
-			</span></p>	
-			</div>	
-		);
+		return null;
 	}
 }

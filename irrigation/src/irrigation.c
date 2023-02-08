@@ -194,7 +194,7 @@ void read_moisture(void) {
 void irrigation_init(void) {
 	active_plant = 0;
 
-	ADC_init(0x3F);
+	ADC_init(0x3F, 1);
 
 	// Pump relay
 	DDRD |= 1 << PD4;

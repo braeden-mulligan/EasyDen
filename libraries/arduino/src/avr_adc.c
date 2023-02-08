@@ -3,11 +3,15 @@
 #include <avr/io.h>
 #include <stdint.h>
 
-void ADC_init(uint8_t DIDR0_pin_mask) {
+static uint8_t external_aref;
+
+void ADC_init(uint8_t DIDR0_pin_mask, uint8_t use_external_reference_voltage) {
     ADMUX = (1 << REFS0);
     ADCSRA = (1 << ADEN);
     ADCSRA |= (1 << ADPS0) | (1 << ADPS1) | (1 << ADPS2);
     DIDR0 = DIDR0_pin_mask;
+	external_aref = use_external_reference_voltage;
+	if (external_aref) ADMUX &= ~(_BV(REFS0) | _BV(REFS1));
 }
 
 static uint16_t ADC_convert(void) {
@@ -18,7 +22,9 @@ static uint16_t ADC_convert(void) {
 }
 
 uint16_t ADC_read(uint8_t pin_Ax) {
-	ADMUX &= ~(0xF);
+	ADMUX &= ~(0x0F);
+
+	if (external_aref) ADMUX &= ~(_BV(REFS0) | _BV(REFS1));
 
 	switch (pin_Ax) {
 	case 0:

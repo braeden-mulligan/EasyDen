@@ -189,7 +189,7 @@ void thermostat_init(void) {
 	humidity_sensor_count = eeprom_read_byte((uint8_t*)THERMOSTAT_EEPROM_ADDR_HUMIDITY_SENSOR_COUNT);
 
 	if (humidity_sensor_count) {
-		ADC_init(0);
+		ADC_init(0, 0);
 		humidity_sensor_initialized = 1;
 		_delay_ms(10);
 		measure_humidity();

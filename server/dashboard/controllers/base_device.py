@@ -1,5 +1,6 @@
 from flask import request, Response
 
+from dashboard import config as dm_config
 from dashboard import server_interconnect as interconnect
 from dashboard import utilities as utils
 
@@ -24,7 +25,7 @@ def command(request, target_register, packet, processor, type_label):
 	#if request.args.get("all") == true
 	# submit best-effort cmd
 	# else
-	timeout = time.monotonic() + (request.args.get("timeout") or 5.0)
+	timeout = time.monotonic() + (request.args.get("timeout") or (dm_config.DEVICE_TX_TIMEOUT * (dm_config.DEVICE_MAX_TX_RETRIES  + 1) + 1.0))
 	while time.monotonic() < timeout:
 		time.sleep(0.15)
 		_, devices = interconnect.fetch_devices(device_id) 

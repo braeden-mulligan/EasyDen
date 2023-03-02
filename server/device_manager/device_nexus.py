@@ -1,5 +1,5 @@
 from device_manager import config
-from device_manager.device import SH_Device
+from device_manager.device import SmartHome_Device
 from device_manager import messaging_interchange as messaging
 from device_manager import utilities as utils
 from device_manager import jobs as jobs 
@@ -68,7 +68,7 @@ def handle_device_message(device):
 				# Update old entry with new socket and delete current device object
 				existing_device.connect(device.soc_connection)
 				existing_device.pending_response = None
-				print("Duplicate device found with id " + str(recv_code))
+				print("Existing device found with id " + str(recv_code))
 				device_list.remove(device)
 
 	return True
@@ -206,7 +206,7 @@ def main_loop():
 				conn, addr = device_soc.accept()
 				conn.setblocking(False)
 				poller.register(conn, poll_opts)
-				device_list.append(SH_Device(conn))
+				device_list.append(SmartHome_Device(conn))
 
 			else:
 				dash_conn = next((d for d in dashboard_connections if d.fileno() == fd), None)
@@ -229,7 +229,7 @@ def main_loop():
 					print(" ")
 
 		for d in device_list:
-			if d.update_pending() == SH_Device.STATUS_UNRESPONSIVE and d.no_response >= 2:
+			if d.update_pending() == SmartHome_Device.STATUS_UNRESPONSIVE:
 				print("Device " + str(d.device_id) + " unresponsive. Closing connection")
 				handle_socket_error(d.soc_connection, select.POLLHUP, poller)
 				d.disconnect()

@@ -241,6 +241,7 @@ class SmartHome_Device:
 
 #TODO: Might not be possible to hit this block anymore.
 		elif self.pending_transmissions:
+			raise Exception("Unreachable block reached!")
 			print("No pending_response, checking send queue.")
 			for entry in self.pending_transmissions:
 				sent_seq, sent_cmd, sent_reg, sent_val = parse_packet(entry.packet)
@@ -251,6 +252,7 @@ class SmartHome_Device:
 		else:
 #TODO: log this?
 # Conjecture: frequency of this is a function of timeout and retries, tuning needed?
+			raise Exception("Do we ever hit this?")
 			print("process_message error. Received packet does not correspond to any pending messages.")
 			return None
 

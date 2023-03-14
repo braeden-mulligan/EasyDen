@@ -1,10 +1,10 @@
-from . import device_definitions as SH_defs
+from . import device_definitions as defs
 
 import struct
 
-_get = SH_defs.CMD_GET
-_set = SH_defs.CMD_SET
-_reg_id = SH_defs.register_id
+_get = defs.CMD_GET
+_set = defs.CMD_SET
+_reg_id = defs.register_id
 
 template = "{:02X},{:02X},{:08X}" 
 
@@ -46,7 +46,7 @@ def _map_to_register_id(reg):
 
 	return None
 
-def command_from_float(register, value):
+def build_command_from_float(register, value):
 	register_id = _map_to_register_id(register)
 	if register_id is None:
 		return None
@@ -54,15 +54,39 @@ def command_from_float(register, value):
 	packed_float = struct.unpack("!I", struct.pack("!f", value))[0]
 	return template.format(_set, register_id, packed_float);
 
-def command_from_int(register, value):
+def build_command_from_int(register, value):
 	register_id = _map_to_register_id(register)
 	if register_id is None:
 		return None
 
 	return template.format(_set, register_id, value);
 
+def list_to_bitmask(sub_attribute_list):
+	high_byte = 0
+	low_byte = 0
+	for i, val in enumerate(sub_attribute_list):
+		if val >= 0:
+			high_byte |= (1 << i)
+		if val > 0:
+			low_byte |= (1 << i)
+
+	reg_value = high_byte << 8 | low_byte
+	return reg_value
+
+
+def bitmask_to_list(reg_value, item_count):
+	sub_attribute_list = []
+
+	for i in range(item_count):
+		if reg_value & (1 << i):
+			sub_attribute_list.append(1)
+		else:
+			sub_attribute_list.append(0)
+
+	return sub_attribute_list
+
 def generic_request_identity():
-	return template.format(SH_defs.CMD_IDY, 0, 0)
+	return template.format(defs.CMD_IDY, 0, 0)
 
 def generic_ping():
 	return template.format(_get, _reg_id("GENERIC_REG_PING"), 0)
@@ -74,22 +98,14 @@ def poweroutlet_get_count():
 def poweroutlet_get_state():
 	return template.format(_get, _reg_id("POWEROUTLET_REG_STATE"), 0)
 
+
 # pass a list 
 def poweroutlet_set_state(socket_states):
-	high_byte = 0
-	low_byte = 0
-	for i, val in enumerate(socket_states):
-		if val >= 0:
-			high_byte |= (1 << i)
-		if val > 0:
-			low_byte |= (1 << i)
-	reg_value = high_byte << 8 | low_byte
-	print("REG VAL: " + str(reg_value))
-
+	reg_value = list_to_bitmask(socket_states)
 	return template.format(_set, _reg_id("POWEROUTLET_REG_STATE"), reg_value)
 
 # return list 
-def poweroutlet_read_state(reg_value, socket_count = 8):
+def poweroutlet_read_state(reg_value, socket_count):
 	if isinstance(reg_value, str):
 		reg_value = int(reg_value, 16)
 
@@ -100,15 +116,7 @@ def poweroutlet_read_state(reg_value, socket_count = 8):
 		print("WARNING: poweroutlet_read_state invalid argument passed.")
 		socket_count = 8
 
-	socket_states = []
-
-	for i in range(socket_count):
-		if reg_value & (1 << i):
-			socket_states.append(1)
-		else:
-			socket_states.append(0)
-
-	return socket_states
+	return bitmask_to_list(reg_value, socket_count)
 
 
 def thermostat_get_temperature():
@@ -127,34 +135,23 @@ def thermostat_set_temperature(value):
 
 
 def irrigation_get_moisture(sensor):
-	if sensor == 0:
-		return template.format(_get, _reg_id("IRRIGATION_REG_MOISTURE_0"), 0)
-	elif sensor == 1:
-		return template.format(_get, _reg_id("IRRIGATION_REG_MOISTURE_1"), 0)
-	elif sensor == 2:
-		return template.format(_get, _reg_id("IRRIGATION_REG_MOISTURE_2"), 0)
-	return None
+	return template.format(_get, _reg_id("IRRIGATION_REG_MOISTURE_" + str(sensor)), 0)
 
 def irrigation_get_moisture_raw(sensor):
-	if sensor == 0:
-		return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_0"), 0)
-	elif sensor == 1:
-		return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_1"), 0)
-	elif sensor == 2:
-		return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_2"), 0)
-	return None
+	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_" + str(sensor)), 0)
 
 def irrigation_get_sensor_raw_max(sensor):
 	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_MAX_" + str(sensor)), 0)
+
 def irrigation_get_sensor_raw_min(sensor):
 	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_MIN_" + str(sensor)), 0)
 
 def irrigation_get_sensor_recorded_max(sensor):
 	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RECORDED_MAX_" + str(sensor)), 0)
+
 def irrigation_get_sensor_recorded_min(sensor):
 	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RECORDED_MIN_" + str(sensor)), 0)
 
-# TODO: This is copy-pasted from poweroutlet. Refactor this garbage
 def irrigation_read_plant_enable(reg_value, sensor_count):
 	if isinstance(reg_value, str):
 		reg_value = int(reg_value, 16)
@@ -167,28 +164,10 @@ def irrigation_read_plant_enable(reg_value, sensor_count):
 		print("WARNING: irrigation_read_plant_enable invalid argument passed.")
 		sensor_count = 8
 	
-	plant_enable_states = []
+	return bitmask_to_list(reg_value, sensor_count)
 
-	for i in range(sensor_count):
-		if reg_value & (1 << i):
-			plant_enable_states.append(1)
-		else:
-			plant_enable_states.append(0)
-
-	return plant_enable_states
-
-# TODO: This is also a (temporary!) copy-pasted hack.
 def irrigation_set_plant_enable(status_list):
-	high_byte = 0
-	low_byte = 0
-	for i, val in enumerate(status_list):
-		if val >= 0:
-			high_byte |= (1 << i)
-		if val > 0:
-			low_byte |= (1 << i)
-	reg_value = high_byte << 8 | low_byte
-	print("REG VAL: " + str(reg_value))
-
+	reg_value = list_to_bitmask(status_list)
 	return template.format(_set, _reg_id("IRRIGATION_REG_PLANT_ENABLE"), reg_value)
 
 # def irrigation_read_calibration_settings(reg_value):

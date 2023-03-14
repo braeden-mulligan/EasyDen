@@ -1,6 +1,6 @@
 from flask import request, Response
 
-from dashboard import config as dm_config
+from device_manager import config as dm_config
 from dashboard import server_interconnect as interconnect
 from dashboard import utilities as utils
 

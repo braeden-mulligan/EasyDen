@@ -55,7 +55,7 @@ def command(request):
 	register = int(command_data["register"])
 
 	if register == utils.register_id("GENERIC_REG_ENABLE"):
-		message = interchange.command_from_int(register, int(command_data["data"]))
+		message = interchange.build_command_from_int(register, int(command_data["data"]))
 	elif register == utils.register_id("POWEROUTLET_REG_STATE"):
 		socket_vals = [int(val) for val in command_data["data"]]
 		message = interchange.poweroutlet_set_state(socket_vals)

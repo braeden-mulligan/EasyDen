@@ -1,5 +1,5 @@
 from device_manager import config
-from device_manager import device_definitions as SH_defs
+from device_manager import device_definitions as defs
 from device_manager import messaging_interchange as messaging
 
 #TODO fix this dirty style
@@ -24,7 +24,7 @@ def query_thermostats(device_list):
 	if time.time() < last_thermostat_query + (config.DEVICE_KEEPALIVE  * 0.95):
 		return
 
-	thermostats = [d for d in device_list if d.device_type == SH_defs.type_id("SH_TYPE_THERMOSTAT")]
+	thermostats = [d for d in device_list if d.device_type == defs.type_id("SH_TYPE_THERMOSTAT")]
 	for t in thermostats:
 		t.device_send(messaging.thermostat_get_temperature())
 #TODO: if device has humidity sensor
@@ -38,7 +38,7 @@ def query_irrigation(device_list):
 	if time.time() < last_irrigation_query + 5.0:
 		return
 
-	irrigators = [d for d in device_list if d.device_type == SH_defs.type_id("SH_TYPE_IRRIGATION")]
+	irrigators = [d for d in device_list if d.device_type == defs.type_id("SH_TYPE_IRRIGATION")]
 	for device in irrigators:
 		for i in range(3):
 			device.device_send(messaging.irrigation_get_moisture(i))

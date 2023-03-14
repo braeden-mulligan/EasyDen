@@ -86,10 +86,10 @@ def build_command(request_data):
 
 	if register in FLOAT_REGISTER_VALUES:
 		value = float(request_data["data"])
-		return interchange.command_from_float(register, value)
+		return interchange.build_command_from_float(register, value)
 	elif register in INTEGER_REGISTER_VALUES:
 		value = int(request_data["data"])
-		return interchange.command_from_int(register, value)
+		return interchange.build_command_from_int(register, value)
 
 	return None
 

@@ -2,13 +2,14 @@ from device_manager import config
 from device_manager.device import SmartHome_Device
 from device_manager import messaging_interchange as messaging
 from device_manager import utilities as utils
-from device_manager import jobs as jobs 
+from device_manager.jobs import Nexus_Jobs
 
 import json, select, socket, time, os
 import logging
 
 device_list = []
 dashboard_connections = []
+job_handler = None
 
 # --- Socket Management ---
 
@@ -89,25 +90,25 @@ def handle_dashboard_message(dash_conn, msg):
 
 	# fetch [all | type <int> | id <int>]
 	if "fetch" in words[0]:
-		json_obj_list = None
+		obj_list = None
 
 		if "all" in words[1]:
-			json_obj_list = [d.get_data() for d in device_list if d.device_id]
+			obj_list = [d.get_data() for d in device_list if d.device_id]
 		elif "type" in words[1]:
-			json_obj_list = [d.get_data() for d in device_list if d.device_type == int(words[2])]
+			obj_list = [d.get_data() for d in device_list if d.device_type == int(words[2])]
 		elif "id" in words[1]:
-			json_obj_list = [d.get_data() for d in device_list if d.device_id == int(words[2])]
+			obj_list = [d.get_data() for d in device_list if d.device_id == int(words[2])]
 		
-		for entry in json_obj_list:
-			entry["schedules"] = jobs.fetch_schedules(entry["id"])
+		for entry in obj_list:
+			entry["schedules"] = job_handler.fetch_schedules(entry["id"])
 
 			if "registers" not in entry:
 				continue
 			for reg in entry["registers"]:
 				entry["registers"][reg]["value"] = "0x{:08X}".format(entry["registers"][reg]["value"])
 
-		if isinstance(json_obj_list, list):
-			response = "JSON: " + json.dumps(json_obj_list)
+		if isinstance(obj_list, list):
+			response = "JSON: " + json.dumps(obj_list)
 
 	# command [id|type <int> <raw message>]
 	elif "command" in words[0]:
@@ -160,7 +161,7 @@ def handle_dashboard_message(dash_conn, msg):
 
 	elif "schedule" in words[0]:
 		data = "".join(words[2:])
-		jobs.submit_schedule(int(words[1]), data)
+		job_handler.submit_schedule(int(words[1]), data)
 		response = "SUCCESS: Schedule submitted"
 
 	elif "debug" in words[0]:
@@ -172,6 +173,9 @@ def handle_dashboard_message(dash_conn, msg):
 # --- ---
 
 def main_loop():
+	global job_handler
+	job_handler = Nexus_Jobs(device_list)
+
 	poller = select.poll()
 
 	dash_soc = listener_init(dashboard = True)
@@ -234,7 +238,7 @@ def main_loop():
 				handle_socket_error(d.soc_connection, select.POLLHUP, poller)
 				d.disconnect()
 
-		jobs.run_tasks(device_list)
+		job_handler.run_tasks()
 
 def run():
 	log_dir = os.path.dirname(__file__) + "/logs"

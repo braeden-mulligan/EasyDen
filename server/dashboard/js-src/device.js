@@ -178,7 +178,7 @@ function update_attribute(type, register, data, response_processor, id = null) {
 
 	let payload = JSON.stringify({
 		register: register,
-		data: data
+		attribute_data: data
 	})
 
 	let url = "http://" + SERVER_ADDR + "/device/" + type + "/command" + (id ? ("?id=" + id.toString()) : "");

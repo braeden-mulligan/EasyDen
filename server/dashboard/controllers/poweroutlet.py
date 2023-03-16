@@ -23,9 +23,7 @@ def poweroutlet_processor(poweroutlets):
 		
 		device["attributes"]["socket_states"] = outlet_state_attr
 
-
-
-#TODO: Generify with thermostat
+#TODO: Generify?
 		for i, schedule in enumerate(device["schedules"]):
 			tag = schedule
 			_, register, value = tag["command"].split(',')
@@ -50,32 +48,23 @@ def fetch(request):
 	return base.fetch(request, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
 
 def command(request):
-	message = None
 	command_data = json.loads(request.data.decode())
-	register = int(command_data["register"])
+	message = poweroutlet_build_command(command_data)
 
-	if register == utils.register_id("GENERIC_REG_ENABLE"):
-		message = interchange.build_command_from_int(register, int(command_data["data"]))
-	elif register == utils.register_id("POWEROUTLET_REG_STATE"):
-		socket_vals = [int(val) for val in command_data["data"]]
-		message = interchange.poweroutlet_set_state(socket_vals)
-	else:
-		return base.error({ "error": None })
-
-	return base.command(request, register, message, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
+	if message:
+		return base.command(request, command_data["register"], message, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
+	
+	return base.error({ "error": None })
 
 def set_schedule(request):
-	schedule_data = json.loads(request.data.decode())
-		
-	if schedule_data["action"] == "create":
-		socket_vals = [int(val) for val in schedule_data["data"]]
+	data = json.loads(request.data.decode())
+	return base.set_schedule(request, data, poweroutlet_build_command, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
+
+def poweroutlet_build_command(attribute):
+	message = utils.build_command(attribute, [], [])
+
+	if int(attribute["register"]) == utils.register_id("POWEROUTLET_REG_STATE"):
+		socket_vals = [int(val) for val in attribute["attribute_data"]]
 		message = interchange.poweroutlet_set_state(socket_vals)
-		del schedule_data["register"]
-		del schedule_data["data"]
 
-		schedule_data["command"] = message
-		print(schedule_data)
-	elif schedule_data["action"] == "delete":
-		pass
-
-	return base.set_schedule(request, json.dumps(schedule_data), poweroutlet_processor, "SH_TYPE_POWEROUTLET")
+	return message

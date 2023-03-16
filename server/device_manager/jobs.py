@@ -108,7 +108,7 @@ class Nexus_Jobs:
 		
 		if action == "delete":
 			for s in self.schedules:
-				if s.schedule_id == data["id"]:
+				if s.schedule_id == int(data["id"]):
 					s.cancel_schedule()
 					self.schedules.remove(s)
 					print("Successfully removed schedule")
@@ -123,7 +123,7 @@ class Nexus_Jobs:
 					print("Cannot add duplicate event (overlapping schedule)")
 					return False
 
-			time_expression = "{:02d}".format(data["time"]["hour"]) + ":" + "{:02d}".format(data["time"]["minute"])
+			time_expression = "{:02d}".format(int(data["time"]["hour"])) + ":" + "{:02d}".format(int(data["time"]["minute"]))
 			if not data["time"]["days"]:
 				new_schedule.job.append(schedule.every().day.at(time_expression).do(new_schedule.process_task))
 			else:

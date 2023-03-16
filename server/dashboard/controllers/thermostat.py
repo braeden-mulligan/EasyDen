@@ -15,7 +15,6 @@ FLOAT_REGISTER_VALUES = [
 ]
 
 INTEGER_REGISTER_VALUES = [
-	utils.register_id("GENERIC_REG_ENABLE"),
 	utils.register_id("THERMOSTAT_REG_MAX_HEAT_TIME"),
 	utils.register_id("THERMOSTAT_REG_MIN_COOLDOWN_TIME")
 ]
@@ -58,38 +57,18 @@ def thermostat_processor(thermostats):
 def fetch(request):
 	return base.fetch(request, thermostat_processor, "SH_TYPE_THERMOSTAT")
 
-def build_command(request_data):
-	register = int(request_data["register"])
-
-	if register in FLOAT_REGISTER_VALUES:
-		value = float(request_data["data"])
-		return interchange.build_command_from_float(register, value)
-	elif register in INTEGER_REGISTER_VALUES:
-		value = int(request_data["data"])
-		return interchange.build_command_from_int(register, value)
-
-	return None
-
 def command(request):
 	command_data = json.loads(request.data.decode())
-	message = build_command(command_data)
+	message = utils.build_command(command_data, INTEGER_REGISTER_VALUES, FLOAT_REGISTER_VALUES)
 
 	if message:
 		return base.command(request, command_data["register"], message, thermostat_processor, "SH_TYPE_THERMOSTAT")
 	
 	return base.error({ "error": None })
 
-
 def set_schedule(request):
-	schedule_data = json.loads(request.data.decode())
-	
-	if schedule_data["action"] == "create":
-		message = build_command(schedule_data)
-		del schedule_data["register"]
-		del schedule_data["data"]
+	data = json.loads(request.data.decode())
+	return base.set_schedule(request, data, thermostat_build_command, thermostat_processor, "SH_TYPE_THERMOSTAT")
 
-		schedule_data["command"] = message
-	elif schedule_data["action"] == "delete":
-		pass
-
-	return base.set_schedule(request, json.dumps(schedule_data), thermostat_processor, "SH_TYPE_THERMOSTAT")
+def thermostat_build_command(data):
+	return utils.build_command(data, INTEGER_REGISTER_VALUES, FLOAT_REGISTER_VALUES)

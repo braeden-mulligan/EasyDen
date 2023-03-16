@@ -35,3 +35,18 @@ def compose_response(response_label = None, data = None):
 		response_label = "ERROR"
 
 	return response_label + ": " + data
+
+def build_command(attribute, integer_register_values = [], float_register_values = []):
+	register = int(attribute["register"])
+
+	integer_register_values.append(register_id("GENERIC_REG_ENABLE")),
+	integer_register_values.append(register_id("GENERIC_REG_RESET_CONFIGS"))
+
+	if register in float_register_values:
+		value = float(attribute["attribute_data"])
+		return interchange.build_command_from_float(register, value)
+	elif register in integer_register_values:
+		value = int(attribute["attribute_data"])
+		return interchange.build_command_from_int(register, value)
+
+	return None

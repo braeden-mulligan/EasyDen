@@ -40,16 +40,24 @@ def command(request, target_register, packet, processor, type_label):
 		if last_update > last_query:
 			return Response(response = json.dumps(processor(devices)), mimetype = "application/json")
 
-	return error({ "error": "Device could not be reached" })
+	return error("Device could not be reached")
 
-def set_schedule(request, data, processor, type_label):
-#TODO: Check data validity
+def set_schedule(request, data, command_builder, processor, type_label):		
+	if data["action"] == "create":
+		data["command"] = command_builder(data)
+
+	data.pop("register", None)
+	data.pop("attribute_data", None)
+
+	schedule_data = json.dumps(data)
+	print("Setting schedule:", schedule_data)
+
 	device_id = request.args.get("id")
-	interconnect.data_transaction(interconnect.device_schedule(device_id, data))
+	interconnect.data_transaction(interconnect.device_schedule(device_id, schedule_data))
 	response_label, devices = interconnect.fetch_devices(device_id, device_type_label = type_label)
 	
 	return Response(response = json.dumps(processor(devices)), mimetype = "application/json")
-	return error({ "error": "Unimplemented" })
 
-def error(data):
+def error(message):
+	data = {"error": message}
 	return Response(response = json.dumps(data), mimetype = "application/json")

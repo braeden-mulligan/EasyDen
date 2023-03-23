@@ -37,19 +37,14 @@ def thermostat_processor(thermostats):
 		device["attributes"]["max_heat_time"] = utils.unpack_attribute(device["registers"], "THERMOSTAT_REG_MAX_HEAT_TIME")
 		device["attributes"]["min_cooldown_time"] = utils.unpack_attribute(device["registers"], "THERMOSTAT_REG_MIN_COOLDOWN_TIME")
 
-		for i, schedule in enumerate(device["schedules"]):
-			tag = schedule
-			_, register, value = tag["command"].split(',')
-			register = int(register, 16)
-
+		def schedule_processor(register, value, device = device):
 			if register == utils.register_id("THERMOSTAT_REG_TARGET_TEMPERATURE"):
 				target_temperature = interchange.reg_to_float({ str(register): { "value": value }}, reg_id = register)
-			else:
-				continue
+				return ("target_temperature", target_temperature)
 
-			device["schedules"][i] = { "attribute": "target_temperature", "value": target_temperature, "id_tag": tag }
-
+		utils.reformat_schedules(device, schedule_processor)
 		utils.prune_device_data(device)
+
 		valid_devices.append(device)
 
 	return valid_devices

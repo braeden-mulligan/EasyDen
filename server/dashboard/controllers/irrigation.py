@@ -63,7 +63,9 @@ def irrigation_processor(irrigators):
 			device["attributes"]["sensor_recorded_max"].append(utils.unpack_attribute(device["registers"], "IRRIGATION_REG_SENSOR_RECORDED_MAX_" + str(i)))
 			device["attributes"]["sensor_recorded_min"].append(utils.unpack_attribute(device["registers"], "IRRIGATION_REG_SENSOR_RECORDED_MIN_" + str(i)))
 
+		utils.reformat_schedules(device, None)
 		utils.prune_device_data(device)
+
 		valid_devices.append(device)
 
 	return valid_devices

@@ -50,3 +50,18 @@ def build_command(attribute, integer_register_values = [], float_register_values
 		return interchange.build_command_from_int(register, value)
 
 	return None
+
+def reformat_schedules(device, processor):
+	for i, schedule in enumerate(device["schedules"]):
+		_, register, value = schedule.pop("command").split(',')
+		register = int(register, 16)
+
+		attribute = None
+		if register == register_id("GENERIC_REG_ENABLE"):
+			attribute = "enable"
+			value = bool(int(value, 16))
+		else:
+			attribute, value = processor(register, value)
+
+		device["schedules"][i]["attribute"] = attribute
+		device["schedules"][i]["value"] = value

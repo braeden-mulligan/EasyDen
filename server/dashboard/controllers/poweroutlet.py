@@ -23,24 +23,16 @@ def poweroutlet_processor(poweroutlets):
 		
 		device["attributes"]["socket_states"] = outlet_state_attr
 
-#TODO: Generify?
-		for i, schedule in enumerate(device["schedules"]):
-			tag = schedule
-			_, register, value = tag["command"].split(',')
-			register = int(register, 16)
-
+		def schedule_processor(register, value, device = device):
 			if register == utils.register_id("POWEROUTLET_REG_STATE"):
 				socket_state = interchange.reg_to_int({ str(register): { "value": value }}, reg_id = register)		
 				socket_values = interchange.poweroutlet_read_state(socket_state, device["attributes"]["socket_count"]["value"])
-			else:
-				continue
+				return ("socket_states", socket_values)
 
-			device["schedules"][i] = { "attribute": "socket_states", "value": socket_values, "id_tag": tag }
-
-
-
+		utils.reformat_schedules(device, schedule_processor)
 		utils.prune_device_data(device)
-		valid_devices.append(device);
+
+		valid_devices.append(device)
 
 	return valid_devices
 

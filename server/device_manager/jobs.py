@@ -116,7 +116,12 @@ class Nexus_Jobs:
 			print("Failed to find schedule")
 
 		elif action == "create":
-			new_schedule = Device_Command_Schedule(device, data)
+			#TODO: Catch exception for debugging reasons
+			try:
+				new_schedule = Device_Command_Schedule(device, data)
+			except KeyError:
+				print("Could not create schedule. Bad argument provided.")
+				return False
 
 			for s in self.schedules:
 				if new_schedule == s:

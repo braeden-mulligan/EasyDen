@@ -1,20 +1,16 @@
+const { useState, useEffect } = React;
 
-class Device_Info extends React.Component {
-	constructor(props) {
-		super(props);
-	}
-
-	render() {
-		return (
-		<div>
-			<p>Device { this.props.id } </p>
-			<p>Name: { this.props.name }</p>
-			<p>Online: { this.props.online.toString() }</p>
-		</div>
-		)
-	}
+function Device_Info({ id, name, online_status }) {
+	return (
+	<div>
+		<p>Device { id } </p>
+		<p>Name: { name }</p>
+		<p>Online: { online_status?.toString() }</p>
+	</div>
+	)
 }
 
+/*
 function Mutable_Attribute(props) {
 	let current_target;
 
@@ -29,140 +25,76 @@ function Mutable_Attribute(props) {
 		</span></p>
 	);
 }
+*/
 
-class Device extends React.Component {
-	constructor(props) {
-		super(props);
-	}
+function Device({ data, update_attribute, set_schedule }) {
+	let device_attributes = <p> Uknown device type </p>
+	let device_schedules = <p>No schedules</p>
 
-	render() {
-		let device_attributes = <p> Uknown device type </p>
-		let device_schedules = <p>No schedules</p>
+	/*if (data.device_type == "thermostat") {
+		device_attributes = <Thermostat_Attributes attributes={ data.attributes } update_attribute={ data.update_attribute } />
+		device_schedules = <Thermostat_Schedules attributes={ data.attributes } schedules={ data.schedules } set_schedule={ data.set_schedule } />
+	} else if (data.device_type == "poweroutlet") {
+		device_attributes = <Poweroutlet_Attributes attributes={ data.attributes } update_attribute={ data.update_attribute } />
+		device_schedules = <Poweroutlet_Schedules attributes={ data.attributes } schedules={ data.schedules } set_schedule={ data.set_schedule } />
+	} else if (data.device_type == "irrigation") {
+		device_attributes = <Irrigation_Attributes attributes={ data.attributes } update_attribute={ data.update_attribute } />
+		device_schedules = <Irrigation_Schedules attributes={ data.attributes } schedules={ data.schedules } set_schedule={ data.set_schedule } />
+	}*/
 
-		if (this.props.device_type == "thermostat") {
-			device_attributes = <Thermostat_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
-			device_schedules = <Thermostat_Schedules attributes={ this.props.attributes } schedules={ this.props.schedules } set_schedule={ this.props.set_schedule } />
-		} else if (this.props.device_type == "poweroutlet") {
-			device_attributes = <Poweroutlet_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
-			device_schedules = <Poweroutlet_Schedules attributes={ this.props.attributes } schedules={ this.props.schedules } set_schedule={ this.props.set_schedule } />
-		} else if (this.props.device_type == "irrigation") {
-			device_attributes = <Irrigation_Attributes attributes={ this.props.attributes } update_attribute={ this.props.update_attribute } />
-			device_schedules = <Irrigation_Schedules attributes={ this.props.attributes } schedules={ this.props.schedules } set_schedule={ this.props.set_schedule } />
-		}
-
-		return (
-			<div>
-				<Device_Info id={ this.props.id } name={ this.props.name } online={ this.props.online } />
-				{ device_attributes }
-				{ device_schedules }
-			</div>
-		);
-	}
+	return (
+	<div>
+		<Device_Info id={ data.id } name={ data.name } online_status={ data.online } />
+			{ device_attributes }
+			{ device_schedules }
+	</div>
+	)
 }
 
-class Device_Panel extends React.Component {
-	poll_active = null;
-	poll_period = 20000;
+function Device_Panel({ device_type }) {
+	const poll_period = 20000;
+	const [devices, set_devices] = useState([])
 
-	constructor(props) {
-		console.log(props);
-		super(props);
-		this.state = {
-			devices: [ ]
-		}
-	}
-
-	process_devices(fetched_list) {
-		console.log("Processing")
-		console.log(fetched_list)
-
+	function process_devices(fetched_list) {
 		if (!Array.isArray(fetched_list)) return;
-
-		let devices_copy = this.state.devices.slice();
-
-		for (let i = 0; i < fetched_list.length; ++i) {
-			let existing_device_index = devices_copy.findIndex(d => d.id == fetched_list[i].id);
-			
-			if (existing_device_index == -1) {
-				devices_copy.push(fetched_list[i]);
-			} else {
-				devices_copy[existing_device_index] = fetched_list[i];
-			}
-		}
-
-		this.setState({
-			devices: devices_copy
-		});
+		if (!obj_equals(devices, fetched_list)) set_devices(fetched_list)
 	}
 
-	render_device(obj) {
+	useEffect(() => {
+		fetch_devices(device_type, process_devices.bind(this));
+	}, [])
+
+	useEffect(() => {
+		const poll_timer = setInterval(function() {
+			fetch_devices(device_type, process_devices.bind(this));
+		}, poll_period);
+
+		return () => clearInterval(poll_timer);
+	}, [devices])
+
+	function render_device(obj) {
 		return (
 			<li key={ obj.id }>
-				<Device id={ obj.id } name={ obj.name } online={ obj.online } device_type= { this.props.device_type }
-				  attributes={ obj.attributes } schedules={ obj.schedules }
-				  update_attribute={ (register, data) => update_attribute(this.props.device_type, register, data, this.process_devices.bind(this), obj.id) }
-				  set_schedule={ (data) => set_schedule(this.props.device_type, data, this.process_devices.bind(this), obj.id) } />
+				<Device data={ obj } 
+				  update_attribute={ (register, data) => update_attribute(device_type, register, data, process_devices, obj.id) }
+				  set_schedule={ (schedule_data) => set_schedule(device_type, schedule_data, process_devices, obj.id) }
+ 				/>
 			</li>
 		)
 	}
 
-	render() {
-		let rendered_devices = this.state.devices.map((obj) => {
-			return this.render_device(obj)
-		})
+	let rendered_devices = devices.map((obj) => {
+	 	return render_device(obj)
+	})
 
-		return (
-			<div className="device-panel">
-				<ul>
-					{ rendered_devices }
-				</ul>
-			</div>
-		)
-	}
-
-	start_poll(now = true) {
-		console.log("start poll")
-		if (this.poll_active) return;
-
-		if (now) fetch_devices(this.props.device_type, this.process_devices.bind(this));
-
-		this.poll_active = setInterval(function() {
-			fetch_devices(this.props.device_type, this.process_devices.bind(this));
-		}.bind(this), this.poll_period);
-	}
-
-	stop_poll = function() {
-		if (this.poll_active) clearInterval(this.poll_active);
-		this.poll_active = null;
-	}
-
-	componentDidMount() {
-		this.start_poll();
-	}
-
-	componentWillUnmount() {
-		this.stop_poll();
-	} 
-}
-
-function build_request(data_handler) {
-	try {
-		var xhr = new XMLHttpRequest();
-	} catch (e) {
-		alert("Something went wrong!");
-		return false;
-	}
-
-	xhr.onreadystatechange = function() {
-		if (xhr.readyState == XMLHttpRequest.DONE) {
-			console.log("Raw response:");
-			console.log(xhr.responseText);
-			data = JSON.parse(xhr.responseText);
-			data_handler(data);
-		}
-	}
-
-	return xhr;
+	console.log("RENDERING")
+	return (
+	<div className="device-panel">
+		<ul>
+			{ rendered_devices }
+		</ul>
+	</div>
+	)
 }
 
 function fetch_devices(type, response_processor, id = null) {

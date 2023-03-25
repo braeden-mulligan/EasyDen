@@ -42,17 +42,28 @@ function build_request(data_handler) {
 	return xhr;
 }
 
-function build_schedule(register, data, action, recurring, time_expression) {
+function build_schedule(register, data, time_expression, action = "create", recurring = true, pause = 0, id = null) {
 	let schedule_data = {
-		register: register,
-		attribute_data: data,
-		action: action,
-		recurring: recurring,
-		time: time_expression,
-		//pause: 0
-	}
+		action: action
+	};
 
-	//schedule_data["time"]["days"] = "mon";
+	if (action == "delete") {
+		if (id == null) alert("Problem needs debugging");
+		schedule_data.id = id;
+
+	} else if (action == "edit") {
+		alert("Schedule edit unimplemented")
+
+	} else if (action = "create") {
+		schedule_data = {
+			...schedule_data,
+			register: register,
+			attribute_data: data,
+			recurring: recurring,
+			time: time_expression,
+			pause: pause
+		}
+	}
 
 	return JSON.stringify(schedule_data)
 }

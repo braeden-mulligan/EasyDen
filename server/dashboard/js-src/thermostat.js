@@ -18,7 +18,7 @@ function Thermostat_Attributes({ attributes, update_attribute }) {
 	)
 }
 
- function Thermostat_Schedules({ attributes, schedules, set_schedule }) {
+ function Thermostat_Schedules({ attributes, schedules, submit_schedule }) {
 	[schedule_data, set_schedule_data] = useState({
 		time: "",
 		days: "",
@@ -30,18 +30,18 @@ function Thermostat_Attributes({ attributes, update_attribute }) {
 		let new_schedule = build_schedule(
 		  attributes.target_temperature.register,
 		  target_temperature, 
-		  { hour: schedule_data.time.split(":")[0], 
-		    minute: schedule_data.time.split(":")[1], 
-		    days: schedule_data.days }
+		  schedule_data
 		)
-		set_schedule(new_schedule);
+		submit_schedule(new_schedule);
 	}
 
 	function remove_schedule(id) {
-		set_schedule(build_schedule(null, null, null, action = "delete", id = id))
+		submit_schedule(build_schedule(null, null, null, "delete", null, null, id))
 	}
 
 	function render_schedule(obj) {
+		debugger;
+
 		return (
 		<li key={ JSON.stringify(obj.id)}> { JSON.stringify(obj) }
 			<button className="set" onClick={ () => remove_schedule(obj.id) } > Remove </button>
@@ -73,9 +73,10 @@ function Thermostat_Attributes({ attributes, update_attribute }) {
 		<br />
 		<b>New Schedule</b>
 		<div><span>Target temperature: &nbsp;
-			<input type="text" onChange={ 
+			<input type="range" min="10" max="30" step="0.25" value={ target_temperature } onChange={ 
 				(e) => { set_target_temperature(e.target.value) }
 			} />
+			<label>{ target_temperature }</label>
 			<br />
 		<Schedule_Time_Selector on_update_schedule={ on_update_schedule }/>
 		<button className="set" onClick={ () => add_schedule() } > Add 

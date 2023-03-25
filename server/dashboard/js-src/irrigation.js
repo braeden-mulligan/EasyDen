@@ -1,122 +1,95 @@
-class Plant_Status extends React.Component {
-	constructor(props) {
-		super(props);
-	}
-
-	render() {
-		let attrs = this.props.attributes;
-
-		return (
-			<div>
-				<b>Plant { attrs.id }</b>
-				<p>Current moisture: { attrs.moisture.value?.toFixed(1) + " %" }  ({ attrs.sensor_raw?.value })</p>
-				<p>Target moisture: { attrs.target_moisture.value?.toFixed(1) + " %" }  ({ attrs.sensor_raw?.value })</p>
-				<p>Moisture low threshold: { attrs.moisture_low.value?.toFixed(1) + " %" }</p>
-				<p>Watering delay after moisture low { attrs.moisture_low_delay.value + " s" }</p>
-				<p>Raw sensor value limits (configured) - Max: { attrs.sensor_raw_max.value }, Min: { attrs.sensor_raw_min.value }</p>
-				<p>Raw sensor value limits (recorded) - Max: { attrs.sensor_recorded_max.value }, Min: { attrs.sensor_recorded_min.value }</p>
-			</div>
-		);
-	}
+function Plant_Status({ attributes }){
+	return (
+		<div>
+			<b>Plant { attributes.id }</b>
+			<p>Current moisture: { attributes.moisture.value?.toFixed(1) + " %" }  ({ attributes.sensor_raw?.value })</p>
+			<p>Target moisture: { attributes.target_moisture.value?.toFixed(1) + " %" }  ({ attributes.sensor_raw?.value })</p>
+			<p>Moisture low threshold: { attributes.moisture_low.value?.toFixed(1) + " %" }</p>
+			<p>Watering delay after moisture low { attributes.moisture_low_delay.value + " s" }</p>
+			<p>Raw sensor value limits (configured) - Max: { attributes.sensor_raw_max.value }, Min: { attributes.sensor_raw_min.value }</p>
+			<p>Raw sensor value limits (recorded) - Max: { attributes.sensor_recorded_max.value }, Min: { attributes.sensor_recorded_min.value }</p>
+		</div>
+	);
 }
 
-class Irrigation_Attributes extends React.Component {
-	constructor(props) {
-		super(props);
-	}
-
-	render_plant_status(obj) {
+function Irrigation_Attributes({ attributes, update_attribute }) {
+	function render_plant_status(obj) {
 		return (
-			<li key={ obj.id }>
-				<Plant_Status attributes={ obj } />
-			</li>
+		<li key={ obj.id }>
+			<Plant_Status attributes={ obj } />
+		</li>
 		)
 	}
 
-	render() {
-		let attrs = this.props.attributes;
-
-		let plant_statuses = [];
-		for (let i = 0; i < attrs.sensor_count?.value; ++i) {
-			// error check indicies
-			plant_statuses.push({
-				id: i,
-				moisture: attrs.moisture[i],
-				target_moisture: attrs.target_moisture[i],
-				moisture_low: attrs.moisture_low[i],
-				moisture_low_delay: attrs.moisture_low_delay[i],
-				sensor_raw: attrs.sensor_raw[i],
-				sensor_raw_max: attrs.sensor_raw_max[i],
-				sensor_raw_min: attrs.sensor_raw_min[i],
-				sensor_recorded_max: attrs.sensor_recorded_max[i],
-				sensor_recorded_min: attrs.sensor_recorded_min[i]
-			});
-		}
-
-		let rendered_plant_statuses = plant_statuses.map((obj) => {
-			return this.render_plant_status(obj)
-		})
-
-		//TODO: Fix nasty calibration handling code; do it in backend 
-		let calibration_mode_target;
-
-		return (
-			<div>
-				<p>Device enabled: { attrs.enabled.value } &nbsp;
-					<button className="set" onClick={
-						() => this.props.update_attribute(attrs.enabled.register, + !attrs.enabled.value)
-					} > Toggle </button>
-				</p>
-				<p>Plants enabled: { attrs.plant_enable.value }</p>
-				<p>Time until pump shutoff if no moisture change: { attrs.moisture_change_hysteresis_time.value }</p>
-				<p>Sensor value difference threshold to be considered changing moisture: { attrs.moisture_change_hysteresis_amount.value }</p>
-				
-				<p><span>Calibration mode: { attrs.calibration_mode.value & 0xFF} &nbsp;
-					<input type="text" onChange={ 
-						(e) => { calibration_mode_target = e.target.value; }
-					} />
-					&nbsp; Calibration plant_select: { (parseInt(attrs.calibration_mode.value) >> 8) + 1 } &nbsp;
-					<input type="text" onChange={
-						(e) => { calibration_mode_target |= (parseInt(e.target.value - 1) << 8); }
-					} />
-					<button className="set" onClick={
-						() => this.props.update_attribute(attrs.calibration_mode.register, calibration_mode_target)
-					} > Set </button>
-				</span></p>
-				
-				<ul>
-					{ rendered_plant_statuses }
-				</ul>
-			</div>
-		)
+	let plant_statuses = [];
+	for (let i = 0; i < attrs.sensor_count?.value; ++i) {
+		// error check indicies
+		plant_statuses.push({
+			id: i,
+			moisture: attributes.moisture[i],
+			target_moisture: attributes.target_moisture[i],
+			moisture_low: attributes.moisture_low[i],
+			moisture_low_delay: attributes.moisture_low_delay[i],
+			sensor_raw: attributes.sensor_raw[i],
+			sensor_raw_max: attributes.sensor_raw_max[i],
+			sensor_raw_min: attributes.sensor_raw_min[i],
+			sensor_recorded_max: attributes.sensor_recorded_max[i],
+			sensor_recorded_min: attributes.sensor_recorded_min[i]
+		});
 	}
+
+	let rendered_plant_statuses = plant_statuses.map((obj) => {
+		return render_plant_status(obj)
+	})
+
+	//TODO: Fix nasty calibration handling code; do it in backend 
+	let calibration_mode_target;
+
+	return (
+		<div>
+			<p>Device enabled: { attributes.enabled.value } &nbsp;
+				<button className="set" onClick={ () => update_attribute(attributes.enabled.register, + !attributes.enabled.value) } > Toggle </button>
+			</p>
+			<p>Plants enabled: { attributes.plant_enable.value }</p>
+			<p>Time until pump shutoff if no moisture change: { attributes.moisture_change_hysteresis_time.value }</p>
+			<p>Sensor value difference threshold to be considered changing moisture: { attributes.moisture_change_hysteresis_amount.value }</p>
+			
+			<p><span>Calibration mode: { attributes.calibration_mode.value & 0xFF} &nbsp;
+				<input type="text" onChange={ (e) => { calibration_mode_target = e.target.value; } } />
+				&nbsp; Calibration plant_select: { (parseInt(attributes.calibration_mode.value) >> 8) + 1 } &nbsp;
+				<input type="text" onChange={ (e) => { calibration_mode_target |= (parseInt(e.target.value - 1) << 8); } } />
+				<button className="set" onClick={ () => update_attribute(attributes.calibration_mode.register, calibration_mode_target) } > Set </button>
+			</span></p>
+			
+			<ul>
+				{ rendered_plant_statuses }
+			</ul>
+		</div>
+	)
 }
 
-class Irrigation_Schedules extends React.Component {
-	constructor(props) {
-		super(props);
-	}
+function Irrigation_Schedules({ attributes, schedules, submit_schedule }) {
+	[schedule_data, set_schedule_data] = useState({
+		time: "",
+		days: "",
+	});
 
-	render_schedule(obj) {
+	function render_schedule(obj) {
 		return (
-			<li key={ JSON.stringify(obj.id_tag) }>
-				{ JSON.stringify(obj) }
-			<button className="set" onClick={
-					() => this.props.set_schedule(JSON.stringify(Object.assign({ "action": "delete" }, obj.id_tag)))
-				} > Remove </button>
-			</li>
+		<li key={ JSON.stringify(obj.id_tag) }>
+			{ JSON.stringify(obj) }
+			<button className="set" onClick={ () => set_schedule(build_schedule(null, null, null, "delete", null, null, obj.id)) } > Remove </button>
+		</li>
 		)
 	}
 
-	render() {
-		let schedules = this.props.schedules.map((obj, i) => {
-			return this.render_schedule(obj, i)
-		})
+	let rendered_schedules = schedules.map((obj, i) => {
+		return render_schedule(obj, i)
+	})
 
-		if (!schedules.length) {
-			schedules = <p>None</p>;
-		}
-
-		return null;
+	if (!rendered_schedules.length) {
+		rendered_schedules = <p>None</p>;
 	}
+
+	return rendered_schedules;
 }

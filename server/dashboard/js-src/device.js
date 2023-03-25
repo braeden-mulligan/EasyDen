@@ -79,19 +79,19 @@ function Schedule_Time_Selector({ on_update_schedule }) {
 	</>)
 }
 
-function Device({ data, device_type, update_attribute, set_schedule }) {
+function Device({ data, device_type, update_attribute, submit_schedule }) {
 	let device_attributes = <p> Uknown device type </p>
 	let device_schedules = <p>No schedules</p>
 
 	if (device_type == "thermostat") {
 		device_attributes = <Thermostat_Attributes attributes={ data.attributes } update_attribute={ update_attribute } />
-		device_schedules = <Thermostat_Schedules attributes={ data.attributes } schedules={ data.schedules } set_schedule={ set_schedule } />
+		device_schedules = <Thermostat_Schedules attributes={ data.attributes } schedules={ data.schedules } submit_schedule={ submit_schedule } />
 	} else if (device_type == "poweroutlet") {
 		device_attributes = <Poweroutlet_Attributes attributes={ data.attributes } update_attribute={ update_attribute } />
-		device_schedules = <Poweroutlet_Schedules attributes={ data.attributes } schedules={ data.schedules } set_schedule={ set_schedule } />
+		device_schedules = <Poweroutlet_Schedules attributes={ data.attributes } schedules={ data.schedules } submit_schedule={ submit_schedule } />
 	} else if (device_type == "irrigation") {
 		device_attributes = <Irrigation_Attributes attributes={ data.attributes } update_attribute={ update_attribute } />
-		device_schedules = <Irrigation_Schedules attributes={ data.attributes } schedules={ data.schedules } set_schedule={ set_schedule } />
+		device_schedules = <Irrigation_Schedules attributes={ data.attributes } schedules={ data.schedules } submit_schedule={ submit_schedule } />
 	}
 
 	return (
@@ -129,7 +129,7 @@ function Device_Panel({ device_type }) {
 			<li key={ obj.id }>
 				<Device data={ obj } device_type={ device_type }
 				  update_attribute={ (register, data) => update_attribute(device_type, register, data, process_devices, obj.id) }
-				  set_schedule={ (schedule_data) => set_schedule(device_type, schedule_data, process_devices, obj.id) }
+				  submit_schedule={ (schedule_data) => submit_schedule(device_type, schedule_data, process_devices, obj.id) }
  				/>
 			</li>
 		)
@@ -172,7 +172,7 @@ function update_attribute(type, register, data, response_processor, id = null) {
 	request.send(payload);
 }
 
-function set_schedule(type, data, response_processor, id = null) {
+function submit_schedule(type, data, response_processor, id = null) {
 //console.log("set schedule" + data); return;
 	let url = "http://" + SERVER_ADDR + "/device/" + type + "/schedule" + (id ? "?id=" + id.toString() : "");
 

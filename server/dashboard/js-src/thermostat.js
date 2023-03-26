@@ -40,8 +40,6 @@ function Thermostat_Attributes({ attributes, update_attribute }) {
 	}
 
 	function render_schedule(obj) {
-		debugger;
-
 		return (
 		<li key={ JSON.stringify(obj.id)}> { JSON.stringify(obj) }
 			<button className="set" onClick={ () => remove_schedule(obj.id) } > Remove </button>
@@ -61,8 +59,6 @@ function Thermostat_Attributes({ attributes, update_attribute }) {
 		if (updated_time) set_schedule_data(prev => ({...prev, time: updated_time}));
 		if (updated_days) set_schedule_data(prev => ({...prev, days: updated_days}));
 	}
-
-	console.log("render with: ", JSON.stringify(schedule_data))
 
 	return (
 		<div>

@@ -109,16 +109,34 @@ function Device_Panel({ device_type }) {
 
 	function process_devices(fetched_list) {
 		if (!Array.isArray(fetched_list)) return;
-		if (!obj_equals(devices, fetched_list)) set_devices(fetched_list)
+
+		let existing_devices = devices.slice();
+
+		for (let i = 0; i < fetched_list.length; ++i) {
+			let new_device = true;
+
+			for (let j = 0; j < existing_devices.length; ++j) {
+				if (fetched_list[i].id == existing_devices[j].id) {
+					if (!obj_equals(fetched_list[i], existing_devices[j])) existing_devices[j] = fetched_list[i];
+					new_device = false;
+					break;
+				}
+			}
+
+			if (new_device) existing_devices.push(fetched_list[i]);
+		}
+
+		if (!obj_equals(devices, existing_devices)) set_devices(existing_devices);
+
 	}
 
 	useEffect(() => {
-		fetch_devices(device_type, process_devices.bind(this));
+		fetch_devices(device_type, process_devices);
 	}, [])
 
 	useEffect(() => {
 		const poll_timer = setInterval(function() {
-			fetch_devices(device_type, process_devices.bind(this));
+			fetch_devices(device_type, process_devices);
 		}, poll_period);
 
 		return () => clearInterval(poll_timer);
@@ -139,7 +157,6 @@ function Device_Panel({ device_type }) {
 	 	return render_device(obj)
 	})
 
-	console.log("RENDERING")
 	return (
 	<div className="device-panel">
 		<ul>

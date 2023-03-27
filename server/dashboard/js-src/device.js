@@ -26,7 +26,7 @@ function Mutable_Attribute(props) {
 }
 
 function Schedule_Time_Selector({ on_update_schedule }) {
-	[days, set_days] = useState(Array(7).fill(false));
+	const [days, set_days] = useState(Array(7).fill(false));
 
 	function days_to_string(days) {
 		weekdays = days[0] ? "mon" : "";
@@ -58,11 +58,11 @@ function Schedule_Time_Selector({ on_update_schedule }) {
 		</div>
 		<div>
 			<input type={"checkbox"} id={"Wed"} onChange={ (e) => handle_day_change(2, e.target.checked) }/>
-			<label>Tue</label>
+			<label>Wed</label>
 		</div>
 		<div>
 			<input type={"checkbox"} id={"Thu"} onChange={ (e) => handle_day_change(3, e.target.checked) }/>
-			<label>Wed</label>
+			<label>Thu</label>
 		</div>
 		<div>
 			<input type={"checkbox"} id={"Fri"} onChange={ (e) => handle_day_change(4, e.target.checked) }/>

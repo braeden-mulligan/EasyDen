@@ -19,12 +19,12 @@ function Thermostat_Attributes({ attributes, update_attribute }) {
 }
 
  function Thermostat_Schedules({ attributes, schedules, submit_schedule }) {
-	[schedule_data, set_schedule_data] = useState({
+	const [schedule_data, set_schedule_data] = useState({
 		time: "",
 		days: "",
 	});
 
-	[target_temperature, set_target_temperature] = useState(attributes.target_temperature.value);
+	const [target_temperature, set_target_temperature] = useState(attributes.target_temperature.value);
 
 	function add_schedule() {
 		let new_schedule = build_schedule(

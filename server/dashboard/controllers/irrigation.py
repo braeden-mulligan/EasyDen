@@ -83,5 +83,4 @@ def command(request):
 	return base.error({ "error": None })
 
 def set_schedule(request):
-	data = json.loads(request.data.decode())
-	return base.set_schedule(request, data, utils.build_command, irrigation_processor, "SH_TYPE_IRRIGATION")
+	return base.set_schedule(request, utils.build_command, irrigation_processor, "SH_TYPE_IRRIGATION")

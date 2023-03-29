@@ -2,6 +2,7 @@ from flask import redirect, render_template, request, url_for
 
 from dashboard import dashboard_app
 
+import debug as dev
 import server_interconnect as interconnect 
 
 import controllers.thermostat as thermostat
@@ -31,7 +32,7 @@ def index():
 def error():
 	return render_template("error.html")
 
-@dashboard_app.route("/device/debug", methods=["GET", "POST"])
+@dashboard_app.route("/debug/message", methods=["GET", "POST"])
 def debug():
 	print(str(request.get_data()))
 	if request.method == "GET":
@@ -40,6 +41,22 @@ def debug():
 		debug_text = request.form["debug-input"]
 		response = interconnect.data_transaction(debug_text)
 		return render_template("debug.html", response = response)
+
+@dashboard_app.route("/debug/thermostat/refresh", methods=["GET"])
+def debug_thermostat_fetch():
+	return dev.thermostat_fetch()
+
+# @dashboard_app.route("/debug/thermostat/command", methods=["PUT"])
+# def debug_thermostat_fetch():
+#	return dev.thermostat_command()
+
+@dashboard_app.route("/debug/poweroutlet/refresh", methods=["GET"])
+def debug_poweroutlet_fetch():
+	return dev.poweroutlet_fetch()
+
+# @dashboard_app.route("/debug/thermostat/command", methods=["PUT"])
+# def debug_thermostat_fetch():
+# 	return dev.poweroutlet_command()
 
 @dashboard_app.route("/device/irrigation")
 def irrigation_dash():

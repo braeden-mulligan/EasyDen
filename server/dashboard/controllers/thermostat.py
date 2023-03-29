@@ -62,8 +62,7 @@ def command(request):
 	return base.error({ "error": None })
 
 def set_schedule(request):
-	data = json.loads(request.data.decode())
-	return base.set_schedule(request, data, thermostat_build_command, thermostat_processor, "SH_TYPE_THERMOSTAT")
+	return base.set_schedule(request, thermostat_build_command, thermostat_processor, "SH_TYPE_THERMOSTAT")
 
 def thermostat_build_command(data):
 	return utils.build_command(data, INTEGER_REGISTER_VALUES, FLOAT_REGISTER_VALUES)

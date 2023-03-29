@@ -168,6 +168,7 @@ function Device_Panel({ device_type }) {
 
 function fetch_devices(type, response_processor, id = null) {
 	let url = "http://" + SERVER_ADDR + "/device/" + type + "/refresh" + (id ? "?id=" + id.toString() : "");
+	if (ENVIRONMENT == "development") url = url.replace("/device/", "/debug/");
 
 	let request = build_request(response_processor);
 	request.open("GET", url, true);
@@ -183,6 +184,7 @@ function update_attribute(type, register, data, response_processor, id = null) {
 	})
 
 	let url = "http://" + SERVER_ADDR + "/device/" + type + "/command" + (id ? ("?id=" + id.toString()) : "");
+	if (ENVIRONMENT == "development") url = url.replace("/device/", "/debug/");
 
 	let request = build_request(response_processor);
 	request.open("PUT", url, true);
@@ -192,6 +194,7 @@ function update_attribute(type, register, data, response_processor, id = null) {
 function submit_schedule(type, data, response_processor, id = null) {
 //console.log("set schedule" + data); return;
 	let url = "http://" + SERVER_ADDR + "/device/" + type + "/schedule" + (id ? "?id=" + id.toString() : "");
+	if (ENVIRONMENT == "development") url = url.replace("/device/", "/debug/");
 
 	let request = build_request(response_processor);
 	request.open("POST", url, true);

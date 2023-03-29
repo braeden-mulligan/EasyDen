@@ -196,8 +196,8 @@ class SmartHome_Device:
 
 		return True 
 
-
 	# Private
+
 	def update_last_contact(self):
 		self.last_contact = datetime.datetime.now().strftime("%Y-%m-%d-%H:%M:%S")
 		self.soc_last_heartbeat = time.monotonic()
@@ -250,9 +250,9 @@ class SmartHome_Device:
 					self.pending_transmissions.remove(entry)
 
 		else:
-#TODO: log this?
-# Conjecture: frequency of this is a function of timeout and retries, tuning needed?
-			raise Exception("Do we ever hit this?")
+# This can occur when device transmits a response but a retry is sent before the first response comes back.
+# The first response is processed and then a duplicate response then comes because of the retry.
+# Conjecture: frequency of this is a function of timeout and retry count, tuning needed?
 			print("process_message error. Received packet does not correspond to any pending messages.")
 			return None
 

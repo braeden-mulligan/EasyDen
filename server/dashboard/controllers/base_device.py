@@ -42,7 +42,9 @@ def command(request, target_register, packet, processor, type_label):
 
 	return error("Device could not be reached")
 
-def set_schedule(request, data, command_builder, processor, type_label):		
+def set_schedule(request, command_builder, processor, type_label):
+	data = json.loads(request.data.decode())
+
 	if data["action"] == "create":
 		data["command"] = command_builder(data)
 

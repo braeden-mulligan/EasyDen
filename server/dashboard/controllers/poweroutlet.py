@@ -49,8 +49,7 @@ def command(request):
 	return base.error({ "error": None })
 
 def set_schedule(request):
-	data = json.loads(request.data.decode())
-	return base.set_schedule(request, data, poweroutlet_build_command, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
+	return base.set_schedule(request, poweroutlet_build_command, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
 
 def poweroutlet_build_command(attribute):
 	message = utils.build_command(attribute, [], [])

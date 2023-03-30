@@ -316,7 +316,8 @@ class SmartHome_Device:
 
 		self.fully_initialized = True
 		for reg in necessary_attributes:
-			if reg not in self.device_attrs:
+			attribute = self.device_attrs.get(reg, None)
+			if attribute is None or attribute["updated_at"] < attribute["queried_at"]:
 				self.fully_initialized = False
 				self.device_send(messaging.template.format(defs.CMD_GET, reg, 0))
 

@@ -5,11 +5,13 @@ from device_manager import utilities as utils
 from device_manager.jobs import Nexus_Jobs
 
 import json, select, socket, time, os
+import sqlite3
 import logging
 
 device_list = []
 dashboard_connections = []
 job_handler = None
+
 
 # --- Socket Management ---
 
@@ -46,6 +48,45 @@ def handle_socket_error(soc, event, poll_obj):
 	return False
 
 
+# --- DB Tools ---
+
+def db_load_devices():
+	existing_devices = []
+	c = sqlite3.connect("db/easyden.db")
+	
+	rows = c.execute("select * from devices").fetchall()
+	print("Rows")
+	print(rows)
+	for row in rows:
+		device = SmartHome_Device()
+		device.device_id, device.device_type, device.name = row
+		existing_devices.append(device)
+	
+	c.close()
+	return existing_devices
+
+def db_add_device(device):
+	print("connecting to add..")
+	conn = sqlite3.connect("db/easyden.db")
+	query = "insert into devices(id, type, name) values({}, {}, \"{}\")".format(device.device_id, device.device_type, device.name)
+	print(query)
+	try:
+		conn.cursor().execute(query)
+	except sqlite3.IntegrityError:
+		pass
+	conn.commit()
+	conn.close()
+
+def db_update_device(device):
+	c = sqlite3.connect("easyden.db")
+	# select from devices where id == device.device_id
+	# ... d.name ...
+	return 
+
+def db_remove_device():
+	pass
+
+
 # --- Device Messaging Tools ---
 
 def device_from_identifier(soc_fd = -1, device_id = -1):
@@ -62,11 +103,14 @@ def handle_device_message(device):
 	if recv_code < 0:
 		return False
 
+	# If we have a positive recv_code that is a device id returned from an identity request.
 	elif recv_code > 0: # ID detected, check for duplicate devices
+		db_add_device(device)
+
 		for existing_device in device_list:
 			if recv_code == existing_device.device_id and device is not existing_device:
-				# We have an already existing entry with this id
-				# Update old entry with new socket and delete current device object
+				# We have an already existing entry with this id. This would happen if a device drops and reconnects.
+				# Update old entry with new socket and delete current device object.
 				existing_device.connect(device.soc_connection)
 				existing_device.pending_response = None
 				print("Existing device found with id " + str(recv_code))
@@ -157,6 +201,7 @@ def handle_dashboard_message(dash_conn, msg):
 	elif "rename" in words[0]:
 		d = device_from_identifier(device_id = int(words[1]))
 		d.name = " ".join(words[2:])
+		db_update_device(d)
 		response = "SUCCESS: New name for device " + str(d.device_id) + " " + d.name
 
 	elif "schedule" in words[0]:
@@ -173,6 +218,11 @@ def handle_dashboard_message(dash_conn, msg):
 # --- ---
 
 def main_loop():
+	global device_list
+	device_list = db_load_devices()
+	print("Devices loeaded")
+	print([d.get_data() for d in device_list])
+
 	global job_handler
 	job_handler = Nexus_Jobs(device_list)
 

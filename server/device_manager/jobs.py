@@ -3,6 +3,7 @@ from device_manager import device_definitions as defs
 from device_manager import messaging_interchange as messaging
 
 import copy, json, datetime, schedule, time
+import sqlite3
 
 #TODO Replace with DB ids
 last_used_id = 0
@@ -10,6 +11,23 @@ def generate_id():
 	global last_used_id
 	last_used_id += 1
 	return last_used_id
+
+
+def db_update_schedule(id, data):
+	pass
+
+def db_remove_schedule(id):
+	pass
+
+def db_add_schedule(schedule):
+	pass
+	#return return
+
+def db_load_schedules(device_list):
+	existing_schedules = []
+	device_ids = [d.device_id for d in device_list]
+	query = "select * from schedules where device_id in ({ids})".format(ids = ','.join(['?'] * len(device_ids)))
+	return existing_schedules
 
 # data format: {"recurring": <bool>, "time": {"hour": <int>, "minute": <int>, "days": <string (eg. "mon,thu,sat")>}, "command": <string>, "pause": <int>}
 class Device_Command_Schedule:
@@ -69,7 +87,6 @@ class Device_Command_Schedule:
 
 		return True
 
-
 class Nexus_Jobs:
 	def __init__(self, device_list):
 		self.thermostat_query_interval = config.DEVICE_KEEPALIVE * 0.95
@@ -77,9 +94,8 @@ class Nexus_Jobs:
 
 		self.last_thermostat_query = time.monotonic()
 		self.last_irrigation_query = time.monotonic()
-		self.schedules = []
-
 		self.device_list = device_list
+		self.schedules = db_load_schedules(device_list)
 
 	def run_tasks(self):
 		self.query_thermostats()
@@ -111,6 +127,7 @@ class Nexus_Jobs:
 				if s.schedule_id == int(data["id"]):
 					s.cancel_schedule()
 					self.schedules.remove(s)
+					db_remove_schedule(s.schedule_id)
 					print("Successfully removed schedule")
 					return True
 			print("Failed to find schedule")
@@ -150,6 +167,7 @@ class Nexus_Jobs:
 					new_schedule.job.append(schedule.every().sunday.at(time_expression).do(new_schedule.process_task))
 
 			self.schedules.append(new_schedule)
+			db_add_schedule(new_schedule)
 			print("New schedule added!")
 			return True
 
@@ -157,6 +175,7 @@ class Nexus_Jobs:
 			for s in self.schedules:
 				if s.schedule_id == data["id"]:
 					s.pause = data["pause"]
+					db_update_schedule(s.schedule_id)
 					print("Edited schedule " + str(s.schedule_id))
 					return True
 			print("Failed to find schedule")

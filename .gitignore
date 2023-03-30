@@ -68,7 +68,7 @@ dkms.conf
 
 node_modules/
 js/
-
+*.db
 *.swp
 secret_script.sh
 tools/

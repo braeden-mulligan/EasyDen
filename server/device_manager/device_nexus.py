@@ -52,9 +52,9 @@ def handle_socket_error(soc, event, poll_obj):
 
 def db_load_devices():
 	existing_devices = []
-	c = sqlite3.connect("db/easyden.db")
+	conn = sqlite3.connect(config.DATABASE_PATH)
 	
-	rows = c.execute("select * from devices").fetchall()
+	rows = conn.execute("select * from devices").fetchall()
 	print("Rows")
 	print(rows)
 	for row in rows:
@@ -62,14 +62,12 @@ def db_load_devices():
 		device.device_id, device.device_type, device.name = row
 		existing_devices.append(device)
 	
-	c.close()
+	conn.close()
 	return existing_devices
 
 def db_add_device(device):
-	print("connecting to add..")
-	conn = sqlite3.connect("db/easyden.db")
+	conn = sqlite3.connect(config.DATABASE_PATH)
 	query = "insert into devices(id, type, name) values({}, {}, \"{}\")".format(device.device_id, device.device_type, device.name)
-	print(query)
 	try:
 		conn.cursor().execute(query)
 	except sqlite3.IntegrityError:
@@ -78,7 +76,7 @@ def db_add_device(device):
 	conn.close()
 
 def db_update_device(device):
-	c = sqlite3.connect("easyden.db")
+	#conn = sqlite3.connect(config.DATABASE_PATH)
 	# select from devices where id == device.device_id
 	# ... d.name ...
 	return 

@@ -5,66 +5,52 @@ from device_manager import messaging_interchange as messaging
 import copy, json, datetime, schedule, time
 import sqlite3
 
-#TODO Replace with DB ids
-last_used_id = 0
-def generate_id():
-	global last_used_id
-	last_used_id += 1
-	return last_used_id
-
 
 def db_update_schedule(id, data):
 	pass
 
 def db_remove_schedule(id):
-	pass
+	conn = sqlite3.connect(config.DATABASE_PATH)
+	conn.cursor().execute("delete from schedules where id={}".format(id))
+	conn.commit()
+	conn.close()
 
-def db_add_schedule(schedule):
-	pass
-	#return return
+def db_add_schedule(schedule_obj):
+	schedule_data = schedule_obj.get_data()
+	schedule_data.pop("id", None)
+	query = "insert into schedules(data, device_id) values(?, {})".format(schedule_obj.device.device_id)
+	conn = sqlite3.connect(config.DATABASE_PATH)
+	cursor = conn.cursor()
+	cursor.execute(query, (json.dumps(schedule_data),))
+	conn.commit()
+	conn.close()
+	return cursor.lastrowid
 
 def db_load_schedules(device_list):
 	existing_schedules = []
 	device_ids = [d.device_id for d in device_list]
 	query = "select * from schedules where device_id in ({ids})".format(ids = ','.join(['?'] * len(device_ids)))
+	conn = sqlite3.connect(config.DATABASE_PATH)
+	rows = conn.cursor().execute(query, device_ids)
+	#row = (schedule id, data, device_id)
+	for row in rows:
+		device = next((d for d in device_list if d.device_id == row[2]), None)
+		existing_schedules.append(Device_Command_Schedule(device, json.loads(row[1]), row[0]))
+
+	conn.close()
 	return existing_schedules
+
 
 # data format: {"recurring": <bool>, "time": {"hour": <int>, "minute": <int>, "days": <string (eg. "mon,thu,sat")>}, "command": <string>, "pause": <int>}
 class Device_Command_Schedule:
-	def __init__(self, device, data):
-		self.schedule_id = generate_id()
+	def __init__(self, device, data, schedule_id = None):
+		self.schedule_id = schedule_id
 		self.device = device
 		self.recurring = data["recurring"]
 		self.time = data["time"]
 		self.command = data["command"]
 		self.pause = data["pause"]
 		self.job = []
-
-	def get_data(self):
-		return {
-			"id": self.schedule_id,
-			"recurring": self.recurring,
-			"time": self.time,
-			"command": self.command,
-			"pause": self.pause
-		}
-
-	def process_task(self):
-		if self.pause < 0:
-			return
-		elif self.pause == 0:
-			self.device.device_send(self.command)
-		else:
-			self.pause -= 1
-			return
-
-		if self.recurring == False:
-			self.cancel_schedule()
-
-	def cancel_schedule(self):
-		for sub_job in self.job:
-			schedule.cancel_job(sub_job)
-		self.job = None
 
 	def __eq__(self, other):
 		if type(other) is not type(self):
@@ -87,6 +73,54 @@ class Device_Command_Schedule:
 
 		return True
 
+	def get_data(self):
+		return {
+			"id": self.schedule_id,
+			"recurring": self.recurring,
+			"time": self.time,
+			"command": self.command,
+			"pause": self.pause
+		}
+
+	def cancel_schedule(self):
+		for sub_job in self.job:
+			schedule.cancel_job(sub_job)
+		self.job = None
+
+	def process_task(self):
+		if self.pause < 0:
+			return
+		elif self.pause == 0:
+			self.device.device_send(self.command)
+		else:
+			self.pause -= 1
+			return
+
+		if self.recurring == False:
+			self.cancel_schedule()
+
+	def enqueue_job(self):
+		time_expression = "{:02d}".format(int(self.time["hour"])) + ":" + "{:02d}".format(int(self.time["minute"]))
+		if not self.time["days"]:
+			self.job.append(schedule.every().day.at(time_expression).do(self.process_task))
+		else:
+			days = self.time["days"].split(",")
+
+			if "mon" in days:
+				self.job.append(schedule.every().monday.at(time_expression).do(self.process_task))
+			if "tue" in days:
+				self.job.append(schedule.every().tuesday.at(time_expression).do(self.process_task))
+			if "wed" in days:
+				self.job.append(schedule.every().wednesday.at(time_expression).do(self.process_task))
+			if "thu" in days:
+				self.job.append(schedule.every().thursday.at(time_expression).do(self.process_task))
+			if "fri" in days:
+				self.job.append(schedule.every().friday.at(time_expression).do(self.process_task))
+			if "sat" in days:
+				self.job.append(schedule.every().saturday.at(time_expression).do(self.process_task))
+			if "sun" in days:
+				self.job.append(schedule.every().sunday.at(time_expression).do(self.process_task))
+
 class Nexus_Jobs:
 	def __init__(self, device_list):
 		self.thermostat_query_interval = config.DEVICE_KEEPALIVE * 0.95
@@ -96,6 +130,8 @@ class Nexus_Jobs:
 		self.last_irrigation_query = time.monotonic()
 		self.device_list = device_list
 		self.schedules = db_load_schedules(device_list)
+		for sched in self.schedules:
+			sched.enqueue_job()
 
 	def run_tasks(self):
 		self.query_thermostats()
@@ -145,29 +181,9 @@ class Nexus_Jobs:
 					print("Cannot add duplicate event (overlapping schedule)")
 					return False
 
-			time_expression = "{:02d}".format(int(data["time"]["hour"])) + ":" + "{:02d}".format(int(data["time"]["minute"]))
-			if not data["time"]["days"]:
-				new_schedule.job.append(schedule.every().day.at(time_expression).do(new_schedule.process_task))
-			else:
-				days = data["time"]["days"].split(",")
-
-				if "mon" in days:
-					new_schedule.job.append(schedule.every().monday.at(time_expression).do(new_schedule.process_task))
-				if "tue" in days:
-					new_schedule.job.append(schedule.every().tuesday.at(time_expression).do(new_schedule.process_task))
-				if "wed" in days:
-					new_schedule.job.append(schedule.every().wednesday.at(time_expression).do(new_schedule.process_task))
-				if "thu" in days:
-					new_schedule.job.append(schedule.every().thursday.at(time_expression).do(new_schedule.process_task))
-				if "fri" in days:
-					new_schedule.job.append(schedule.every().friday.at(time_expression).do(new_schedule.process_task))
-				if "sat" in days:
-					new_schedule.job.append(schedule.every().saturday.at(time_expression).do(new_schedule.process_task))
-				if "sun" in days:
-					new_schedule.job.append(schedule.every().sunday.at(time_expression).do(new_schedule.process_task))
-
+			new_schedule.schedule_id = db_add_schedule(new_schedule)
+			new_schedule.enqueue_job()
 			self.schedules.append(new_schedule)
-			db_add_schedule(new_schedule)
 			print("New schedule added!")
 			return True
 

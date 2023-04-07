@@ -76,7 +76,7 @@ function Irrigation_Schedules({ attributes, schedules, submit_schedule }) {
 
 	function render_schedule(obj) {
 		return (
-		<li key={ JSON.stringify(obj.id_tag) }>
+		<li key={ JSON.stringify(obj.id) }>
 			{ JSON.stringify(obj) }
 			<button className="set" onClick={ () => set_schedule(build_schedule(null, null, null, "delete", null, null, obj.id)) } > Remove </button>
 		</li>

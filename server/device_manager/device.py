@@ -114,7 +114,11 @@ class SmartHome_Device:
 				if self.pending_response.retries > 0:
 					print("Message [" + self.pending_response.packet + "] deilvery failed, retrying " + str(self.pending_response.retries) + " more times...")
 					self.pending_response.retries -= 1
-					transmit_packet()
+					try:
+						transmit_packet()
+					except ConnectionResetError:
+						self.pending_transmissions.pop(0)
+						return SmartHome_Device.STATUS_ERROR
 				else:
 					print("Message [" + self.pending_response.packet + "] deilvery failed.")
 					self.consecutive_nack += 1
@@ -128,7 +132,11 @@ class SmartHome_Device:
 			if self.soc_connection:
 				print("Transmitting: [" + str(next_message.packet) + "] to device " + str(self.device_id) + ". " + str(next_message.retries) + " retries available...")
 				self.pending_response = next_message
-				transmit_packet()
+				try:
+					transmit_packet()
+				except ConnectionResetError:
+					self.pending_transmissions.pop(0)
+					return SmartHome_Device.STATUS_ERROR
 				self.pending_transmissions.pop(0)
 			elif self.msg_queue_retention_time >= 0.0:
 				self.pending_transmissions = [m for m in self.pending_transmissions if (m.timestamp + self.msg_queue_retention_time > time.monotonic())]

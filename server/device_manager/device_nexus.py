@@ -55,8 +55,6 @@ def db_load_devices():
 	conn = sqlite3.connect(config.DATABASE_PATH)
 	
 	rows = conn.execute("select * from devices").fetchall()
-	print("Rows")
-	print(rows)
 	for row in rows:
 		device = SmartHome_Device()
 		device.device_id, device.device_type, device.name = row
@@ -281,8 +279,14 @@ def main_loop():
 					print(" ")
 
 		for d in device_list:
-			if d.update_pending() == SmartHome_Device.STATUS_UNRESPONSIVE:
+			device_status = d.update_pending()
+			
+			if device_status == SmartHome_Device.STATUS_UNRESPONSIVE:
 				print("Device " + str(d.device_id) + " unresponsive. Closing connection")
+			elif device_status == SmartHome_Device.STATUS_ERROR:
+				print("Device " + str(d.device_id) + " socket error handled. Closing connection")
+			
+			if device_status != SmartHome_Device.STATUS_OK
 				handle_socket_error(d.soc_connection, select.POLLHUP, poller)
 				d.disconnect()
 

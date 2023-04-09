@@ -15,8 +15,6 @@ function Poweroutlet_Attributes({ attributes, update_attribute }) {
 			);
 		});
 
-		console.log(rendered_sockets)
-
 		return rendered_sockets;
 	}
 

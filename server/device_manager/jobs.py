@@ -138,6 +138,9 @@ class Nexus_Jobs:
 		self.keepalive()
 		schedule.run_pending()
 		#Scrub expired one-time scheduled events from list
+		for s in self.schedules:
+			if s.job is None:
+				db_remove_schedule(s.schedule_id)
 		self.schedules[:] = [schedule for schedule in self.schedules if schedule.job is not None]
 
 	def fetch_schedules(self, device_id):

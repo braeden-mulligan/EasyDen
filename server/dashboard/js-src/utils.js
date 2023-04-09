@@ -43,7 +43,6 @@ function build_request(data_handler) {
 }
 
 function build_schedule(register, data, schedule_params, action = "create", id = null) {
-	console.log("Building sched with", schedule_params)
 	let schedule_data = {
 		action: action
 	};
@@ -73,8 +72,6 @@ function build_schedule(register, data, schedule_params, action = "create", id =
 			pause: schedule_params.pause ? schedule_params.pause : 0
 		}
 	}
-
-	console.log(schedule_data)
 
 	return JSON.stringify(schedule_data)
 }

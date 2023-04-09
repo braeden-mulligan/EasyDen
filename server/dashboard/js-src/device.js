@@ -180,8 +180,6 @@ function fetch_devices(type, response_processor, id = null) {
 }
 
 function update_attribute(type, register, data, response_processor, id = null) {
-	console.log("Send reg: " + register.toString() + " data: " + data.toString() + " for id:" + id.toString()) 
-
 	let payload = JSON.stringify({
 		register: register,
 		attribute_data: data
@@ -196,7 +194,6 @@ function update_attribute(type, register, data, response_processor, id = null) {
 }
 
 function submit_schedule(type, data, response_processor, id = null) {
-//console.log("set schedule" + data); return;
 	let url = "http://" + SERVER_ADDR + "/device/" + type + "/schedule" + (id ? "?id=" + id.toString() : "");
 	if (ENVIRONMENT == "development") url = url.replace("/device/", "/debug/");
 

@@ -42,7 +42,8 @@ function build_request(data_handler) {
 	return xhr;
 }
 
-function build_schedule(register, data, time_object, action = "create", recurring = true, pause = 0, id = null) {
+function build_schedule(register, data, schedule_params, action = "create", id = null) {
+	console.log("Building sched with", schedule_params)
 	let schedule_data = {
 		action: action
 	};
@@ -55,21 +56,25 @@ function build_schedule(register, data, time_object, action = "create", recurrin
 		alert("Schedule edit unimplemented")
 
 	} else if (action = "create") {
+		if (schedule_params.time == null) alert("Problem needs debugging");
+
 		time_data = { 
-		  hour: time_object.time.split(":")[0], 
-		  minute: time_object.time.split(":")[1], 
-		  days: time_object.days
+		  hour: schedule_params.time.split(":")[0], 
+		  minute: schedule_params.time.split(":")[1], 
+		  days: schedule_params.days || ""
 		}
 
 		schedule_data = {
 			...schedule_data,
 			register: register,
 			attribute_data: data,
-			recurring: recurring,
 			time: time_data,
-			pause: pause
+			recurring: (schedule_params.recurring == null) ? true : schedule_params.recurring,
+			pause: schedule_params.pause ? schedule_params.pause : 0
 		}
 	}
+
+	console.log(schedule_data)
 
 	return JSON.stringify(schedule_data)
 }

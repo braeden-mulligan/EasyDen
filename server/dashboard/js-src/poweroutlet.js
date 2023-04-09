@@ -33,24 +33,27 @@ function Poweroutlet_Attributes({ attributes, update_attribute }) {
 }
 
 function Poweroutlet_Schedules({ attributes, schedules, submit_schedule }) {
-	[schedule_data, set_schedule_data] = useState({
-		time: "",
-		days: "",
-	});
+	const [target_settings, set_target_settings] = useState([]);
 
-	[target_settings, set_target_settings] = useState([]);
+	const [schedule_params, set_schedule_params] = useState({ });
+
+	function on_update_schedule(field, value) {
+		let new_params = { ...schedule_params };
+		new_params[field] = value;
+		set_schedule_params(new_params)
+	}
 
 	function add_schedule() {
 		let new_schedule = build_schedule(
-		  attributes.socket_states.register,
-		  target_settings, 
-		  schedule_data
+		  attributes.target_temperature.register,
+		  target_temperature, 
+		  schedule_params
 		)
 		submit_schedule(new_schedule);
 	}
 
 	function remove_schedule(id) {
-		submit_schedule(build_schedule(null, null, null, "delete", null, null, id))
+		submit_schedule(build_schedule(null, null, null, "delete", id))
 	}
 
 	function render_schedule(obj) {
@@ -60,11 +63,6 @@ function Poweroutlet_Schedules({ attributes, schedules, submit_schedule }) {
 				<button className="set" onClick={ () => remove_schedule(obj.id) } > Remove </button>
 			</li>
 		)
-	}
-
-	function on_update_schedule(updated_time = null, updated_days = null) {
-		if (updated_time) set_schedule_data(prev => ({...prev, time: updated_time}));
-		if (updated_days) set_schedule_data(prev => ({...prev, days: updated_days}));
 	}
 
 	let rendered_schedules = schedules.map((obj, i) => {

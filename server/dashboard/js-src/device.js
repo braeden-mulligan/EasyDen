@@ -42,12 +42,12 @@ function Schedule_Time_Selector({ on_update_schedule }) {
 	function handle_day_change(day_index, value) {
 		new_days = days.slice(); 
 		new_days[day_index] = value;
-		on_update_schedule(null, days_to_string(new_days));
+		on_update_schedule("days", days_to_string(new_days));
  		set_days(new_days);
 	}
 
 	return(<>
-		<input type={"time"} onChange={ (e) => on_update_schedule(time = e.target.value, null) }/>
+		<input type={"time"} onChange={ (e) => on_update_schedule("time", e.target.value) }/>
 		<div>
 			<input type={"checkbox"} id={"Mon"} onChange={ (e) => handle_day_change(0, e.target.checked) }/>
 			<label>Mon</label>
@@ -75,6 +75,10 @@ function Schedule_Time_Selector({ on_update_schedule }) {
 		<div>
 			<input type={"checkbox"} id={"Sun"} onChange={ (e) => handle_day_change(6, e.target.checked) }/>
 			<label>Sun</label>
+		</div>
+		<div>
+			<input type={"checkbox"} id={"Recurring"} onChange={ (e) => on_update_schedule("recurring", !e.target.checked) }/>
+			<label>One-time</label>
 		</div>
 	</>)
 }

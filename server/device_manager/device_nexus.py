@@ -286,7 +286,7 @@ def main_loop():
 			elif device_status == SmartHome_Device.STATUS_ERROR:
 				print("Device " + str(d.device_id) + " socket error handled. Closing connection")
 			
-			if device_status != SmartHome_Device.STATUS_OK
+			if device_status != SmartHome_Device.STATUS_OK:
 				handle_socket_error(d.soc_connection, select.POLLHUP, poller)
 				d.disconnect()
 

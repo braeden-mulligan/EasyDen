@@ -92,12 +92,11 @@ class Device_Command_Schedule:
 			return
 		elif self.pause == 0:
 			self.device.device_send(self.command)
+			if self.recurring == False:
+				self.cancel_schedule()
 		else:
 			self.pause -= 1
 			return
-
-		if self.recurring == False:
-			self.cancel_schedule()
 
 	def enqueue_job(self):
 		time_expression = "{:02d}".format(int(self.time["hour"])) + ":" + "{:02d}".format(int(self.time["minute"]))

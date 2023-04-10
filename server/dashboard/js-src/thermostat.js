@@ -26,7 +26,7 @@ function Thermostat_Attributes({ attributes, update_attribute }) {
 	function on_update_schedule(field, value) {
 		let new_params = { ...schedule_params };
 		new_params[field] = value;
-		set_schedule_params(new_params)
+		set_schedule_params(new_params);
 	}
 
 	function add_schedule() {
@@ -34,12 +34,12 @@ function Thermostat_Attributes({ attributes, update_attribute }) {
 		  attributes.target_temperature.register,
 		  target_temperature, 
 		  schedule_params
-		)
+		);
 		submit_schedule(new_schedule);
 	}
 
 	function remove_schedule(id) {
-		submit_schedule(build_schedule(null, null, null, "delete", id))
+		submit_schedule(build_schedule(null, null, null, "delete", id));
 	}
 
 	function render_schedule(obj) {
@@ -47,11 +47,11 @@ function Thermostat_Attributes({ attributes, update_attribute }) {
 		<li key={ JSON.stringify(obj.id)}> { JSON.stringify(obj) }
 			<button className="set" onClick={ () => remove_schedule(obj.id) } > Remove </button>
 		</li>
-		)
+		);
 	}
 
-	let rendered_schedules = schedules.map((obj, i) => {
-		return render_schedule(obj, i)
+	let rendered_schedules = schedules.map((obj) => {
+		return render_schedule(obj);
 	})
 
 	if (!rendered_schedules.length) {

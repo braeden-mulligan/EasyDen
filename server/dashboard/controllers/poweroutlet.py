@@ -19,14 +19,18 @@ def poweroutlet_processor(poweroutlets):
 		device["attributes"]["socket_count"] = utils.unpack_attribute(device["registers"], "POWEROUTLET_REG_SOCKET_COUNT")
 
 		outlet_state_attr = utils.unpack_attribute(device["registers"], "POWEROUTLET_REG_STATE")
-		outlet_state_attr["value"] = interchange.poweroutlet_read_state(outlet_state_attr["value"], device["attributes"]["socket_count"]["value"])
+		outlet_state_attr["value"], _ = interchange.poweroutlet_read_state(outlet_state_attr["value"], device["attributes"]["socket_count"]["value"])
 		
 		device["attributes"]["socket_states"] = outlet_state_attr
 
 		def schedule_processor(register, value, device = device):
 			if register == utils.register_id("POWEROUTLET_REG_STATE"):
 				socket_state = interchange.reg_to_int({ str(register): { "value": value }}, reg_id = register)		
-				socket_values = interchange.poweroutlet_read_state(socket_state, device["attributes"]["socket_count"]["value"])
+				socket_values, socket_selection = interchange.poweroutlet_read_state(socket_state, device["attributes"]["socket_count"]["value"])
+				for i, entry in enumerate(socket_selection):
+					print(entry, i)
+					if not entry:
+						socket_values[i] = None
 				return ("socket_states", socket_values)
 
 		utils.reformat_schedules(device, schedule_processor)
@@ -55,7 +59,6 @@ def poweroutlet_build_command(attribute):
 	message = utils.build_command(attribute, [], [])
 
 	if int(attribute["register"]) == utils.register_id("POWEROUTLET_REG_STATE"):
-		socket_vals = [int(val) for val in attribute["attribute_data"]]
-		message = interchange.poweroutlet_set_state(socket_vals)
+		message = interchange.poweroutlet_set_state(attribute["attribute_data"])
 
 	return message

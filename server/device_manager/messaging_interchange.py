@@ -101,6 +101,10 @@ def poweroutlet_get_state():
 
 # pass a list 
 def poweroutlet_set_state(socket_states):
+	for i in range(len(socket_states)):
+		if socket_states[i] is None:
+			socket_states[i] = -1
+		socket_states[i] = int(socket_states[i])
 	reg_value = list_to_bitmask(socket_states)
 	return template.format(_set, _reg_id("POWEROUTLET_REG_STATE"), reg_value)
 
@@ -116,7 +120,10 @@ def poweroutlet_read_state(reg_value, socket_count):
 		print("WARNING: poweroutlet_read_state invalid argument passed.")
 		socket_count = 8
 
-	return bitmask_to_list(reg_value, socket_count)
+	socket_values = bitmask_to_list(reg_value, socket_count)
+	socket_selection = bitmask_to_list(reg_value >> 8, socket_count)
+	print(socket_values, socket_selection)
+	return (socket_values, socket_selection)
 
 
 def thermostat_get_temperature():

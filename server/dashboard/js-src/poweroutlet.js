@@ -1,3 +1,8 @@
+
+function socket_option(index, on_update) {
+	return <input key={index} type="number" min="-1" max="1" onChange={(e) => { on_update(index, e.target.value) }}/>
+}
+
 function Poweroutlet_Attributes({ attributes, update_attribute }) {
 	function render_socket_states() {
 		let rendered_sockets = attributes.socket_states.value.map((val, i) => {
@@ -31,9 +36,15 @@ function Poweroutlet_Attributes({ attributes, update_attribute }) {
 }
 
 function Poweroutlet_Schedules({ attributes, schedules, submit_schedule }) {
-	const [target_settings, set_target_settings] = useState([]);
+	const [target_settings, set_target_settings] = useState(Array(attributes.socket_count.value).fill(null));
 
 	const [schedule_params, set_schedule_params] = useState({ });
+
+	function on_update_settings(index, value) {
+		let new_settings = [ ...target_settings ];
+		new_settings[index] = value;
+		set_target_settings(new_settings)
+	}
 
 	function on_update_schedule(field, value) {
 		let new_params = { ...schedule_params };
@@ -43,10 +54,10 @@ function Poweroutlet_Schedules({ attributes, schedules, submit_schedule }) {
 
 	function add_schedule() {
 		let new_schedule = build_schedule(
-		  attributes.target_temperature.register,
-		  target_temperature, 
+		  attributes.socket_states.register,
+		  target_settings, 
 		  schedule_params
-		)
+		);
 		submit_schedule(new_schedule);
 	}
 
@@ -63,15 +74,18 @@ function Poweroutlet_Schedules({ attributes, schedules, submit_schedule }) {
 		)
 	}
 
-	let rendered_schedules = schedules.map((obj, i) => {
-		return render_schedule(obj, i)
+	let rendered_schedules = schedules.map((obj) => {
+		return render_schedule(obj)
 	})
 
 	if (!rendered_schedules.length) {
 		rendered_schedules = <p>None</p>;
 	}
 
-//TODO: Dehackify this
+	let socket_options = target_settings.map((obj, i) => {
+		return socket_option(i,on_update_settings);
+	})
+
 	return (
 	<div>
 		<b>Schedules</b>
@@ -81,18 +95,10 @@ function Poweroutlet_Schedules({ attributes, schedules, submit_schedule }) {
 		<br />
 		<b>New Schedule</b>
 		<div><span>Socket values&nbsp;
-			<input type="text" onChange={ 
-				(e) => { 
-					let current_target = [];
-					for (let i = 0; i < attributes.socket_count.value; ++i) {
-						current_target.push(parseInt(e.target.value))
-					}
-					set_target_settings(current_target)
-				}
-			} />
+			{ socket_options }
 			<br />
 			<Schedule_Time_Selector on_update_schedule={ on_update_schedule }/>
-			<button className="set" onClick={ () => submit_schedule( add_schedule()) } > Add </button>
+			<button className="set" onClick={ () => add_schedule() } > Add </button>
 		</span></div>	
 	</div>	
 	);

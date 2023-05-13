@@ -16,7 +16,7 @@ An IoT smart-home system.
 
 ## Overview
 
-**Note: This is a work-in-progress.**
+**Note: This project is a work-in-progress.**
 
 This project contains a collection of custom WiFi-capable devices for home automation tasks and centralized control.
 Primary goals for automation are autonomous device operation (where applicable), and to provide event scheduling when user input would otherwise be repeatedly required.
@@ -54,7 +54,10 @@ The system can simply be used for monitoring soil moisture, but application logi
 
 ## Roadmap
 
+In no particular order:
+
 - Automated window blinds
+- Centralized touch-screen UI
 - Data collection, visualization, insights
 - Motion-detection security camera
 

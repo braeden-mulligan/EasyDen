@@ -67,3 +67,6 @@ def register_label(reg_id, device_type):
 			if "GENERIC" in reg_label or type_name in reg_label:
 				return reg_label
 	return None
+
+
+IRRIGATION_MAX_SENSOR_COUNT = 3

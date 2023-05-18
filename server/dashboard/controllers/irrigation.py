@@ -4,6 +4,8 @@ from dashboard import utilities as utils
 from dashboard.controllers import base_device as base
 
 import device_manager.messaging_interchange as interchange
+import device_manager.device_definitions as dm_defs
+#from device_manager import device_definitions as dm_defs
 
 import json
 
@@ -13,11 +15,9 @@ INTEGER_REGISTER_VALUES = [
 	utils.register_id("IRRIGATION_REG_PLANT_ENABLE"),
 	utils.register_id("IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_TIME"),
 	utils.register_id("IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_AMOUNT"),
-	utils.register_id("IRRIGATION_REG_CALIBRATION_MODE"),
 ]
 
-# TODO This number is based on irrigation device max sensor count.
-for i in range(3):
+for i in range(dm_defs.IRRIGATION_MAX_SENSOR_COUNT):
 	FLOAT_REGISTER_VALUES.append(utils.register_id("IRRIGATION_REG_TARGET_MOISTURE_" + str(i)))
 	FLOAT_REGISTER_VALUES.append(utils.register_id("IRRIGATION_REG_MOISTURE_LOW_" + str(i)))
 	INTEGER_REGISTER_VALUES.append(utils.register_id("IRRIGATION_REG_MOISTURE_LOW_DELAY_" + str(i)))
@@ -32,6 +32,9 @@ def irrigation_processor(irrigators):
 		sensor_count = utils.unpack_attribute(device["registers"], "IRRIGATION_REG_SENSOR_COUNT")
 		enabled_plants = utils.unpack_attribute(device["registers"], "IRRIGATION_REG_PLANT_ENABLE")
 		enabled_plants["value"] = interchange.irrigation_read_plant_enable(enabled_plants["value"], sensor_count["value"])
+		calibration_mode = utils.unpack_attribute(device["registers"], "IRRIGATION_REG_CALIBRATION_MODE")
+		calibration_plant_select = utils.unpack_attribute(device["registers"], "IRRIGATION_REG_CALIBRATION_MODE")
+		calibration_mode["value"], calibration_plant_select["value"] = interchange.irrigation_read_calibration_settings(calibration_mode["value"])
 
 		device["attributes"] = {
 			"enabled": utils.unpack_attribute(device["registers"], "GENERIC_REG_ENABLE"),
@@ -40,7 +43,8 @@ def irrigation_processor(irrigators):
 			"plant_enable": enabled_plants,
 			"moisture_change_hysteresis_time": utils.unpack_attribute(device["registers"], "IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_TIME"),
 			"moisture_change_hysteresis_amount": utils.unpack_attribute(device["registers"], "IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_AMOUNT"),
-			"calibration_mode": utils.unpack_attribute(device["registers"], "IRRIGATION_REG_CALIBRATION_MODE"),
+			"calibration_mode": calibration_mode,
+			"calibration_plant_select": calibration_plant_select,
 			"moisture": [],
 			"target_moisture": [],
 			"moisture_low": [],
@@ -75,7 +79,7 @@ def fetch(request):
 
 def command(request):
 	command_data = json.loads(request.data.decode())
-	message = utils.build_command(command_data, INTEGER_REGISTER_VALUES, FLOAT_REGISTER_VALUES)
+	message = irrigation_build_command(command_data)
 
 	if message:
 		return base.command(request, command_data["register"], message, irrigation_processor, "SH_TYPE_IRRIGATION")
@@ -84,3 +88,11 @@ def command(request):
 
 def set_schedule(request):
 	return base.set_schedule(request, utils.build_command, irrigation_processor, "SH_TYPE_IRRIGATION")
+
+def irrigation_build_command(data):
+	message = utils.build_command(data, INTEGER_REGISTER_VALUES, FLOAT_REGISTER_VALUES)
+
+	if int(data["register"]) == utils.register_id("IRRIGATION_REG_CALIBRATION_MODE"):
+		message = interchange.irrigation_set_calibration_settings(data["attribute_data"][0], data["attribute_data"][1])
+
+	return message

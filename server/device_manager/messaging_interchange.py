@@ -177,19 +177,15 @@ def irrigation_set_plant_enable(status_list):
 	reg_value = list_to_bitmask(status_list)
 	return template.format(_set, _reg_id("IRRIGATION_REG_PLANT_ENABLE"), reg_value)
 
-# def irrigation_read_calibration_settings(reg_value):
-# 	if isinstance(reg_value, str):
-# 		reg_value = int(reg_value, 16)
+def irrigation_read_calibration_settings(reg_value):
+	if isinstance(reg_value, str):
+		reg_value = int(reg_value, 16)
 
-# 	calibration_mode = reg_value & 0XFF
-# 	plant_select = reg_value & (0xFF << 8)
-	
-# 	for i in range(8):
-# 		if plant_select & (1 << i):
-# 			return (calibration_mode, i)
-	
-# 	return (None, None)
+	calibration_mode = reg_value & 0X00FF
+	plant_select = (reg_value & 0xFF00) >> 8
 
-# def irrigation_set_calibration_settings(mode, plant_select):
-# 	reg_value = mode | (1 << (plant_select + 8))
-# 	return template.format(_set, _reg_id("IRRIGATION_REG_CALIBRATION_MODE"), reg_value)
+	return [calibration_mode, plant_select]
+
+def irrigation_set_calibration_settings(mode, plant_select):
+	reg_value = int(mode) | (int(plant_select) << 8)
+	return template.format(_set, _reg_id("IRRIGATION_REG_CALIBRATION_MODE"), reg_value)

@@ -3,7 +3,7 @@ function Plant_Status({ attributes }){
 		<div>
 			<b>Plant { attributes.id }</b>
 			<p>Current moisture: { attributes.moisture.value?.toFixed(1) + " %" }  ({ attributes.sensor_raw?.value })</p>
-			<p>Target moisture: { attributes.target_moisture.value?.toFixed(1) + " %" }  ({ attributes.sensor_raw?.value })</p>
+			<p>Target moisture: { attributes.target_moisture.value?.toFixed(1) + " %" }</p>
 			<p>Moisture low threshold: { attributes.moisture_low.value?.toFixed(1) + " %" }</p>
 			<p>Watering delay after moisture low { attributes.moisture_low_delay.value + " s" }</p>
 			<p>Raw sensor value limits (configured) - Max: { attributes.sensor_raw_max.value }, Min: { attributes.sensor_raw_min.value }</p>
@@ -22,7 +22,7 @@ function Irrigation_Attributes({ attributes, update_attribute }) {
 	}
 
 	let plant_statuses = [];
-	for (let i = 0; i < attrs.sensor_count?.value; ++i) {
+	for (let i = 0; i < attributes.sensor_count?.value; ++i) {
 		// error check indicies
 		plant_statuses.push({
 			id: i,
@@ -42,8 +42,10 @@ function Irrigation_Attributes({ attributes, update_attribute }) {
 		return render_plant_status(obj)
 	})
 
-	//TODO: Fix nasty calibration handling code; do it in backend 
-	let calibration_mode_target;
+	const [calibration_mode_target, set_calibration_mode_target] = useState( attributes.calibration_mode.value);
+	const [calibration_plant_select, set_calibration_plant_select] = useState( attributes.calibration_plant_select.value);
+
+	console.log(calibration_mode_target, calibration_mode_target)
 
 	return (
 		<div>
@@ -54,11 +56,11 @@ function Irrigation_Attributes({ attributes, update_attribute }) {
 			<p>Time until pump shutoff if no moisture change: { attributes.moisture_change_hysteresis_time.value }</p>
 			<p>Sensor value difference threshold to be considered changing moisture: { attributes.moisture_change_hysteresis_amount.value }</p>
 			
-			<p><span>Calibration mode: { attributes.calibration_mode.value & 0xFF} &nbsp;
-				<input type="text" onChange={ (e) => { calibration_mode_target = e.target.value; } } />
-				&nbsp; Calibration plant_select: { (parseInt(attributes.calibration_mode.value) >> 8) + 1 } &nbsp;
-				<input type="text" onChange={ (e) => { calibration_mode_target |= (parseInt(e.target.value - 1) << 8); } } />
-				<button className="set" onClick={ () => update_attribute(attributes.calibration_mode.register, calibration_mode_target) } > Set </button>
+			<p><span>Calibration mode: { attributes.calibration_mode.value} &nbsp;
+				<input type="number" min="0" max="4" onChange={ (e) => { set_calibration_mode_target(e.target.value); } } />
+				&nbsp; Calibration plant_select: { attributes.calibration_plant_select.value } &nbsp;
+				<input type="number" min="0" max="2" onChange={ (e) => { set_calibration_plant_select(e.target.value); } } />
+				<button className="set" onClick={ () => update_attribute(attributes.calibration_mode.register, [calibration_mode_target, calibration_plant_select]) } > Set </button>
 			</span></p>
 			
 			<ul>
@@ -91,5 +93,12 @@ function Irrigation_Schedules({ attributes, schedules, submit_schedule }) {
 		rendered_schedules = <p>None</p>;
 	}
 
-	return rendered_schedules;
+	return (
+		<div>
+			<b>Schedules</b>
+			<ul>
+				{ rendered_schedules }
+			</ul>
+		</div>
+	)
 }

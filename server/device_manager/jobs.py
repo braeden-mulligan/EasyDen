@@ -213,12 +213,12 @@ class Nexus_Jobs:
 		self.last_thermostat_query = time.monotonic()
 
 	def query_irrigation(self):	
-		if time.monotonic() < self.last_irrigation_query + self.last_irrigation_query:
+		if time.monotonic() < self.last_irrigation_query + self.irrigation_query_interval:
 			return
 
 		irrigators = [d for d in self.device_list if d.device_type == defs.type_id("SH_TYPE_IRRIGATION")]
 		for device in irrigators:
-			for i in range(3):
+			for i in range(defs.IRRIGATION_MAX_SENSOR_COUNT):
 				device.device_send(messaging.irrigation_get_moisture(i))
 				device.device_send(messaging.irrigation_get_moisture_raw(i))
 				device.device_send(messaging.irrigation_get_sensor_raw_max(i))

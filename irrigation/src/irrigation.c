@@ -68,7 +68,7 @@ void set_irrigation_enabled(uint8_t setting) {
 
 
 void set_plant_enable(uint8_t bitmask) {
-	// TODO Use a high byte to decide which plants the mask toggle.
+	// TODO Use a high byte to decide which plants the mask toggles.
 
 	plant_enable_mask = bitmask;
 	eeprom_update_byte((uint8_t*)MEM_PLANT_ENABLE_MASK, plant_enable_mask);
@@ -148,7 +148,7 @@ void set_calibration_mode(uint16_t setting) {
 	if (calibration_mode == interactive_automatic || calibration_mode == interactive_manual) {
 		switch_pump_off();
 		
-		active_plant = setting >> 8;		
+		active_plant = (setting & 0xFF00) >> 8;		
 		valve_switch(active_plant);
 
 		set_app_interval(1);

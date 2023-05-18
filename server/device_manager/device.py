@@ -259,7 +259,7 @@ class SmartHome_Device:
 
 		else:
 # This can occur when device transmits a response but a retry is sent before the first response comes back.
-# The first response is processed and then a duplicate response then comes because of the retry.
+# The first response is processed and then a duplicate response then comes because of the retry. Shouldn't be a problem.
 # Conjecture: frequency of this is a function of timeout and retry count, tuning needed?
 			print("process_message error. Received packet does not correspond to any pending messages.")
 			return None
@@ -308,8 +308,7 @@ class SmartHome_Device:
 			necessary_attributes.append(defs.register_id("IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_AMOUNT"))
 			necessary_attributes.append(defs.register_id("IRRIGATION_REG_CALIBRATION_MODE"))
 			
-			# This number would have to change if irrigation device maximum moisture sensor count did. 
-			for i in range(3):
+			for i in range(defs.IRRIGATION_MAX_SENSOR_COUNT):
 				necessary_attributes.append(defs.register_id("IRRIGATION_REG_MOISTURE_" + str(i)))
 				necessary_attributes.append(defs.register_id("IRRIGATION_REG_MOISTURE_LOW_" + str(i)))
 				necessary_attributes.append(defs.register_id("IRRIGATION_REG_MOISTURE_LOW_DELAY_" + str(i)))

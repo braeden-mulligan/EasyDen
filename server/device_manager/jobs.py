@@ -1,44 +1,9 @@
 from device_manager import config
 from device_manager import device_definitions as defs
 from device_manager import messaging_interchange as messaging
+from db import operations as db
 
 import copy, json, datetime, schedule, time
-import sqlite3
-
-
-def db_update_schedule(id, data):
-	pass
-
-def db_remove_schedule(id):
-	conn = sqlite3.connect(config.DATABASE_PATH)
-	conn.cursor().execute("delete from schedules where id={}".format(id))
-	conn.commit()
-	conn.close()
-
-def db_add_schedule(schedule_obj):
-	schedule_data = schedule_obj.get_data()
-	schedule_data.pop("id", None)
-	query = "insert into schedules(data, device_id) values(?, {})".format(schedule_obj.device.device_id)
-	conn = sqlite3.connect(config.DATABASE_PATH)
-	cursor = conn.cursor()
-	cursor.execute(query, (json.dumps(schedule_data),))
-	conn.commit()
-	conn.close()
-	return cursor.lastrowid
-
-def db_load_schedules(device_list):
-	existing_schedules = []
-	device_ids = [d.device_id for d in device_list]
-	query = "select * from schedules where device_id in ({ids})".format(ids = ','.join(['?'] * len(device_ids)))
-	conn = sqlite3.connect(config.DATABASE_PATH)
-	rows = conn.cursor().execute(query, device_ids)
-	#row = (schedule id, data, device_id)
-	for row in rows:
-		device = next((d for d in device_list if d.device_id == row[2]), None)
-		existing_schedules.append(Device_Command_Schedule(device, json.loads(row[1]), row[0]))
-
-	conn.close()
-	return existing_schedules
 
 
 # data format: {"recurring": <bool>, "time": {"hour": <int>, "minute": <int>, "days": <string (eg. "mon,thu,sat")>}, "command": <string>, "pause": <int>}
@@ -128,7 +93,15 @@ class Nexus_Jobs:
 		self.last_thermostat_query = time.monotonic()
 		self.last_irrigation_query = time.monotonic()
 		self.device_list = device_list
-		self.schedules = db_load_schedules(device_list)
+		self.schedules = []
+
+		def schedule_entry_loader(db_row):
+			device = next((d for d in device_list if d.device_id == db_row[2]), None)
+			if device:
+				self.schedules.append(Device_Command_Schedule(device, json.loads(db_row[1]), db_row[0]))
+
+		db.load_schedules(device_list, schedule_entry_loader)
+
 		for sched in self.schedules:
 			sched.enqueue_job()
 
@@ -140,7 +113,7 @@ class Nexus_Jobs:
 		#Scrub expired one-time scheduled events from list
 		for s in self.schedules:
 			if s.job is None:
-				db_remove_schedule(s.schedule_id)
+				db.remove_schedule(s.schedule_id)
 		self.schedules[:] = [schedule for schedule in self.schedules if schedule.job is not None]
 
 	def fetch_schedules(self, device_id):
@@ -165,7 +138,7 @@ class Nexus_Jobs:
 				if s.schedule_id == int(data["id"]):
 					s.cancel_schedule()
 					self.schedules.remove(s)
-					db_remove_schedule(s.schedule_id)
+					db.remove_schedule(s.schedule_id)
 					print("Successfully removed schedule")
 					return True
 			print("Failed to find schedule")
@@ -183,7 +156,7 @@ class Nexus_Jobs:
 					print("Cannot add duplicate event (overlapping schedule)")
 					return False
 
-			new_schedule.schedule_id = db_add_schedule(new_schedule)
+			new_schedule.schedule_id = db.add_schedule(new_schedule)
 			new_schedule.enqueue_job()
 			self.schedules.append(new_schedule)
 			print("New schedule added!")
@@ -193,7 +166,7 @@ class Nexus_Jobs:
 			for s in self.schedules:
 				if s.schedule_id == data["id"]:
 					s.pause = data["pause"]
-					db_update_schedule(s.schedule_id)
+					db.update_schedule(s.schedule_id)
 					print("Edited schedule " + str(s.schedule_id))
 					return True
 			print("Failed to find schedule")

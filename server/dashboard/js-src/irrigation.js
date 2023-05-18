@@ -45,8 +45,6 @@ function Irrigation_Attributes({ attributes, update_attribute }) {
 	const [calibration_mode_target, set_calibration_mode_target] = useState( attributes.calibration_mode.value);
 	const [calibration_plant_select, set_calibration_plant_select] = useState( attributes.calibration_plant_select.value);
 
-	console.log(calibration_mode_target, calibration_mode_target)
-
 	return (
 		<div>
 			<p>Device enabled: { attributes.enabled.value } &nbsp;

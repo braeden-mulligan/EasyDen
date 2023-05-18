@@ -3,10 +3,9 @@ from device_manager.device import SmartHome_Device
 from device_manager import messaging_interchange as messaging
 from device_manager import utilities as utils
 from device_manager.jobs import Nexus_Jobs
+from db import operations as db
 
-import json, select, socket, time, os
-import sqlite3
-import logging
+import json, select, socket, time, os, logging
 
 device_list = []
 dashboard_connections = []
@@ -48,41 +47,6 @@ def handle_socket_error(soc, event, poll_obj):
 	return False
 
 
-# --- DB Tools ---
-
-def db_load_devices():
-	existing_devices = []
-	conn = sqlite3.connect(config.DATABASE_PATH)
-	
-	rows = conn.execute("select * from devices").fetchall()
-	for row in rows:
-		device = SmartHome_Device()
-		device.device_id, device.device_type, device.name = row
-		existing_devices.append(device)
-	
-	conn.close()
-	return existing_devices
-
-def db_add_device(device):
-	conn = sqlite3.connect(config.DATABASE_PATH)
-	query = "insert into devices(id, type, name) values({}, {}, \"{}\")".format(device.device_id, device.device_type, device.name)
-	try:
-		conn.cursor().execute(query)
-	except sqlite3.IntegrityError:
-		pass
-	conn.commit()
-	conn.close()
-
-def db_update_device(device):
-	#conn = sqlite3.connect(config.DATABASE_PATH)
-	# select from devices where id == device.device_id
-	# ... d.name ...
-	return 
-
-def db_remove_device():
-	pass
-
-
 # --- Device Messaging Tools ---
 
 def device_from_identifier(soc_fd = -1, device_id = -1):
@@ -101,7 +65,7 @@ def handle_device_message(device):
 
 	# If we have a positive recv_code that is a device id returned from an identity request.
 	elif recv_code > 0: # ID detected, check for duplicate devices
-		db_add_device(device)
+		db.add_device(device)
 
 		for existing_device in device_list:
 			if recv_code == existing_device.device_id and device is not existing_device:
@@ -197,7 +161,7 @@ def handle_dashboard_message(dash_conn, msg):
 	elif "rename" in words[0]:
 		d = device_from_identifier(device_id = int(words[1]))
 		d.name = " ".join(words[2:])
-		db_update_device(d)
+		db.update_device(d)
 		response = "SUCCESS: New name for device " + str(d.device_id) + " " + d.name
 
 	elif "schedule" in words[0]:
@@ -215,8 +179,14 @@ def handle_dashboard_message(dash_conn, msg):
 
 def main_loop():
 	global device_list
-	device_list = db_load_devices()
-	print("Devices loeaded")
+
+	def device_entry_loader(db_row):
+		device = SmartHome_Device()
+		device.device_id, device.device_type, device.name = db_row
+		device_list.append(device)
+
+	db.load_devices(device_entry_loader)
+	print("Devices loaded")
 	print([d.get_data() for d in device_list])
 
 	global job_handler

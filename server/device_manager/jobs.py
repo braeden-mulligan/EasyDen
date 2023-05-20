@@ -1,6 +1,7 @@
 from device_manager import config
 from device_manager import device_definitions as defs
 from device_manager import messaging_interchange as messaging
+from device_manager import utilities as utils
 from db import operations as db
 
 import copy, json, datetime, schedule, time
@@ -89,11 +90,15 @@ class Nexus_Jobs:
 	def __init__(self, device_list):
 		self.thermostat_query_interval = config.DEVICE_KEEPALIVE * 0.95
 		self.irrigation_query_interval = 10.0
+		self.temperature_record_interval = 600.0
 
 		self.last_thermostat_query = time.monotonic()
 		self.last_irrigation_query = time.monotonic()
 		self.device_list = device_list
 		self.schedules = []
+		self.thermostat_data = []
+		self.log_temperature_flag = False
+		self.last_temperature_record = time.monotonic()
 
 		def schedule_entry_loader(db_row):
 			device = next((d for d in device_list if d.device_id == db_row[2]), None)
@@ -107,6 +112,7 @@ class Nexus_Jobs:
 
 	def run_tasks(self):
 		self.query_thermostats()
+		self.log_temperature()
 		self.query_irrigation()
 		self.keepalive()
 		schedule.run_pending()
@@ -184,6 +190,43 @@ class Nexus_Jobs:
 			#device.device_send(messaging.thermostat_get_humidity())
 
 		self.last_thermostat_query = time.monotonic()
+		self.log_temperature_flag = True
+
+	def log_temperature(self):
+		log_delay = 10.0
+		if self.thermostat_query_interval <= log_delay:
+			raise Exception("Temperature data will not be logged!")
+
+		if time.monotonic() < self.last_thermostat_query + log_delay:
+			return
+
+		if self.log_temperature_flag == False:
+			return
+
+		thermostats = [d.get_data() for d in self.device_list if d.device_type == defs.type_id("SH_TYPE_THERMOSTAT")]
+		for device in thermostats:
+			if not device["initialized"]:
+				continue
+
+			utils.hexify_attribute_values(device["registers"])
+			entry = (
+			  device["id"],
+			  messaging.reg_to_float(device["registers"], reg_label = "THERMOSTAT_REG_TEMPERATURE"),
+			  messaging.reg_to_float(device["registers"], reg_label = "THERMOSTAT_REG_TARGET_TEMPERATURE"),
+			  messaging.reg_to_int(device["registers"], reg_label = "GENERIC_REG_ENABLE"),
+			  device["online"],
+			  int(time.time())
+			)
+			self.thermostat_data.append(entry)
+
+		self.log_temperature_flag = False
+
+		if time.monotonic() < self.last_temperature_record + self.temperature_record_interval:
+			return
+
+		db.store_thermostat_data(self.thermostat_data)
+		self.thermostat_data = []
+		self.last_temperature_record = time.monotonic()
 
 	def query_irrigation(self):	
 		if time.monotonic() < self.last_irrigation_query + self.irrigation_query_interval:

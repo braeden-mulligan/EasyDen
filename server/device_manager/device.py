@@ -46,7 +46,7 @@ class SmartHome_Device:
 		# Attributes returned on device query.
 		self.device_type = 0
 		self.device_id = 0
-		self.device_attrs = {} #(reg, {value, queried_at, updated_at})
+		self.attributes = {} #(reg, {value, queried_at, updated_at})
 		self.name = "Default Name"
 		self.online_status = False 
 		self.fully_initialized = False
@@ -82,7 +82,7 @@ class SmartHome_Device:
 		device_obj["name"] = self.name
 		device_obj["online"] = self.online_status
 		device_obj["initialized"] = self.fully_initialized
-		device_obj["registers"] = copy.deepcopy(self.device_attrs)
+		device_obj["registers"] = copy.deepcopy(self.attributes)
 		return device_obj
 
 	def disconnect(self):
@@ -167,7 +167,7 @@ class SmartHome_Device:
 			print("Received [" + msg + "] from device: " + str(self.device_id))
 
 			self.update_last_contact()
-			
+
 			recv_result = self.process_message(msg)
 			if recv_result is None:
 				return -2
@@ -182,8 +182,9 @@ class SmartHome_Device:
 			self.update_attributes(reg, val, query = True)
 
 		if self.soc_connection is None:
-			return False
+			return 0
 
+		current_seq = self.msg_seq
 		self.msg_seq += 1
 		if self.msg_seq >= SmartHome_Device.MAX_SEQUENCE_NUM:
 			self.msg_seq = 1
@@ -192,17 +193,17 @@ class SmartHome_Device:
 
 		if len(self.pending_transmissions) >= self.max_pending_messages:
 			print("Device send buffer full")
-			return False
+			return 0
 		
 		submitted_message = Pending_Message(m, time.monotonic(), self.msg_retries)
 
 		for entry in self.pending_transmissions:
 			if submitted_message.duplicate(entry):
-				return True
+				return current_seq
 
 		self.pending_transmissions.append(submitted_message)
 
-		return True 
+		return current_seq 
 
 	# Private
 
@@ -224,13 +225,13 @@ class SmartHome_Device:
 			  "updated_at": round(time.monotonic(), 5) if update else 0.0
 			}
 
-			self.device_attrs[reg] = self.device_attrs.get(reg, attribute)
+			self.attributes[reg] = self.attributes.get(reg, attribute)
 
 			if query:
-				self.device_attrs[reg]["queried_at"] = attribute["queried_at"]
+				self.attributes[reg]["queried_at"] = attribute["queried_at"]
 			elif update:
-				self.device_attrs[reg]["value"] = attribute["value"]
-				self.device_attrs[reg]["updated_at"] = attribute["updated_at"]
+				self.attributes[reg]["value"] = attribute["value"]
+				self.attributes[reg]["updated_at"] = attribute["updated_at"]
 
 	def process_message(self, packet):
 		try:
@@ -323,7 +324,7 @@ class SmartHome_Device:
 
 		self.fully_initialized = True
 		for reg in necessary_attributes:
-			attribute = self.device_attrs.get(reg, None)
+			attribute = self.attributes.get(reg, None)
 			if attribute is None or attribute["updated_at"] < attribute["queried_at"]:
 				self.fully_initialized = False
 				self.device_send(messaging.template.format(defs.CMD_GET, reg, 0))

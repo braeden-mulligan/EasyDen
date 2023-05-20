@@ -42,3 +42,7 @@ def dashboard_message_validate(msg):
 
 	return True
 
+def hexify_attribute_values(attributes):
+	for reg in attributes:
+		attributes[reg]["value"] = "0x{:08X}".format(attributes[reg]["value"])
+

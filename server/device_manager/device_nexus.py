@@ -108,8 +108,8 @@ def handle_dashboard_message(dash_conn, msg):
 
 			if "registers" not in entry:
 				continue
-			for reg in entry["registers"]:
-				entry["registers"][reg]["value"] = "0x{:08X}".format(entry["registers"][reg]["value"])
+
+			utils.hexify_attribute_values(entry["registers"])
 
 		if isinstance(obj_list, list):
 			response = "JSON: " + json.dumps(obj_list)

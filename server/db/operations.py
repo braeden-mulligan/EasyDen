@@ -2,62 +2,72 @@ from device_manager import config
 
 import json, sqlite3
 
+def db_connection(operation):
+	def inner(*args, **kwargs):
+		conn = sqlite3.connect(config.DATABASE_PATH)
+		cursor = conn.cursor()
+		result = operation(*args, **kwargs, db = cursor)
+		conn.commit()
+		conn.close()
+		return result
+	return inner
 
-def load_devices(entry_processor):
-	conn = sqlite3.connect(config.DATABASE_PATH)
-	rows = conn.execute("select * from devices").fetchall()
+@db_connection
+def load_devices(entry_processor, db = None):
+	rows = db.execute("select * from devices").fetchall()
 	for row in rows:
 		entry_processor(row)
-	
-	conn.close()
 
-def add_device(device):
-	conn = sqlite3.connect(config.DATABASE_PATH)
+@db_connection
+def add_device(device, db = None):
 	query = "insert into devices(id, type, name) values({}, {}, \"{}\")".format(device.device_id, device.device_type, device.name)
 	try:
-		conn.cursor().execute(query)
+		db.execute(query)
 	except sqlite3.IntegrityError:
 		pass
-	conn.commit()
-	conn.close()
 
-def update_device(device):
+@db_connection
+def update_device(device, db = None):
 	#conn = sqlite3.connect(config.DATABASE_PATH)
 	# select from devices where id == device.device_id
 	# ... d.name ...
 	return 
 
-def remove_device():
+@db_connection
+def remove_device(db = None):
 	pass
 
 
-def update_schedule(id, data):
+@db_connection
+def update_schedule(id, data, db = None):
 	pass
 
-def remove_schedule(id):
-	conn = sqlite3.connect(config.DATABASE_PATH)
-	conn.cursor().execute("delete from schedules where id={}".format(id))
-	conn.commit()
-	conn.close()
+def remove_schedule(id, db = None):
+	db.execute("delete from schedules where id={}".format(id))
 
-def add_schedule(schedule_obj):
+@db_connection
+def add_schedule(schedule_obj, db = None):
 	schedule_data = schedule_obj.get_data()
 	schedule_data.pop("id", None)
 	query = "insert into schedules(data, device_id) values(?, {})".format(schedule_obj.device.device_id)
-	conn = sqlite3.connect(config.DATABASE_PATH)
-	cursor = conn.cursor()
-	cursor.execute(query, (json.dumps(schedule_data),))
-	conn.commit()
-	conn.close()
-	return cursor.lastrowid
+	db.execute(query, (json.dumps(schedule_data),))
+	return db.lastrowid
 
-def load_schedules(device_list, entry_processor):
+@db_connection
+def load_schedules(device_list, entry_processor, db = None):
 	device_ids = [d.device_id for d in device_list]
 	query = "select * from schedules where device_id in ({ids})".format(ids = ','.join(['?'] * len(device_ids)))
-	conn = sqlite3.connect(config.DATABASE_PATH)
-	rows = conn.cursor().execute(query, device_ids)
+	rows = db.execute(query, device_ids)
 	#row = (schedule id, data, device_id)
 	for row in rows:
 		entry_processor(row)
 
-	conn.close()
+@db_connection
+def fetch_thermostat_data(device_id, date_start, date_end, db = None):
+	pass
+
+@db_connection
+def store_thermostat_data(entries, db = None):
+	for entry in entries:
+		db.execute("insert into thermostat_data(ext_id, temperature, target_temperature, device_enabled, online_status, timestamp) values(?, ?, ?, ?, ? ,?)", entry)
+

@@ -1,4 +1,7 @@
-from device_manager import config
+import sys
+sys.path.append("..")
+from configs import server_config as config
+
 from device_manager.device import SmartHome_Device
 from device_manager import messaging_interchange as messaging
 from device_manager import utilities as utils
@@ -161,7 +164,7 @@ def handle_dashboard_message(dash_conn, msg):
 	elif "rename" in words[0]:
 		d = device_from_identifier(device_id = int(words[1]))
 		d.name = " ".join(words[2:])
-		db.update_device(d)
+		db.update_device_name(d)
 		response = "SUCCESS: New name for device " + str(d.device_id) + " " + d.name
 
 	elif "schedule" in words[0]:

@@ -1,5 +1,8 @@
-from device_manager import config
-from device_manager import device_definitions as defs
+import sys
+sys.path.append("..")
+from configs import server_config as config
+from configs import device_definitions as defs
+
 from device_manager import messaging_interchange as messaging
 from device_manager import utilities as utils
 import copy, datetime, json, socket, sys, time, os

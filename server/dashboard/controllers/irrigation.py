@@ -1,11 +1,13 @@
+import sys
+sys.path.append("..")
+from configs import device_definitions as dm_defs
+
 from flask import request 
 
 from dashboard import utilities as utils
 from dashboard.controllers import base_device as base
 
 import device_manager.messaging_interchange as interchange
-import device_manager.device_definitions as dm_defs
-#from device_manager import device_definitions as dm_defs
 
 import json
 
@@ -21,7 +23,6 @@ for i in range(dm_defs.IRRIGATION_MAX_SENSOR_COUNT):
 	FLOAT_REGISTER_VALUES.append(utils.register_id("IRRIGATION_REG_TARGET_MOISTURE_" + str(i)))
 	FLOAT_REGISTER_VALUES.append(utils.register_id("IRRIGATION_REG_MOISTURE_LOW_" + str(i)))
 	INTEGER_REGISTER_VALUES.append(utils.register_id("IRRIGATION_REG_MOISTURE_LOW_DELAY_" + str(i)))
-
 
 def irrigation_processor(irrigators):
 	valid_devices = []

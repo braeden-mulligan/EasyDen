@@ -1,4 +1,6 @@
-from . import device_definitions as defs
+import sys
+sys.path.append("..")
+from configs import device_definitions as defs
 
 import struct
 

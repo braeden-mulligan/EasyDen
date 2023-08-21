@@ -1,6 +1,9 @@
+import sys
+sys.path.append("..")
+from configs import server_config as dm_config
+
 from flask import request, Response
 
-from device_manager import config as dm_config
 from dashboard import server_interconnect as interconnect
 from dashboard import utilities as utils
 

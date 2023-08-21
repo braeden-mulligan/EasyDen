@@ -1,4 +1,6 @@
-from device_manager import config
+import sys
+sys.path.append("..")
+from configs import common_config as config
 
 import json, sqlite3
 
@@ -26,11 +28,11 @@ def add_device(device, db = None):
 	except sqlite3.IntegrityError:
 		pass
 
+#TODO
 @db_connection
-def update_device(device, db = None):
-	#conn = sqlite3.connect(config.DATABASE_PATH)
-	# select from devices where id == device.device_id
-	# ... d.name ...
+def update_device_name(device, db = None):
+	query = "update devices set name = \"{}\" where id = {}".format(device.name, device.device_id)
+	db.execute(query)
 	return 
 
 @db_connection

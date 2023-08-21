@@ -58,7 +58,8 @@ def debug_poweroutlet_fetch():
 # def debug_thermostat_fetch():
 # 	return dev.poweroutlet_command()
 
-@dashboard_app.route("/device/irrigation")
+
+@dashboard_app.route("/device/irrigation", methods=["GET"])
 def irrigation_dash():
 	return render_template("irrigation.html", title="Irrigation")
 
@@ -75,7 +76,7 @@ def irrigation_schedule():
 	return irrigation.set_schedule(request)
 
 
-@dashboard_app.route("/device/thermostat")
+@dashboard_app.route("/device/thermostat", methods=["GET"])
 def thermostat_dash():
 	return render_template("thermostat.html", title="Thermostat")
 

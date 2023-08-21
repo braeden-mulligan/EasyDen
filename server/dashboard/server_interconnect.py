@@ -1,12 +1,14 @@
-import device_manager.config as dm_config
-import device_manager.device_definitions as dm_defs
+import sys
+sys.path.append("..")
+from configs import server_config
+from configs import device_definitions as dm_defs
 
 import json, socket
 
 def data_transaction(msg, timeout = 1.0):
 	soc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 	try:
-		soc.connect(dm_config.SERVER_INTERCONNECT)
+		soc.connect(server_config.SERVER_INTERCONNECT)
 	except ConnectionRefusedError as e:
 		return "EXCEPTION: " + str(e)
 	except Exception as e:

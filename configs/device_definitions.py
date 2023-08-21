@@ -1,9 +1,9 @@
-from . import config
+from . import common_config
 
 import re, sys, os
 
 def read_device_defs():
-	device_defs = os.path.dirname(__file__) + config.DEVICE_DEFINITIONS_PATH
+	device_defs = os.path.dirname(__file__) + common_config.DEVICE_DEFINITIONS_PATH
 	defs_file = open(device_defs, "r")
 	contents = defs_file.read()
 	defs_file.close()
@@ -17,13 +17,12 @@ def build_definition_mapping(search_term):
 	def_map = []
 	for definition in defs:
 		if search_term in definition:
-			def_pair = definition.split(" ")
+			def_pair = definition.split()
 			reg = def_pair[0]
-			index = def_pair[-1] # In case of multple spaces in line.
+			index = def_pair[1]
 			def_map.append((reg, int(index, 16)))
 	return def_map
 
-#TODO: Hashify these?
 TYPE_MAP = build_definition_mapping("SH_TYPE_")
 REGISTER_MAP = build_definition_mapping("_REG_")
 

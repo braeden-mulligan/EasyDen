@@ -19,6 +19,7 @@ CREATE TABLE thermostat_data (
 	target_temperature REAL,
 	device_enabled INTEGER,
 	online_status INTEGER,
-	timestamp INTEGER NOT NULL UNIQUE
+	timestamp INTEGER NOT NULL,
+	UNIQUE (ext_id, timestamp)
 )
 EOF

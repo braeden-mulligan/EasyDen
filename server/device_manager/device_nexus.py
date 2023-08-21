@@ -19,7 +19,7 @@ job_handler = None
 
 def listener_init(dashboard = False):
 	addr_fam = socket.AF_INET
-	addr = (config.SERVER_ADDR, config.SERVER_PORT)
+	addr = ("0.0.0.0", config.SERVER_PORT)
 	max_conn = config.DEVICE_MAX_CONN
 	if dashboard:
 		if os.path.exists(config.SERVER_INTERCONNECT):

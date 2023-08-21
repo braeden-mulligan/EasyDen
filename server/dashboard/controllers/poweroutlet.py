@@ -28,7 +28,6 @@ def poweroutlet_processor(poweroutlets):
 				socket_state = interchange.reg_to_int({ str(register): { "value": value }}, reg_id = register)		
 				socket_values, socket_selection = interchange.poweroutlet_read_state(socket_state, device["attributes"]["socket_count"]["value"])
 				for i, entry in enumerate(socket_selection):
-					print(entry, i)
 					if not entry:
 						socket_values[i] = None
 				return ("socket_states", socket_values)

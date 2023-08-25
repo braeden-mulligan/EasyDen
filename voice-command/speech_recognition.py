@@ -1,62 +1,121 @@
 from vosk import Model, KaldiRecognizer
 
-import queue, sys, json, requests, os, logging
-import sounddevice as sd
+import queue, sys, json, requests, os, logging, pyaudio
 
 sys.path.append("..")
 from configs import server_config
 from configs import device_definitions as defs
 
 audio_data = queue.Queue()
-ASSISTANT_NAME = "jarvis"
 
-#def issue_command():
+#TODO: configurable and force into lowercase.
+ASSISTANT_NAME = "edward"
 
-def match_command(transcription):
-	#print(transcription)
+DEVICE_NAME = "TONOR TM20"
+SAMPLERATE = 48000
+
+def parse_command(transcription):
+	print(transcription)
 	if not transcription:
 		return
 
-	device_fetch_url = "http://" + server_config.SERVER_ADDR + "/device/{}/refresh"
-
-	devices = json.loads(requests.get(device_fetch_url.format("thermostat")).text)
-	devices += json.loads(requests.get(device_fetch_url.format("poweroutlet")).text)
-
 	words = transcription.lower().split()
 	
+	detected_device_type = None
+
 	if ASSISTANT_NAME not in words:
 		return
 
-	if "set" in words:
-		command_word_index = words.index("set")
+	command_keywords = ["set", "switch", "switched", "turn", "change"]
+
+	for keyword in command_keywords:
+		if keyword in words:
+			break
 	else:
 		return
 
+	specifiers = []
+	specifier_keywords = ["outlet", "socket", "outlets", "sockets"]
+	specifier_map = {"one": 1, "two": 2, "three": 3, "four": 4, "first": 1, "second": 2, "third": 3, "fourth": 4}
+
+	for keyword in specifier_keywords:
+		if keyword in words:
+			for k, v in specifier_map.items():
+				if k in words:
+					specifiers.append(v)
+
+	setting = None
+
+	if "on" in words:
+		setting = 1
+	elif "off" in words:
+		if setting:
+			return
+		setting = 0
+	else:
+		return
+
+	device_fetch_url = "http://" + server_config.SERVER_ADDR + "/device/{}/refresh"
+	
+	#TODO: error handle 
+	devices = json.loads(requests.get(device_fetch_url.format("thermostat")).text)
+	devices += json.loads(requests.get(device_fetch_url.format("poweroutlet")).text)
+
 	for d in devices:
-		l = len(d["name"].split())
-		command_phrase = words[command_word_index + 1 + l : ]
+		if d["name"].lower() in transcription:
+			issue_command(d, specifiers, setting)
+
+# Only handling poweroutlets for now.
+def issue_command(device, specifiers, setting):
+	if device["type"] != defs.type_id("SH_TYPE_POWEROUTLET"):
+		return
 		
-		if d["name"].lower() == " ".join(words[command_word_index + 1 : command_word_index + 1 + l]):
-			print("BINGO")
-			#issue_command(d, command_phrase)
+	new_state = device["attributes"]["socket_states"]["value"]
+
+	if not specifiers:
+		new_state = [setting] * len(new_state)
+	else:
+		for spec in specifiers:
+			if spec > len(new_state):
+				continue
+			new_state[spec - 1] = setting
+
+	update_attribute = {
+	  "register": defs.register_id("POWEROUTLET_REG_STATE"),
+	  "attribute_data": new_state
+	}
+
+	#TODO: error handle 
+	command_url = "http://" + server_config.SERVER_ADDR + "/device/poweroutlet/command?id=" + str(device["id"])
+	requests.put(command_url, data = json.dumps(update_attribute))
+
 
 def recognize_speech():
-	def sd_istream_callback(data_in, frames, time, status):
+	model = Model(lang="en-us")
+	recog = KaldiRecognizer(model, SAMPLERATE)
+
+	pa = pyaudio.PyAudio()
+
+	def find_mic_index(device_name):
+		for i in range(pa.get_device_count()):
+			device = pa.get_device_info_by_index(i)
+			if device_name in device["name"]:
+				return device["index"]
+		return None
+
+	def istream_callback(data_in, frames, time, status):
 		if status:
 			print(status, file = sys.stderr)
 		audio_data.put(bytes(data_in))
+		return (bytes(frames), pyaudio.paContinue)
 
-	device_info = sd.query_devices(kind = "input")
-	samplerate = int(device_info["default_samplerate"])
-	model = Model(lang="en-us")
+	istream = pa.open(input_device_index = find_mic_index(DEVICE_NAME), format = pyaudio.paInt16, channels = 1, rate = SAMPLERATE, input = True, frames_per_buffer = 1024, stream_callback = istream_callback, start = True)
 
-	with sd.RawInputStream(samplerate = samplerate, blocksize = 8000, dtype = "int16", channels = 1, callback = sd_istream_callback):
-		recog = KaldiRecognizer(model, samplerate)
-		
-		while True:
-			if recog.AcceptWaveform(audio_data.get()):
-				result = json.loads(recog.Result())
-				match_command(result["text"])
+	while True:
+		if recog.AcceptWaveform(audio_data.get()):
+			result = json.loads(recog.Result())
+			parse_command(result["text"])
+
 
 def run():
 	log_dir = os.path.dirname(__file__) + "/logs"

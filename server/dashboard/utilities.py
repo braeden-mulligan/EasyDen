@@ -26,7 +26,7 @@ def unpack_attribute_to_float(registers, reg_label):
 	return attr
 
 def prune_device_data(device):
-	del device["type"]
+	#del device["type"]
 	del device["initialized"]
 	del device["registers"]
 	return

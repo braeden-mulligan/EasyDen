@@ -44,6 +44,7 @@ def remove_device(db = None):
 def update_schedule(id, data, db = None):
 	pass
 
+@db_connection
 def remove_schedule(id, db = None):
 	db.execute("delete from schedules where id={}".format(id))
 

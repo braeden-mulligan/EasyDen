@@ -22,10 +22,10 @@ def listener_init(dashboard = False):
 	addr = ("0.0.0.0", config.SERVER_PORT)
 	max_conn = config.DEVICE_MAX_CONN
 	if dashboard:
-		if os.path.exists(config.SERVER_INTERCONNECT):
-			os.remove(config.SERVER_INTERCONNECT)
+		if os.path.exists(config.SERVER_INTERCONNECT_PATH):
+			os.remove(config.SERVER_INTERCONNECT_PATH)
 		addr_fam = socket.AF_UNIX
-		addr = config.SERVER_INTERCONNECT
+		addr = config.SERVER_INTERCONNECT_PATH
 		max_conn = config.DASHBOARD_MAX_CONN
 
 	soc = socket.socket(addr_fam, socket.SOCK_STREAM)

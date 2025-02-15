@@ -4,7 +4,7 @@
 #include "avr_utilities.h"
 #include "device_definition.h"
 #include "protocol.h"
-#include "project_utilities.h"
+#include "application_utilities.h"
 
 #include <stddef.h>
 #include <string.h>
@@ -33,7 +33,7 @@
 	char* socket_port = SOCKET_PORT;
 #endif
 
-static struct sh_device_metadata metadata;
+static struct device_metadata_t metadata;
 
 static struct ESP8266_network_parameters esp_params;
 
@@ -61,38 +61,38 @@ static void error_check(uint8_t cmd_result) {
 static void process_server_message(void) {
 	if (server_message_available()) {
 		char send_buf[SERVER_MSG_SIZE_MAX];
-		struct sh_packet msg_packet;
+		struct attr_packet msg_packet;
 
-		if (sh_parse_packet(&msg_packet, server_message_buf) != SH_PROTOCOL_SUCCESS) return;
+		if (parse_attr_packet(&msg_packet, server_message_buf) != ATTR_PROTOCOL_SUCCESS) return;
 
 		switch (msg_packet.cmd) {
 		case CMD_GET:
 			msg_packet.cmd = CMD_RSP;
 			if (config.server_message_get_callback != NULL) {
-				msg_packet.val = config.server_message_get_callback(msg_packet.reg);
+				msg_packet.val = config.server_message_get_callback(msg_packet.attr);
 			}
 			break;
 
 		case CMD_SET:
 			msg_packet.cmd = CMD_RSP;
 			if (config.server_message_set_callback != NULL) {
-				msg_packet.val = config.server_message_set_callback(msg_packet.reg, msg_packet.val);
+				msg_packet.val = config.server_message_set_callback(msg_packet.attr, msg_packet.val);
 			}
 			break;
 
 		case CMD_IDY:
 			msg_packet.cmd = CMD_IDY;
-			msg_packet.reg = metadata.type;
+			msg_packet.attr = metadata.type;
 			msg_packet.val = metadata.id;
 			break;
 
 		default:
 			msg_packet.cmd = CMD_RSP;
-			msg_packet.reg = GENERIC_REG_NULL;
+			msg_packet.attr = GENERIC_ATTR_NULL;
 			break;
 		}
 
-		if (sh_build_packet(&msg_packet, send_buf) != SH_PROTOCOL_SUCCESS) return;
+		if (build_attr_packet(&msg_packet, send_buf) != ATTR_PROTOCOL_SUCCESS) return;
 		if (wifi_send(send_buf) != ARDUINO_WIFI_SUCCESS) {
 			//config.server_message_error_callback();
 		}
@@ -236,7 +236,7 @@ void wifi_framework_start(void) {
 	timer8_init(1000, 1);
 	timer8_start();
 
-	for (;;) {
+	for (eternity) {
 		if (timer8_flag) {
 			wifi_conn_clock_s += timer8_flag;
 			application_clock_s += timer8_flag;

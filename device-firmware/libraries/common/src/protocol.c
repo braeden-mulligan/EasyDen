@@ -14,39 +14,39 @@ uint16_t generate_seq(void) {
 }
 	
 // <seq, cmd, reg, val>
-uint8_t sh_parse_packet(struct sh_packet* p, char* msg_buf) {
+uint8_t parse_attr_packet(struct attr_packet* p, char* msg_buf) {
 	char* end;
 
 	p->seq = (uint16_t)strtoul(msg_buf, &end, 16);
-	if (end == NULL) return SH_PROTOCOL_ERROR;
+	if (end == NULL) return ATTR_PROTOCOL_ERROR;
 	++end;
 
 	p->cmd = (uint8_t)strtoul(end, &end, 16);
-	if (end == NULL) return SH_PROTOCOL_ERROR;
+	if (end == NULL) return ATTR_PROTOCOL_ERROR;
 	++end;
 
-	p->reg = (uint8_t)strtoul(end, &end, 16);
-	if (end == NULL) return SH_PROTOCOL_ERROR;
+	p->attr = (uint8_t)strtoul(end, &end, 16);
+	if (end == NULL) return ATTR_PROTOCOL_ERROR;
 	++end;
 
 	p->val = (uint32_t)strtoul(end, &end, 16);
-	if (end == NULL) return SH_PROTOCOL_ERROR;
+	if (end == NULL) return ATTR_PROTOCOL_ERROR;
 
-	return SH_PROTOCOL_SUCCESS;
+	return ATTR_PROTOCOL_SUCCESS;
 }
 
-uint8_t sh_build_packet(struct sh_packet* p, char* msg_buf) {
+uint8_t build_attr_packet(struct attr_packet* p, char* msg_buf) {
 #if defined (__AVR_ATmega328P__)
-	if (sprintf(msg_buf, "%04X,%02X,%02X,%08lX", p->seq, p->cmd, p->reg, p->val) < 0) return SH_PROTOCOL_ERROR;
+	if (sprintf(msg_buf, "%04X,%02X,%02X,%08lX", p->seq, p->cmd, p->attr, p->val) < 0) return ATTR_PROTOCOL_ERROR;
 #else
-	if (sprintf(msg_buf, "%04X,%02X,%02X,%08X", p->seq, p->cmd, p->reg, p->val) < 0) return SH_PROTOCOL_ERROR;
+	if (sprintf(msg_buf, "%04X,%02X,%02X,%08X", p->seq, p->cmd, p->attr, p->val) < 0) return ATTR_PROTOCOL_ERROR;
 #endif
-	return SH_PROTOCOL_SUCCESS;
+	return ATTR_PROTOCOL_SUCCESS;
 }
 
 /*
 uint8_t sh_build_data_packet(struct sh_data_packet* p, char* msg_buf) {
-	if (p->len > DATA_LEN_MAX) return SH_PROTOCOL_ERROR;
+	if (p->len > DATA_LEN_MAX) return ATTR_PROTOCOL_ERROR;
 
 	sprintf(msg_buf, "%04X,%02X,%04X,", p->seq, p->cmd, p->len);
 
@@ -56,6 +56,6 @@ uint8_t sh_build_data_packet(struct sh_data_packet* p, char* msg_buf) {
 		strcat(msg_buf, data_byte);
 	}
 
-	return SH_PROTOCOL_SUCCESS;
+	return ATTR_PROTOCOL_SUCCESS;
 }
 */

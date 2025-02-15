@@ -182,18 +182,20 @@ static uint8_t check_module_notification(struct ESP8266_network_parameters* np) 
 	return ESP8266_MESSAGE_NONE;
 }
 
-/*
-	ESP8266_poll
-	Possible return values:
-ESP8266_RECV_FALSE:
-ESP8266_RECV_TRUE:
-ESP8266_RECV_SERVER:
-ESP8266_RECV_BUFOVERFLOW
-ESP8266_RECV_SERVERTIMEOUT
-ESP8266_MODULE_NOTIFICATION
-ESP8266_MODULE_BUSY
-ESP8266_ERROR_UNKNOWN
-*/
+/**
+ * ESP8266_poll
+ * 
+ * Possible return values:
+ * 
+ * ESP8266_RECV_FALSE:
+ * ESP8266_RECV_TRUE:
+ * ESP8266_RECV_SERVER:
+ * ESP8266_RECV_BUFOVERFLOW
+ * ESP8266_RECV_SERVERTIMEOUT
+ * ESP8266_MODULE_NOTIFICATION
+ * ESP8266_MODULE_BUSY
+ * ESP8266_ERROR_UNKNOWN
+ */
 uint8_t ESP8266_poll(struct ESP8266_network_parameters* np, uint32_t timeout_ms) {
 	uint8_t retval = ESP8266_RECV_FALSE;
 	uint8_t module_message;
@@ -202,39 +204,41 @@ uint8_t ESP8266_poll(struct ESP8266_network_parameters* np, uint32_t timeout_ms)
 		retval = ESP8266_recv();
 
 		switch (retval) {
-		case ESP8266_RECV_FALSE:
-			_delay_us(1);
-			continue;
+			case ESP8266_RECV_FALSE:
+				_delay_us(1);
+				continue;
 
-		case ESP8266_RECV_TRUE:
-			module_message = check_module_notification(np);
-			if (module_message != ESP8266_MESSAGE_NONE) return module_message;
-			return ESP8266_RECV_TRUE;
+			case ESP8266_RECV_TRUE:
+				module_message = check_module_notification(np);
+				if (module_message != ESP8266_MESSAGE_NONE) return module_message;
+				return ESP8266_RECV_TRUE;
 
-		case ESP8266_RECV_SERVER:
-			server_message_enqueue();
-			return ESP8266_RECV_SERVER;
+			case ESP8266_RECV_SERVER:
+				server_message_enqueue();
+				return ESP8266_RECV_SERVER;
 
-		case ESP8266_RECV_BUFOVERFLOW:
-		case ESP8266_RECV_SERVERTIMEOUT:
-		default:
-			return retval;
+			case ESP8266_RECV_BUFOVERFLOW:
+			case ESP8266_RECV_SERVERTIMEOUT:
+			default:
+				return retval;
 		}
 	}
 
 	return retval;
 }
 
-/*
-		run_cmd
-	Possible return values:
-	ESP8266_CMD_SUCCESS
-	ESP8266_CMD_FAILURE
-	ESP8266_CMD_CONTINUE
-	ESP8266_CMD_SENDREADY
-	ESP8266_CMD_TIMEOUT
-	ESP8266_CMD_ERROR
-*/
+/**
+ * run_cmd
+ * 
+ * Possible return values:
+ * 
+ * ESP8266_CMD_SUCCESS
+ * ESP8266_CMD_FAILURE
+ * ESP8266_CMD_CONTINUE
+ * ESP8266_CMD_SENDREADY
+ * ESP8266_CMD_TIMEOUT
+ * ESP8266_CMD_ERROR
+ */
 static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*), char* cmd, struct ESP8266_network_parameters* np, uint32_t timeout_ms) {
 	uint8_t retval = ESP8266_RECV_FALSE;
 	uint8_t cmd_status;
@@ -246,31 +250,31 @@ static uint8_t run_cmd(uint8_t (* cmd_proc)(struct ESP8266_network_parameters*),
 		retval = ESP8266_recv();
 
 		switch (retval) {
-		case ESP8266_RECV_FALSE:
-			_delay_us(1);
-			continue;
+			case ESP8266_RECV_FALSE:
+				_delay_us(1);
+				continue;
 
-		case ESP8266_RECV_TRUE:
-			module_message = check_module_notification(np);
-			if (module_message == ESP8266_MODULE_NOTIFICATION) continue;
-			if (module_message == ESP8266_MODULE_BUSY) continue;
-			if (module_message == ESP8266_ERROR_UNKNOWN) return ESP8266_CMD_ERROR;
+			case ESP8266_RECV_TRUE:
+				module_message = check_module_notification(np);
+				if (module_message == ESP8266_MODULE_NOTIFICATION) continue;
+				if (module_message == ESP8266_MODULE_BUSY) continue;
+				if (module_message == ESP8266_ERROR_UNKNOWN) return ESP8266_CMD_ERROR;
 
-			cmd_status = cmd_proc(np);
-			if (cmd_status == ESP8266_CMD_CONTINUE) continue;
-			if (cmd_status == ESP8266_CMD_SUCCESS) return ESP8266_CMD_SUCCESS;
-			if (cmd_status == ESP8266_CMD_FAILURE) return ESP8266_CMD_FAILURE;
-			if (cmd_status == ESP8266_CMD_SENDREADY) return ESP8266_CMD_SENDREADY;
-			break;
+				cmd_status = cmd_proc(np);
+				if (cmd_status == ESP8266_CMD_CONTINUE) continue;
+				if (cmd_status == ESP8266_CMD_SUCCESS) return ESP8266_CMD_SUCCESS;
+				if (cmd_status == ESP8266_CMD_FAILURE) return ESP8266_CMD_FAILURE;
+				if (cmd_status == ESP8266_CMD_SENDREADY) return ESP8266_CMD_SENDREADY;
+				break;
 
-		case ESP8266_RECV_SERVER:
-			server_message_enqueue();
-			continue;
+			case ESP8266_RECV_SERVER:
+				server_message_enqueue();
+				continue;
 
-		case ESP8266_RECV_BUFOVERFLOW:
-		case ESP8266_RECV_SERVERTIMEOUT:
-		default:
-			return ESP8266_CMD_ERROR;
+			case ESP8266_RECV_BUFOVERFLOW:
+			case ESP8266_RECV_SERVERTIMEOUT:
+			default:
+				return ESP8266_CMD_ERROR;
 		}
 	}
 

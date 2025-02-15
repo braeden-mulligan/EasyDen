@@ -32,7 +32,6 @@ CMD_SET = 2
 CMD_RSP = 3
 CMD_PSH = 4
 CMD_IDY = 5
-#CMD_DAT = 6
 
 def type_id(type_name):
 	for t in TYPE_MAP:

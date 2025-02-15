@@ -48,7 +48,7 @@ void restore_app_conf(void) {
 	wifi_framework_init(app_conf);
 }
 
-uint32_t outlet_get(void) {
+uint32_t outlet_state_get(void) {
 	uint32_t status_mask = 0;
 	status_mask |= (OUTLET_0_STATE) << 0;
 	status_mask |= (OUTLET_1_STATE) << 1;
@@ -62,7 +62,7 @@ uint32_t outlet_get(void) {
 	return values_inverted ? ~(0xFFFFFFF0 | status_mask) : status_mask; 
 }
 
-void outlet_set(uint32_t status_mask) {
+void outlet_state_set(uint32_t status_mask) {
 	if (!poweroutlet_enabled) return;
 
 	if (values_inverted) status_mask = (0x0000FFF0 & status_mask) | (~status_mask);
@@ -136,27 +136,27 @@ void outlet_set(uint32_t status_mask) {
 }
 
 uint32_t handle_server_get(uint16_t reg) {
-	if (reg == GENERIC_REG_ENABLE) return poweroutlet_enabled;
-	if (reg == POWEROUTLET_REG_STATE) return outlet_get();
-	if (reg == POWEROUTLET_REG_SOCKET_COUNT) return socket_count;
+	if (reg == GENERIC_ATTR_ENABLE) return poweroutlet_enabled;
+	if (reg == POWEROUTLET_ATTR_STATE) return outlet_state_get();
+	if (reg == POWEROUTLET_ATTR_SOCKET_COUNT) return socket_count;
 	return 0;
 }
 
 uint32_t handle_server_set(uint16_t reg, uint32_t val) {
-	if (reg == GENERIC_REG_ENABLE) {
+	if (reg == GENERIC_ATTR_ENABLE) {
 		poweroutlet_enabled = !!val;
 		eeprom_update_byte((uint8_t*)EEPROM_ADDR_ENABLED, poweroutlet_enabled);
 		return poweroutlet_enabled;
 	}
 
-	if (reg == GENERIC_REG_BLINK) {
+	if (reg == GENERIC_ATTR_BLINK) {
 		set_conf_fast_period();
 		blink_trigger = 1;
 	}
 
-	if (reg == POWEROUTLET_REG_STATE) {
-		outlet_set(val);
-		return outlet_get();
+	if (reg == POWEROUTLET_ATTR_STATE) {
+		outlet_state_set(val);
+		return outlet_state_get();
 	}
 
 	return 0;
@@ -166,16 +166,16 @@ void blink_identify(void) {
 	if (blink_trigger) {
 		blink_trigger = 0;
 
-		uint32_t saved_outlet_state = outlet_get();
+		uint32_t saved_outlet_state = outlet_state_get();
 
 		for (uint8_t i = 0; i < 3; ++i) {
-			outlet_set(0x0000FFFF);
+			outlet_state_set(0x0000FFFF);
 			_delay_ms(750);
-			outlet_set(0x0000FFF0);
+			outlet_state_set(0x0000FFF0);
 			_delay_ms(750);
 		}
 
-		outlet_set(0x0000FFF0 | saved_outlet_state);
+		outlet_state_set(0x0000FFF0 | saved_outlet_state);
 
 		restore_app_conf();
 	}
@@ -210,7 +210,7 @@ void outlet_init(void) {
 	  (outlet4 << 4) | (outlet5 << 5) | (outlet6 << 6) | (outlet7 << 7);
 	if (values_inverted) status_mask = (0x0000FFF0 | ~status_mask);
 
-	outlet_set(status_mask);
+	outlet_state_set(status_mask);
 }
 
 int main(void) {

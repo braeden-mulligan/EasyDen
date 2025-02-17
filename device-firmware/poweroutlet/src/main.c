@@ -59,13 +59,13 @@ uint32_t outlet_state_get(void) {
 	status_mask |= (OUTLET_6_STATE) << 6;
 	status_mask |= (OUTLET_7_STATE) << 7;
 
-	return values_inverted ? ~(0xFFFFFFF0 | status_mask) : status_mask; 
+	return values_inverted ? ~(0xFFFFFF00 | status_mask) : status_mask; 
 }
 
 void outlet_state_set(uint32_t status_mask) {
 	if (!poweroutlet_enabled) return;
 
-	if (values_inverted) status_mask = (0x0000FFF0 & status_mask) | (~status_mask);
+	if (values_inverted) status_mask = (0x0000FF00 & status_mask) | (0x000000FF & ~status_mask);
 
 	if (status_mask & (1 << 8)) {
 		if (status_mask & (1 << 0)) {
@@ -146,6 +146,9 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 	if (reg == GENERIC_ATTR_ENABLE) {
 		poweroutlet_enabled = !!val;
 		eeprom_update_byte((uint8_t*)EEPROM_ADDR_ENABLED, poweroutlet_enabled);
+
+		if (!poweroutlet_enabled) outlet_state_set(0x0000FF00);
+
 		return poweroutlet_enabled;
 	}
 
@@ -171,11 +174,11 @@ void blink_identify(void) {
 		for (uint8_t i = 0; i < 3; ++i) {
 			outlet_state_set(0x0000FFFF);
 			_delay_ms(750);
-			outlet_state_set(0x0000FFF0);
+			outlet_state_set(0x0000FF00);
 			_delay_ms(750);
 		}
 
-		outlet_state_set(0x0000FFF0 | saved_outlet_state);
+		outlet_state_set(0x0000FF00 | saved_outlet_state);
 
 		restore_app_conf();
 	}
@@ -205,10 +208,10 @@ void outlet_init(void) {
 	uint8_t outlet6 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_6_MEM);
 	uint8_t outlet7 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_7_MEM);
 
-	uint32_t status_mask = 0x0000FFF0;
+	uint32_t status_mask = 0x0000FF00;
 	status_mask |= outlet0 | (outlet1 << 1) | (outlet2 << 2) | (outlet3 << 3) |
 	  (outlet4 << 4) | (outlet5 << 5) | (outlet6 << 6) | (outlet7 << 7);
-	if (values_inverted) status_mask = (0x0000FFF0 | ~status_mask);
+	if (values_inverted) status_mask = (0x0000FF00 | ~status_mask);
 
 	outlet_state_set(status_mask);
 }

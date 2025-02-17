@@ -41,8 +41,10 @@ build/%.o: ../libraries/common/src/%.c | build_dir
 	@echo "Compiling libraries..."
 	$(CC) $(CFLAGS) -o $@ -c $<
 
-upload: 
+upload-nano: 
 	sudo avrdude -F -V -c arduino -p m328p -P /dev/ttyUSB0 -b 115200 -U flash:w:./bin/$(TARGET).hex:i
+upload-uno: 
+	sudo avrdude -F -V -c arduino -p m328p -P /dev/ttyACM0 -b 115200 -U flash:w:./bin/$(TARGET).hex:i
 
 .PHONY: build_dir
 build_dir:

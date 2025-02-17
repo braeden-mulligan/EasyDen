@@ -43,18 +43,14 @@ static char server_message_buf[SERVER_MSG_SIZE_MAX];
 
 static void error_check(uint8_t cmd_result) {
 	switch (cmd_result) {
-	case ESP8266_CMD_SUCCESS: return;
-	case ESP8266_CMD_FAILURE:
-	case ESP8266_CMD_TIMEOUT:
-	case ESP8266_CMD_ERROR:
-	default:
-		for (uint32_t i = 0; i < config.command_timeout; i += 100) {
-			ESP8266_poll(&esp_params, 100);
-		}
-
-		//nano_onboard_led_blink(5, 500);
-
-		break;
+		case ESP8266_CMD_FAILURE:
+		case ESP8266_CMD_TIMEOUT:
+		case ESP8266_CMD_ERROR:
+		case ESP8266_RECV_BUFOVERFLOW:
+		case ESP8266_RECV_SERVERTIMEOUT:
+		case ESP8266_RECV_ERROR:
+		case ESP8266_MESSAGE_NONE:
+			ESP8266_reset_serial();
 	}
 }
 
@@ -101,7 +97,7 @@ static void process_server_message(void) {
 	}
 }
 
-static uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_parameters*, uint32_t), uint32_t timeout_ms, uint8_t retries) {
+static uint8_t try_command(uint8_t (* command_func)(struct ESP8266_network_parameters*, uint16_t), uint32_t timeout_ms, uint8_t retries) {
 	uint8_t result = ESP8266_CMD_FAILURE; 
 
 	for (uint8_t i = 0; i < retries; ++i) {
@@ -253,7 +249,7 @@ void wifi_framework_start(void) {
 			application_clock_s = 0;
 		}
 
-		ESP8266_poll(&esp_params, 100);
+		error_check(ESP8266_poll(&esp_params, 100));
 
 		process_server_message();
 	}

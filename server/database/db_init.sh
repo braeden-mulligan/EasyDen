@@ -1,19 +1,20 @@
 #!/bin/sh
+
 sqlite3 easyden.db << EOF
-CREATE TABLE devices(
+CREATE TABLE if NOT EXISTS devices(
 	id INTEGER PRIMARY KEY,
 	type INTEGER,
 	name TEXT
 );
 
-CREATE TABLE schedules (
+CREATE TABLE if NOT EXISTS schedules (
 	id INTEGER PRIMARY KEY,
 	data TEXT,
 	device_id INTEGER NOT NULL,
 	FOREIGN KEY (device_id) REFERENCES devices (id)
 );
 
-CREATE TABLE thermostat_data (
+CREATE TABLE if NOT EXISTS thermostat_data (
 	ext_id INTEGER NOT NULL,
 	temperature REAL,
 	target_temperature REAL,

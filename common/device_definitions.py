@@ -1,9 +1,19 @@
-from . import common_config
+from . import defines
 
-import re, sys, os
+import re
+
+class Device_Protocol:
+	CMD_NUL = 0
+	CMD_GET = 1
+	CMD_SET = 2
+	CMD_RSP = 3
+	CMD_PSH = 4
+	CMD_IDY = 5
+
+IRRIGATION_MAX_SENSOR_COUNT = 3
 
 def read_device_defs():
-	device_defs = os.path.dirname(__file__) + common_config.DEVICE_DEFINITIONS_PATH
+	device_defs = defines.DEVICE_DEFINITIONS_PATH
 	defs_file = open(device_defs, "r")
 	contents = defs_file.read()
 	defs_file.close()
@@ -14,57 +24,39 @@ def read_device_defs():
 
 def build_definition_mapping(search_term):
 	defs = read_device_defs()
-	def_map = []
+	def_map = {}
 	for definition in defs:
 		if search_term in definition:
-			def_pair = definition.split()
-			reg = def_pair[0]
-			index = def_pair[1]
-			def_map.append((reg, int(index, 16)))
+			key, val = definition.split()
+			def_map[key] = int(val, 16)
 	return def_map
 
-TYPE_MAP = build_definition_mapping("SH_TYPE_")
-REGISTER_MAP = build_definition_mapping("_REG_")
+device_type_map = build_definition_mapping("DEVICE_TYPE_")
+device_attribute_map = build_definition_mapping("_ATTR_")
 
-CMD_NUL = 0
-CMD_GET = 1
-CMD_SET = 2
-CMD_RSP = 3
-CMD_PSH = 4
-CMD_IDY = 5
+def device_type_id(type_name):
+	return device_type_map.get(type_name)
 
-def type_id(type_name):
-	for t in TYPE_MAP:
-		if (type_name == t[0]):
-			return t[1]
+def device_type_name(type_id):
+	for key, val in device_type_map.items():
+		if val == type_id:
+			return key
 	return None
 
-def type_label(type_id):
-	for t in TYPE_MAP:
-		if type_id == t[1]:
-			return t[0]
-	return None
-
-def register_id(reg_name):
-	for reg in REGISTER_MAP:
-		if reg_name == reg[0]:
-			return reg[1]
-	return None
+def attribute_id(attr_name):
+	return device_attribute_map.get(attr_name)
 
 # Because the register mapping is not one-to-one we need device type
 # Type can be passed as either string or int
-def register_label(reg_id, device_type):
+def attribute_name(attr_id, device_type):
 	if isinstance(device_type, int):
-		device_type = type_label(device_type)
+		device_type = device_type_name(device_type)
 	if not device_type:
 		return None
-	type_name = device_type.removeprefix("SH_TYPE_")
+	type_name = device_type.removeprefix("DEVICE_TYPE_")
 
-	for reg_label, reg_num in REGISTER_MAP:
-		if reg_id == reg_num:
-			if "GENERIC" in reg_label or type_name in reg_label:
-				return reg_label
+	for attr_name, attr_num in device_attribute_map.items():
+		if attr_num == attr_id:
+			if "GENERIC" in attr_name or type_name in attr_name:
+				return attr_name
 	return None
-
-
-IRRIGATION_MAX_SENSOR_COUNT = 3

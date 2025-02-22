@@ -1,20 +1,22 @@
 import sys
 sys.path.append("..")
-from configs import server_config as config
-from configs import device_definitions as defs
+from common import server_config as config
+from common import device_definitions as defs
+from common.log_handler import logger as log
 
-from device_manager import messaging_interchange as messaging
-from device_manager import utilities as utils
-import copy, datetime, json, socket, sys, time, os
+# from device_manager import messaging_interchange as messaging
+# from device_manager import utilities as utils
+import copy, datetime, json, socket, sys, time, os, logging
 
 def parse_packet(packet):
 	try:
 		words = [int(w, 16) for w in packet.split(',')]
 	except Exception as e:
-		utils.print_exception(e)
+		log.warning("Failed to parse packet <" + packet + ">", exc_info = True)
 		return None
 
 	if len(words) != 4:
+		log.warning("Unexpected packed length: <" + packet + ">", exc_info = True)
 		return None
 
 	return words
@@ -58,8 +60,8 @@ class SmartHome_Device:
 		self.last_contact = None
 		self.reconnect_count = -1 # For debugging
 
-		self.msg_timeout = config.DEVICE_TX_TIMEOUT
-		self.msg_retries = config.DEVICE_MAX_TX_RETRIES
+		self.msg_timeout = config.TX_TIMEOUT
+		self.msg_retries = config.MAX_TX_RETRIES
 		self.soc_heartbeat = config.DEVICE_KEEPALIVE
 
 		# Configs
@@ -67,7 +69,7 @@ class SmartHome_Device:
 		self.soc_fd = None
 		self.soc_last_heartbeat = None
 		self.max_pending_messages = SmartHome_Device.TX_BUFFER_SIZE
-		self.msg_queue_retention_time = config.DEVICE_TX_QUEUE_RETENTION_TIME
+		self.msg_queue_retention_time = config.TX_QUEUE_RETENTION_TIME
 
 		self.msg_seq = 1
 		self.pending_response = None
@@ -115,7 +117,7 @@ class SmartHome_Device:
 		if self.pending_response:
 			if time.monotonic() > self.pending_response.timestamp + self.msg_timeout:
 				if self.pending_response.retries > 0:
-					print("Message [" + self.pending_response.packet + "] deilvery failed, retrying " + str(self.pending_response.retries) + " more times...")
+					log.info("Message [" + self.pending_response.packet + "] deilvery failed, retrying " + str(self.pending_response.retries) + " more times...")
 					self.pending_response.retries -= 1
 					try:
 						transmit_packet()
@@ -123,7 +125,7 @@ class SmartHome_Device:
 						self.pending_transmissions.pop(0)
 						return SmartHome_Device.STATUS_ERROR
 				else:
-					print("Message [" + self.pending_response.packet + "] deilvery failed.")
+					log.info("Message [" + self.pending_response.packet + "] deilvery failed.")
 					self.consecutive_nack += 1
 					self.pending_transmissions.insert(0, self.pending_response)
 					self.pending_response = None
@@ -133,7 +135,7 @@ class SmartHome_Device:
 			next_message = self.pending_transmissions[0]
 
 			if self.soc_connection:
-				print("Transmitting: [" + str(next_message.packet) + "] to device " + str(self.device_id) + ". " + str(next_message.retries) + " retries available...")
+				log.info("Transmitting: [" + str(next_message.packet) + "] to device " + str(self.device_id) + ". " + str(next_message.retries) + " retries available...")
 				self.pending_response = next_message
 				try:
 					transmit_packet()
@@ -164,10 +166,10 @@ class SmartHome_Device:
 				# This should always return bytes because we use i/o poll mechanism.
 				msg = self.soc_connection.recv(32).decode()
 			except Exception as e:
-				utils.print_exception(e)
+				log.warning("Socket recv failed.", exc_info = True)
 				return -1
 
-			print("Received [" + msg + "] from device: " + str(self.device_id))
+			log.info("Received [" + msg + "] from device: " + str(self.device_id))
 
 			self.update_last_contact()
 
@@ -192,10 +194,10 @@ class SmartHome_Device:
 		if self.msg_seq >= SmartHome_Device.MAX_SEQUENCE_NUM:
 			self.msg_seq = 1
 
-		print("Enqueue: [" + m + "] to device " + str(self.device_id))
+		log.info("Enqueue: [" + m + "] to device " + str(self.device_id))
 
 		if len(self.pending_transmissions) >= self.max_pending_messages:
-			print("Device send buffer full")
+			log.debug("Device send buffer full")
 			return 0
 		
 		submitted_message = Pending_Message(m, time.monotonic(), self.msg_retries)
@@ -240,8 +242,7 @@ class SmartHome_Device:
 		try:
 			msg_seq, msg_cmd, msg_reg, msg_val = parse_packet(packet)
 		except TypeError:
-#TODO: log frequency of malformed packets?
-			print("Failed to parse packet [" + str(packet) + "]!")
+			log.warning("Failed to parse packet [" + str(packet) + "]!")
 			return None
 
 		sent_seq = sent_cmd = sent_reg = sent_val = None
@@ -265,7 +266,7 @@ class SmartHome_Device:
 # This can occur when device transmits a response but a retry is sent before the first response comes back.
 # The first response is processed and then a duplicate response then comes because of the retry. Shouldn't be a problem.
 # Conjecture: frequency of this is a function of timeout and retry count, tuning needed?
-			print("process_message error. Received packet does not correspond to any pending messages.")
+			log.warning("process_message error. Received packet does not correspond to any pending messages.")
 			return None
 
 		if msg_cmd == defs.CMD_RSP and sent_cmd == defs.CMD_GET:

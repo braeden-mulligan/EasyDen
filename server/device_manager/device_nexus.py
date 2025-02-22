@@ -1,14 +1,15 @@
 import sys
 sys.path.append("..")
-from configs import server_config as config
+from common import server_config as config
 
 from device_manager.device import SmartHome_Device
-from device_manager import messaging_interchange as messaging
-from device_manager import utilities as utils
-from device_manager.jobs import Nexus_Jobs
-from db import operations as db
+from common.log_handler import logger as log, init_log_file, set_log_level_console, set_log_level_file
+# from device_manager import messaging_interchange as messaging
+# from device_manager import utilities as utils
+# from device_manager.jobs import Nexus_Jobs
+from database import operations as db
 
-import json, select, socket, time, os, logging
+import json, select, socket, os 
 
 device_list = []
 dashboard_connections = []
@@ -40,8 +41,8 @@ def socket_close(soc, poll_obj):
 		poll_obj.unregister(soc)
 		soc.shutdown(socket.SHUT_RDWR)
 		soc.close()
-	except Exception as e:
-		utils.print_exception(e)
+	except:
+		log.warning("Exception trying to close socket.", exc_info = True)
 	return True
 
 def handle_socket_error(soc, event, poll_obj):
@@ -54,9 +55,7 @@ def handle_socket_error(soc, event, poll_obj):
 
 def device_from_identifier(soc_fd = -1, device_id = -1):
 	for d in device_list:
-		if soc_fd == d.soc_fd:
-			return d
-		if device_id == d.device_id:
+		if soc_fd == d.soc_fd or device_id == d.device_id:
 			return d
 	return None
 
@@ -74,9 +73,9 @@ def handle_device_message(device):
 			if recv_code == existing_device.device_id and device is not existing_device:
 				# We have an already existing entry with this id. This would happen if a device drops and reconnects.
 				# Update old entry with new socket and delete current device object.
+				log.debug("Existing device found with id " + str(recv_code))
 				existing_device.connect(device.soc_connection)
 				existing_device.pending_response = None
-				print("Existing device found with id " + str(recv_code))
 				device_list.remove(device)
 
 	return True
@@ -87,11 +86,7 @@ def handle_device_message(device):
 def handle_dashboard_message(dash_conn, msg):
 	response = "ERROR: Malformed request"
 
-	# if not utils.dashboard_message_validate(msg):
-	# 	dash_conn.send(response.encode())
-	# 	return
-		
-	print("Dashboard message: [" + msg + "]")
+	log.info("Dashboard message: [" + msg + "]")
 	
 	words = msg.split(' ')
 
@@ -189,8 +184,8 @@ def main_loop():
 		device_list.append(device)
 
 	db.load_devices(device_entry_loader)
-	print("Devices loaded")
-	print([d.get_data() for d in device_list])
+	log.debug("Devices loaded")
+	log.debug(str([d.get_data() for d in device_list]))
 
 	global job_handler
 	job_handler = Nexus_Jobs(device_list)
@@ -207,9 +202,9 @@ def main_loop():
 	while True:
 		for d in device_list:
 			if not d.device_id and d.pending_response is None:
-				print("New device detected, requesting ID")
+				log.info("New device detected, requesting ID")
 				if not d.device_send(messaging.generic_request_identity()):
-					print("New device failed to respond")
+					log.info("New device failed to respond")
 					socket_close(d.soc_connection, poller)
 					device_list.remove(d)
 
@@ -242,22 +237,21 @@ def main_loop():
 				device = device_from_identifier(fd)
 				if device is not None:
 					if handle_socket_error(device.soc_connection, event, poller):
-						print("Device disconnected.")
+						log.info("Device " + str(device.device_id) + " disconnected.")
 						# Socket now closed so set device to disconnected. 
 						device.disconnect() # But do not remove device from list.
 					elif not handle_device_message(device):
 #TODO: Decide what to do depending how handle_device_message fails
 						socket_close(device.soc_connection, poller)
 						device.disconnect() 
-					print(" ")
 
 		for d in device_list:
 			device_status = d.update_pending()
 			
 			if device_status == SmartHome_Device.STATUS_UNRESPONSIVE:
-				print("Device " + str(d.device_id) + " unresponsive. Closing connection")
+				log.info("Device " + str(d.device_id) + " unresponsive. Closing connection")
 			elif device_status == SmartHome_Device.STATUS_ERROR:
-				print("Device " + str(d.device_id) + " socket error handled. Closing connection")
+				log.info("Device " + str(d.device_id) + " socket error handled. Closing connection")
 			
 			if device_status != SmartHome_Device.STATUS_OK:
 				handle_socket_error(d.soc_connection, select.POLLHUP, poller)
@@ -266,18 +260,12 @@ def main_loop():
 		job_handler.run_tasks()
 
 def run():
-	log_dir = os.path.dirname(__file__) + "/logs"
-	if not os.path.exists(log_dir):
-		os.makedirs(log_dir)
-	logging.basicConfig(filename=log_dir + "/device_manager.log", level = logging.DEBUG, format = "[%(asctime)s %(levelname)s %(name)s %(message)s] : ")
-	logger = logging.getLogger(__name__)
+	init_log_file("device-manager.log")
 
 	try:
-		print("Starting device manager.")
 		main_loop()
 	except KeyboardInterrupt:
 		raise
 	except:
-		print("Caught unhandled exception. Check logs for details.")
-		logging.exception("Device manager crashed!")
+		log.exception("Caught unhandled exception; device manager has crashed!", stack_info = True)
 		raise

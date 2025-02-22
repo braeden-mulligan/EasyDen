@@ -67,12 +67,11 @@ Mkfile.old
 dkms.conf
 
 node_modules/
-js/
 *.db
 *.swp
 secret_script.sh
 tools/
-**/static/lib/
 build/
+log/
 
 .vscode/

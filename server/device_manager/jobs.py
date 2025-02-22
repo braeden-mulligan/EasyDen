@@ -1,11 +1,11 @@
 import sys
 sys.path.append("..")
-from configs import server_config as config
-from configs import device_definitions as defs
-
+from common import server_config as config
+from common import device_definitions as defs
+from common.log_handler import logger as log
 from device_manager import messaging_interchange as messaging
 from device_manager import utilities as utils
-from db import operations as db
+from database import operations as db
 
 import copy, json, datetime, schedule, time
 
@@ -35,12 +35,7 @@ class Device_Command_Schedule:
 			for day in self.time["days"].split(","):
 				if day in other.time["days"].split(","):
 					return True
-
-			return False 
-		else:
-			return False
-
-		return True
+		return False
 
 	def get_data(self):
 		return {
@@ -130,7 +125,7 @@ class Nexus_Jobs:
 
 	#{("id": <int>,) "action": "create"|"delete"|"edit", "recurring": <bool>, "time": {"hour": "3", "minute": "14", "days": "tue,thu,sun"}, "command": "02,66,42840000", "pause": <int>}
 	def submit_schedule(self, device_id, data):
-		print("Submitting schedule " + data + " for device " + str(device_id))
+		log.info("Submitting schedule " + data + " for device " + str(device_id))
 		data = json.loads(data)
 
 		action = data["action"]
@@ -148,27 +143,26 @@ class Nexus_Jobs:
 					s.cancel_schedule()
 					self.schedules.remove(s)
 					db.remove_schedule(s.schedule_id)
-					print("Successfully removed schedule")
+					log.debug("Successfully removed schedule")
 					return True
-			print("Failed to find schedule")
+			log.debug("Failed to find schedule")
 
 		elif action == "create":
-			#TODO: Catch exception for debugging reasons
 			try:
 				new_schedule = Device_Command_Schedule(device, data)
 			except KeyError:
-				print("Could not create schedule. Bad argument provided.")
+				log.warning("Could not create schedule. Bad argument provided.")
 				return False
 
 			for s in self.schedules:
 				if new_schedule == s:
-					print("Cannot add duplicate event (overlapping schedule)")
+					log.info("Cannot add duplicate event (overlapping schedule)")
 					return False
 
 			new_schedule.schedule_id = db.add_schedule(new_schedule)
 			new_schedule.enqueue_job()
 			self.schedules.append(new_schedule)
-			print("New schedule added!")
+			log.debug("New schedule added!")
 			return True
 
 		elif action == "edit":
@@ -176,9 +170,9 @@ class Nexus_Jobs:
 				if s.schedule_id == data["id"]:
 					s.pause = data["pause"]
 					db.update_schedule(s.schedule_id)
-					print("Edited schedule " + str(s.schedule_id))
+					log.debug("Edited schedule " + str(s.schedule_id))
 					return True
-			print("Failed to find schedule")
+			log.info("Failed to find schedule")
 
 		return False
 

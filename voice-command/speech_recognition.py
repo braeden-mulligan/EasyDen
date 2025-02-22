@@ -2,10 +2,11 @@ import subprocess
 from vosk import Model, KaldiRecognizer
 
 import queue, sys, json, requests, os, logging, pyaudio
-
 sys.path.append("..")
-from configs import server_config
-from configs import device_definitions as defs
+
+from common.log_handler import logger as log, init_log_file
+from common import server_config
+from common import device_definitions as defs
 
 audio_data = queue.Queue()
 
@@ -21,7 +22,7 @@ CONFIRM_TONE = ""
 ERROR_TONE = ""
 
 def check_wake_word(transcription):
-	print(transcription)
+	log.debug("Transcription: " + transcription)
 	if not transcription:
 		return
 	
@@ -114,7 +115,7 @@ def recognize_speech():
 
 	def istream_callback(data_in, frames, time, status):
 		if status:
-			print(status, file = sys.stderr)
+			log.debug(status) 
 		audio_data.put(bytes(data_in))
 		return (bytes(frames), pyaudio.paContinue)
 
@@ -138,20 +139,15 @@ def recognize_speech():
 				woke = True
 
 def run():
-	log_dir = os.path.dirname(__file__) + "/logs"
-	if not os.path.exists(log_dir):
-		os.makedirs(log_dir)
-	logging.basicConfig(filename=log_dir + "/speech_recognition.log", level = logging.DEBUG, format = "[%(asctime)s %(levelname)s %(name)s %(message)s] : ")
-	logger = logging.getLogger(__name__)
+	init_log_file("voice-command.log")
 
 	try:
-		print("Starting voice command recognition.")
+		log.debug("Starting voice command recognition.")
 		recognize_speech()
 	except KeyboardInterrupt:
 		raise
 	except:
-		print("Caught unhandled exception. Check logs for details.")
-		logging.exception("Voice command recognizer crashed!")
+		logging.exception("Voice command recognizer crashed!", stack_info = True)
 		raise
 
 if __name__ == "__main__":

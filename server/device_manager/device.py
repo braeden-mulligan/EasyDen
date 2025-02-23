@@ -4,8 +4,8 @@ from common import server_config as config
 from common import device_definitions as defs
 from common.log_handler import logger as log
 
-# from device_manager import messaging_interchange as messaging
-# from device_manager import utilities as utils
+from device_manager import messaging_interchange as messaging
+from device_manager import utilities as utils
 import copy, datetime, json, socket, sys, time, os, logging
 
 def parse_packet(packet):
@@ -87,7 +87,7 @@ class SmartHome_Device:
 		device_obj["name"] = self.name
 		device_obj["online"] = self.online_status
 		device_obj["initialized"] = self.fully_initialized
-		device_obj["registers"] = copy.deepcopy(self.attributes)
+		device_obj["attributes"] = copy.deepcopy(self.attributes)
 		return device_obj
 
 	def disconnect(self):
@@ -117,7 +117,7 @@ class SmartHome_Device:
 		if self.pending_response:
 			if time.monotonic() > self.pending_response.timestamp + self.msg_timeout:
 				if self.pending_response.retries > 0:
-					log.info("Message [" + self.pending_response.packet + "] deilvery failed, retrying " + str(self.pending_response.retries) + " more times...")
+					log.info("Message <" + self.pending_response.packet + "> deilvery failed, retrying " + str(self.pending_response.retries) + " more times...")
 					self.pending_response.retries -= 1
 					try:
 						transmit_packet()
@@ -125,7 +125,7 @@ class SmartHome_Device:
 						self.pending_transmissions.pop(0)
 						return SmartHome_Device.STATUS_ERROR
 				else:
-					log.info("Message [" + self.pending_response.packet + "] deilvery failed.")
+					log.info("Message <" + self.pending_response.packet + "> deilvery failed.")
 					self.consecutive_nack += 1
 					self.pending_transmissions.insert(0, self.pending_response)
 					self.pending_response = None
@@ -135,7 +135,7 @@ class SmartHome_Device:
 			next_message = self.pending_transmissions[0]
 
 			if self.soc_connection:
-				log.info("Transmitting: [" + str(next_message.packet) + "] to device " + str(self.device_id) + ". " + str(next_message.retries) + " retries available...")
+				log.info("Transmitting: <" + str(next_message.packet) + "> to device " + str(self.device_id) + ". " + str(next_message.retries) + " retries available...")
 				self.pending_response = next_message
 				try:
 					transmit_packet()
@@ -152,7 +152,7 @@ class SmartHome_Device:
 		if self.pending_response:
 			_, _, pending_reg, _ = parse_packet(self.pending_response.packet)
 			
-			if pending_reg == defs.register_id("GENERIC_REG_PING"):
+			if pending_reg == defs.attribute_id("GENERIC_ATTR_PING"):
 				# Already waiting on a heartbeat check.
 				return
 		
@@ -169,7 +169,7 @@ class SmartHome_Device:
 				log.warning("Socket recv failed.", exc_info = True)
 				return -1
 
-			log.info("Received [" + msg + "] from device: " + str(self.device_id))
+			log.info("Received <" + msg + "> from device: " + str(self.device_id))
 
 			self.update_last_contact()
 
@@ -183,7 +183,7 @@ class SmartHome_Device:
 		m = "{:04X},".format(self.msg_seq) + message
 
 		_, cmd, reg, val = parse_packet(m)
-		if cmd == defs.CMD_GET or cmd == defs.CMD_SET:
+		if cmd == defs.Device_Protocol.CMD_GET or cmd == defs.Device_Protocol.CMD_SET:
 			self.update_attributes(reg, val, query = True)
 
 		if self.soc_connection is None:
@@ -194,7 +194,7 @@ class SmartHome_Device:
 		if self.msg_seq >= SmartHome_Device.MAX_SEQUENCE_NUM:
 			self.msg_seq = 1
 
-		log.info("Enqueue: [" + m + "] to device " + str(self.device_id))
+		log.info("Enqueue: <" + m + "> to device " + str(self.device_id))
 
 		if len(self.pending_transmissions) >= self.max_pending_messages:
 			log.debug("Device send buffer full")
@@ -219,9 +219,9 @@ class SmartHome_Device:
 		return
 
 	def update_attributes(self, reg, val, query = False, update = False):
-		if reg == defs.register_id("GENERIC_REG_NULL"):
+		if reg == defs.attribute_id("GENERIC_ATTR_NULL"):
 			return
-		elif reg == defs.register_id("GENERIC_REG_PING"):
+		elif reg == defs.attribute_id("GENERIC_ATTR_PING"):
 			return
 		else: 
 			attribute = {
@@ -242,7 +242,7 @@ class SmartHome_Device:
 		try:
 			msg_seq, msg_cmd, msg_reg, msg_val = parse_packet(packet)
 		except TypeError:
-			log.warning("Failed to parse packet [" + str(packet) + "]!")
+			log.warning("Failed to parse packet <" + str(packet) + ">!")
 			return None
 
 		sent_seq = sent_cmd = sent_reg = sent_val = None
@@ -269,13 +269,13 @@ class SmartHome_Device:
 			log.warning("process_message error. Received packet does not correspond to any pending messages.")
 			return None
 
-		if msg_cmd == defs.CMD_RSP and sent_cmd == defs.CMD_GET:
+		if msg_cmd == defs.Device_Protocol.CMD_RSP and sent_cmd == defs.Device_Protocol.CMD_GET:
 			self.update_attributes(msg_reg, msg_val, update = True)
 
-		elif msg_cmd == defs.CMD_RSP and sent_cmd == defs.CMD_SET: 
+		elif msg_cmd == defs.Device_Protocol.CMD_RSP and sent_cmd == defs.Device_Protocol.CMD_SET: 
 			self.update_attributes(sent_reg, msg_val, update = True)
 
-		elif msg_cmd == defs.CMD_IDY:
+		elif msg_cmd == defs.Device_Protocol.CMD_IDY:
 			self.device_type = msg_reg
 			self.device_id = msg_val
 			return self.device_id
@@ -289,39 +289,39 @@ class SmartHome_Device:
 			return False
 
 		necessary_attributes = [
-			defs.register_id("GENERIC_REG_ENABLE")
+			defs.attribute_id("GENERIC_ATTR_ENABLE")
 		]
 
-		if self.device_type == defs.type_id("SH_TYPE_POWEROUTLET"):
-			necessary_attributes.append(defs.register_id("POWEROUTLET_REG_SOCKET_COUNT"))
-			necessary_attributes.append(defs.register_id("POWEROUTLET_REG_STATE"))
+		if self.device_type == defs.device_type_id("DEVICE_TYPE_POWEROUTLET"):
+			necessary_attributes.append(defs.attribute_id("POWEROUTLET_ATTR_SOCKET_COUNT"))
+			necessary_attributes.append(defs.attribute_id("POWEROUTLET_ATTR_STATE"))
 
-		elif self.device_type == defs.type_id("SH_TYPE_THERMOSTAT"):
-			necessary_attributes.append(defs.register_id("THERMOSTAT_REG_TEMPERATURE"))
-			necessary_attributes.append(defs.register_id("THERMOSTAT_REG_TARGET_TEMPERATURE"))
-			necessary_attributes.append(defs.register_id("THERMOSTAT_REG_TEMPERATURE_CORRECTION"))
-			necessary_attributes.append(defs.register_id("THERMOSTAT_REG_THRESHOLD_HIGH"))
-			necessary_attributes.append(defs.register_id("THERMOSTAT_REG_THRESHOLD_LOW"))
-			necessary_attributes.append(defs.register_id("THERMOSTAT_REG_MAX_HEAT_TIME"))
-			necessary_attributes.append(defs.register_id("THERMOSTAT_REG_MIN_COOLDOWN_TIME"))
-			necessary_attributes.append(defs.register_id("THERMOSTAT_REG_HUMIDITY_SENSOR_COUNT"))
+		elif self.device_type == defs.device_type_id("DEVICE_TYPE_THERMOSTAT"):
+			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_TEMPERATURE"))
+			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"))
+			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_TEMPERATURE_CORRECTION"))
+			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_THRESHOLD_HIGH"))
+			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_THRESHOLD_LOW"))
+			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_MAX_HEAT_TIME"))
+			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_MIN_COOLDOWN_TIME"))
+			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_HUMIDITY_SENSOR_COUNT"))
 
-		elif self.device_type == defs.type_id("SH_TYPE_IRRIGATION"):
-			necessary_attributes.append(defs.register_id("IRRIGATION_REG_SENSOR_COUNT"))
-			necessary_attributes.append(defs.register_id("IRRIGATION_REG_PLANT_ENABLE"))
-			necessary_attributes.append(defs.register_id("IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_TIME"))
-			necessary_attributes.append(defs.register_id("IRRIGATION_REG_MOISTURE_CHANGE_HYSTERESIS_AMOUNT"))
-			necessary_attributes.append(defs.register_id("IRRIGATION_REG_CALIBRATION_MODE"))
+		elif self.device_type == defs.device_type_id("DEVICE_TYPE_IRRIGATION"):
+			necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_SENSOR_COUNT"))
+			necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_PLANT_ENABLE"))
+			necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_MOISTURE_CHANGE_HYSTERESIS_TIME"))
+			necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_MOISTURE_CHANGE_HYSTERESIS_AMOUNT"))
+			necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_CALIBRATION_MODE"))
 			
 			for i in range(defs.IRRIGATION_MAX_SENSOR_COUNT):
-				necessary_attributes.append(defs.register_id("IRRIGATION_REG_MOISTURE_" + str(i)))
-				necessary_attributes.append(defs.register_id("IRRIGATION_REG_MOISTURE_LOW_" + str(i)))
-				necessary_attributes.append(defs.register_id("IRRIGATION_REG_MOISTURE_LOW_DELAY_" + str(i)))
-				necessary_attributes.append(defs.register_id("IRRIGATION_REG_SENSOR_RAW_" + str(i)))
-				necessary_attributes.append(defs.register_id("IRRIGATION_REG_SENSOR_RAW_MAX_" + str(i)))
-				necessary_attributes.append(defs.register_id("IRRIGATION_REG_SENSOR_RAW_MIN_" + str(i)))
-				necessary_attributes.append(defs.register_id("IRRIGATION_REG_SENSOR_RECORDED_MAX_" + str(i)))
-				necessary_attributes.append(defs.register_id("IRRIGATION_REG_SENSOR_RECORDED_MIN_" + str(i)))
+				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_MOISTURE_" + str(i)))
+				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_MOISTURE_LOW_" + str(i)))
+				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_MOISTURE_LOW_DELAY_" + str(i)))
+				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_SENSOR_RAW_" + str(i)))
+				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_SENSOR_RAW_MAX_" + str(i)))
+				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_SENSOR_RAW_MIN_" + str(i)))
+				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_SENSOR_RECORDED_MAX_" + str(i)))
+				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_SENSOR_RECORDED_MIN_" + str(i)))
 
 		else:
 			return self.fully_initialized
@@ -331,6 +331,6 @@ class SmartHome_Device:
 			attribute = self.attributes.get(reg, None)
 			if attribute is None or attribute["updated_at"] < attribute["queried_at"]:
 				self.fully_initialized = False
-				self.device_send(messaging.template.format(defs.CMD_GET, reg, 0))
+				self.device_send(messaging.template.format(defs.Device_Protocol.CMD_GET, reg, 0))
 
 		return self.fully_initialized

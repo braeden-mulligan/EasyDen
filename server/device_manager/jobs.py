@@ -180,7 +180,7 @@ class Nexus_Jobs:
 		if time.monotonic() < self.last_thermostat_query + self.thermostat_query_interval:
 			return
 
-		thermostats = [d for d in self.device_list if d.device_type == defs.type_id("SH_TYPE_THERMOSTAT")]
+		thermostats = [d for d in self.device_list if d.device_type == defs.device_type_id("DEVICE_TYPE_THERMOSTAT")]
 		for device in thermostats:
 			device.device_send(messaging.thermostat_get_temperature())
 			#TODO: if device has humidity sensor
@@ -200,17 +200,17 @@ class Nexus_Jobs:
 		if self.log_temperature_flag == False:
 			return
 
-		thermostats = [d.get_data() for d in self.device_list if d.device_type == defs.type_id("SH_TYPE_THERMOSTAT")]
+		thermostats = [d.get_data() for d in self.device_list if d.device_type == defs.device_type_id("DEVICE_TYPE_THERMOSTAT")]
 		for device in thermostats:
 			if not device["initialized"]:
 				continue
 
-			utils.hexify_attribute_values(device["registers"])
+			utils.hexify_attribute_values(device["attributes"])
 			entry = (
 			  device["id"],
-			  messaging.reg_to_float(device["registers"], reg_label = "THERMOSTAT_REG_TEMPERATURE"),
-			  messaging.reg_to_float(device["registers"], reg_label = "THERMOSTAT_REG_TARGET_TEMPERATURE"),
-			  messaging.reg_to_int(device["registers"], reg_label = "GENERIC_REG_ENABLE"),
+			  messaging.reg_to_float(device["attributes"], reg_label = "THERMOSTAT_ATTR_TEMPERATURE"),
+			  messaging.reg_to_float(device["attributes"], reg_label = "THERMOSTAT_ATTR_TARGET_TEMPERATURE"),
+			  messaging.reg_to_int(device["attributes"], reg_label = "GENERIC_ATTR_ENABLE"),
 			  device["online"],
 			  int(time.time())
 			)
@@ -229,7 +229,7 @@ class Nexus_Jobs:
 		if time.monotonic() < self.last_irrigation_query + self.irrigation_query_interval:
 			return
 
-		irrigators = [d for d in self.device_list if d.device_type == defs.type_id("SH_TYPE_IRRIGATION")]
+		irrigators = [d for d in self.device_list if d.device_type == defs.device_type_id("DEVICE_TYPE_IRRIGATION")]
 		for device in irrigators:
 			for i in range(defs.IRRIGATION_MAX_SENSOR_COUNT):
 				device.device_send(messaging.irrigation_get_moisture(i))

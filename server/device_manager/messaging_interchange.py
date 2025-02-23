@@ -1,12 +1,12 @@
 import sys
 sys.path.append("..")
-from configs import device_definitions as defs
+from common import device_definitions as defs
 
 import struct
 
-_get = defs.CMD_GET
-_set = defs.CMD_SET
-_reg_id = defs.register_id
+_get = defs.Device_Protocol.CMD_GET
+_set = defs.Device_Protocol.CMD_SET
+_reg_id = defs.attribute_id
 
 template = "{:02X},{:02X},{:08X}" 
 
@@ -93,17 +93,17 @@ def bitmask_to_list(reg_value, item_count):
 	return sub_attribute_list
 
 def generic_request_identity():
-	return template.format(defs.CMD_IDY, 0, 0)
+	return template.format(defs.Device_Protocol.CMD_IDY, 0, 0)
 
 def generic_ping():
-	return template.format(_get, _reg_id("GENERIC_REG_PING"), 0)
+	return template.format(_get, _reg_id("GENERIC_ATTR_PING"), 0)
 
 
 def poweroutlet_get_count():
-	return template.format(_get, _reg_id("POWEROUTLET_REG_SOCKET_COUNT"), 0)
+	return template.format(_get, _reg_id("POWEROUTLET_ATTR_SOCKET_COUNT"), 0)
 
 def poweroutlet_get_state():
-	return template.format(_get, _reg_id("POWEROUTLET_REG_STATE"), 0)
+	return template.format(_get, _reg_id("POWEROUTLET_ATTR_STATE"), 0)
 
 
 # pass a list 
@@ -113,7 +113,7 @@ def poweroutlet_set_state(socket_states):
 			socket_states[i] = -1
 		socket_states[i] = int(socket_states[i])
 	reg_value = list_to_bitmask(socket_states)
-	return template.format(_set, _reg_id("POWEROUTLET_REG_STATE"), reg_value)
+	return template.format(_set, _reg_id("POWEROUTLET_ATTR_STATE"), reg_value)
 
 # return list 
 def poweroutlet_read_state(reg_value, socket_count):
@@ -134,37 +134,37 @@ def poweroutlet_read_state(reg_value, socket_count):
 
 
 def thermostat_get_temperature():
-	return template.format(_get, _reg_id("THERMOSTAT_REG_TEMPERATURE"), 0)
+	return template.format(_get, _reg_id("THERMOSTAT_ATTR_TEMPERATURE"), 0)
 
 def thermostat_get_target_temperature():
-	return template.format(_get, _reg_id("THERMOSTAT_REG_TARGET_TEMPERATURE"), 0)
+	return template.format(_get, _reg_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"), 0)
 
 def thermostat_get_humidity():
-	return template.format(_get, _reg_id("THERMOSTAT_REG_HUMIDITY"), 0)
+	return template.format(_get, _reg_id("THERMOSTAT_ATTR_HUMIDITY"), 0)
 
 def thermostat_set_temperature(value):
 	#TODO: check value is float
 	packed_float = struct.unpack("!i", struct.pack("!f", value))[0]
-	return template.format(_set, _reg_id("THERMOSTAT_REG_TARGET_TEMPERATURE"), packed_float);
+	return template.format(_set, _reg_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"), packed_float);
 
 
 def irrigation_get_moisture(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_REG_MOISTURE_" + str(sensor)), 0)
+	return template.format(_get, _reg_id("IRRIGATION_ATTR_MOISTURE_" + str(sensor)), 0)
 
 def irrigation_get_moisture_raw(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_" + str(sensor)), 0)
+	return template.format(_get, _reg_id("IRRIGATION_ATTR_SENSOR_RAW_" + str(sensor)), 0)
 
 def irrigation_get_sensor_raw_max(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_MAX_" + str(sensor)), 0)
+	return template.format(_get, _reg_id("IRRIGATION_ATTR_SENSOR_RAW_MAX_" + str(sensor)), 0)
 
 def irrigation_get_sensor_raw_min(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RAW_MIN_" + str(sensor)), 0)
+	return template.format(_get, _reg_id("IRRIGATION_ATTR_SENSOR_RAW_MIN_" + str(sensor)), 0)
 
 def irrigation_get_sensor_recorded_max(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RECORDED_MAX_" + str(sensor)), 0)
+	return template.format(_get, _reg_id("IRRIGATION_ATTR_SENSOR_RECORDED_MAX_" + str(sensor)), 0)
 
 def irrigation_get_sensor_recorded_min(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_REG_SENSOR_RECORDED_MIN_" + str(sensor)), 0)
+	return template.format(_get, _reg_id("IRRIGATION_ATTR_SENSOR_RECORDED_MIN_" + str(sensor)), 0)
 
 def irrigation_read_plant_enable(reg_value, sensor_count):
 	if isinstance(reg_value, str):
@@ -182,7 +182,7 @@ def irrigation_read_plant_enable(reg_value, sensor_count):
 
 def irrigation_set_plant_enable(status_list):
 	reg_value = list_to_bitmask(status_list)
-	return template.format(_set, _reg_id("IRRIGATION_REG_PLANT_ENABLE"), reg_value)
+	return template.format(_set, _reg_id("IRRIGATION_ATTR_PLANT_ENABLE"), reg_value)
 
 def irrigation_read_calibration_settings(reg_value):
 	if isinstance(reg_value, str):
@@ -195,4 +195,4 @@ def irrigation_read_calibration_settings(reg_value):
 
 def irrigation_set_calibration_settings(mode, plant_select):
 	reg_value = int(mode) | (int(plant_select) << 8)
-	return template.format(_set, _reg_id("IRRIGATION_REG_CALIBRATION_MODE"), reg_value)
+	return template.format(_set, _reg_id("IRRIGATION_ATTR_CALIBRATION_MODE"), reg_value)

@@ -1,12 +1,13 @@
 import sys
 sys.path.append("..")
 from common import server_config as config
+from common import defines
 
 from device_manager.device import SmartHome_Device
 from common.log_handler import logger as log, init_log_file, set_log_level_console, set_log_level_file
-# from device_manager import messaging_interchange as messaging
-# from device_manager import utilities as utils
-# from device_manager.jobs import Nexus_Jobs
+from device_manager import messaging_interchange as messaging
+from device_manager import utilities as utils
+from device_manager.jobs import Nexus_Jobs
 from database import operations as db
 
 import json, select, socket, os 
@@ -23,10 +24,10 @@ def listener_init(dashboard = False):
 	addr = ("0.0.0.0", config.SERVER_PORT)
 	max_conn = config.DEVICE_MAX_CONN
 	if dashboard:
-		if os.path.exists(config.SERVER_INTERCONNECT_PATH):
-			os.remove(config.SERVER_INTERCONNECT_PATH)
+		if os.path.exists(defines.SERVER_INTERCONNECT_PATH):
+			os.remove(defines.SERVER_INTERCONNECT_PATH)
 		addr_fam = socket.AF_UNIX
-		addr = config.SERVER_INTERCONNECT_PATH
+		addr = defines.SERVER_INTERCONNECT_PATH
 		max_conn = config.DASHBOARD_MAX_CONN
 
 	soc = socket.socket(addr_fam, socket.SOCK_STREAM)
@@ -66,7 +67,7 @@ def handle_device_message(device):
 		return False
 
 	# If we have a positive recv_code that is a device id returned from an identity request.
-	elif recv_code > 0: # ID detected, check for duplicate devices
+	elif recv_code > 0:
 		db.add_device(device)
 
 		for existing_device in device_list:
@@ -152,9 +153,9 @@ def handle_dashboard_message(dash_conn, msg):
 				response = "PARAMETER: " + str(device.fully_initialized).lower()	
 		elif "type" in words[1]:
 			pass	
-		elif "server" in words[1]:
-			if "schedules" in words[2]:
-				response = "SUCCESS: " + str(["Device " + str(s.device_id) + " " + str(s.job) for s in jobs.schedules])
+		# elif "server" in words[1]:
+		# 	if "schedules" in words[2]:
+		# 		response = "SUCCESS: " + str(["Device " + str(s.device_id) + " " + str(s.job) for s in jobs.schedules])
 
 	elif "rename" in words[0]:
 		d = device_from_identifier(device_id = int(words[1]))
@@ -177,6 +178,7 @@ def handle_dashboard_message(dash_conn, msg):
 
 def main_loop():
 	global device_list
+	global job_handler
 
 	def device_entry_loader(db_row):
 		device = SmartHome_Device()
@@ -184,10 +186,8 @@ def main_loop():
 		device_list.append(device)
 
 	db.load_devices(device_entry_loader)
-	log.debug("Devices loaded")
-	log.debug(str([d.get_data() for d in device_list]))
+	log.debug("Devices loaded " + str([d.get_data() for d in device_list]))
 
-	global job_handler
 	job_handler = Nexus_Jobs(device_list)
 
 	poller = select.poll()
@@ -215,13 +215,13 @@ def main_loop():
 				poller.unregister(fd)
 
 			elif (fd == dash_soc.fileno()):
-				conn, addr = dash_soc.accept()
+				conn, _ = dash_soc.accept()
 				conn.setblocking(False)
 				poller.register(conn, poll_opts)
 				dashboard_connections.append(conn)
 
 			elif (fd == device_soc.fileno()):
-				conn, addr = device_soc.accept()
+				conn, _ = device_soc.accept()
 				conn.setblocking(False)
 				poller.register(conn, poll_opts)
 				device_list.append(SmartHome_Device(conn))
@@ -233,15 +233,14 @@ def main_loop():
 						dashboard_connections.remove(dash_conn)
 					else:
 						handle_dashboard_message(dash_conn, dash_conn.recv(2048).decode())
-				# else:
+
 				device = device_from_identifier(fd)
 				if device is not None:
 					if handle_socket_error(device.soc_connection, event, poller):
 						log.info("Device " + str(device.device_id) + " disconnected.")
-						# Socket now closed so set device to disconnected. 
-						device.disconnect() # But do not remove device from list.
+						device.disconnect()
 					elif not handle_device_message(device):
-#TODO: Decide what to do depending how handle_device_message fails
+						#TODO: Decide what to do depending how handle_device_message fails
 						socket_close(device.soc_connection, poller)
 						device.disconnect() 
 
@@ -250,6 +249,7 @@ def main_loop():
 			
 			if device_status == SmartHome_Device.STATUS_UNRESPONSIVE:
 				log.info("Device " + str(d.device_id) + " unresponsive. Closing connection")
+
 			elif device_status == SmartHome_Device.STATUS_ERROR:
 				log.info("Device " + str(d.device_id) + " socket error handled. Closing connection")
 			

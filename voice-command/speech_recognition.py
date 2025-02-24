@@ -147,7 +147,7 @@ def run():
 	except KeyboardInterrupt:
 		raise
 	except:
-		logging.exception("Voice command recognizer crashed!", stack_info = True)
+		logging.exception("Voice command recognizer crashed!")
 		raise
 
 if __name__ == "__main__":

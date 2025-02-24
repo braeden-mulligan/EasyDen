@@ -2,18 +2,19 @@ import sys
 sys.path.append("..")
 from common import server_config as config
 from common import defines
+from common.log_handler import logger as log, init_log_file
 
 from device_manager.device import SmartHome_Device
-from common.log_handler import logger as log, init_log_file, set_log_level_console, set_log_level_file
-from device_manager import messaging_interchange as messaging
-from device_manager import utilities as utils
 from device_manager.jobs import Nexus_Jobs
+from device_manager.dashboard_messaging import handle_dashboard_message
+from device_manager import messaging_interchange as messaging
+
 from database import operations as db
 
-import json, select, socket, os 
+import select, socket, os 
 
-device_list = []
 dashboard_connections = []
+device_list = []
 job_handler = None
 
 
@@ -48,6 +49,8 @@ def socket_close(soc, poll_obj):
 
 def handle_socket_error(soc, event, poll_obj):
 	if event & select.POLLHUP or event & select.POLLERR: 
+		if next((conn for conn in dashboard_connections if conn.fileno() == soc), None) is not None:
+			log.info("Device socket error event: POLLHUP" if event & select.POLLHUP else "POLLERR")
 		return socket_close(soc, poll_obj)
 	return False
 
@@ -81,99 +84,6 @@ def handle_device_message(device):
 
 	return True
 
-
-# --- Dashboard Messaging ---
-
-def handle_dashboard_message(dash_conn, msg):
-	response = "ERROR: Malformed request"
-
-	log.info("Dashboard message: [" + msg + "]")
-	
-	words = msg.split(' ')
-
-	# fetch [all | type <int> | id <int>]
-	if "fetch" in words[0]:
-		obj_list = None
-
-		if "all" in words[1]:
-			obj_list = [d.get_data() for d in device_list if d.device_id]
-		elif "type" in words[1]:
-			obj_list = [d.get_data() for d in device_list if d.device_type == int(words[2])]
-		elif "id" in words[1]:
-			obj_list = [d.get_data() for d in device_list if d.device_id == int(words[2])]
-		
-		for entry in obj_list:
-			entry["schedules"] = job_handler.fetch_schedules(entry["id"])
-
-			if "registers" not in entry:
-				continue
-
-			utils.hexify_attribute_values(entry["registers"])
-
-		if isinstance(obj_list, list):
-			response = "JSON: " + json.dumps(obj_list)
-
-	# command [id|type <int> <raw message>]
-	elif "command" in words[0]:
-		if "id" in words[1]:
-			d = device_from_identifier(device_id = int(words[2]));
-			if d:
-				d.device_send(words[3])
-				response = "SUCCESS: Command sent"
-			else:
-				response = "ERROR: Device not found"
-
-		elif "type" in words[1]:
-			device_count = 0
-			d_type = int(words[2])
-			for d in device_list:
-				if d.device_type == d_type:
-					d.device_send(words[3])
-					device_count += 1
-			if device_count: 
-				response = "SUCCESS: command sent to " + str(device_count) + " devices"
-			else:
-				response = "ERROR: No devices found"
-		
-		elif "server" in words[1]:
-			pass
-
-	# info [id <int> <specifier> | type <int> <specifier>]
-	elif "info" in words[0]:
-		if "id" in words[1]:
-			device = next((d for d in device_list if d.device_id == int(words[2])), None)
-
-			if device is None:
-				response = "ERROR: Device not found"
-			elif "last_contact" in words[3]:
-				response = "PARAMETER: " + str(device.last_contact)
-			elif "reconnections" in words[3]:
-				response = "PARAMETER: " + str(device.reconnect_count)
-			elif "fully_initialized" in words[3]:
-				response = "PARAMETER: " + str(device.fully_initialized).lower()	
-		elif "type" in words[1]:
-			pass	
-		# elif "server" in words[1]:
-		# 	if "schedules" in words[2]:
-		# 		response = "SUCCESS: " + str(["Device " + str(s.device_id) + " " + str(s.job) for s in jobs.schedules])
-
-	elif "rename" in words[0]:
-		d = device_from_identifier(device_id = int(words[1]))
-		d.name = " ".join(words[2:])
-		db.update_device_name(d)
-		response = "SUCCESS: New name for device " + str(d.device_id) + " " + d.name
-
-	elif "schedule" in words[0]:
-		data = "".join(words[2:])
-		job_handler.submit_schedule(int(words[1]), data)
-		response = "SUCCESS: Schedule submitted"
-
-	elif "debug" in words[0]:
-		response = "FAILURE: Unimplemented feature"
-		
-	dash_conn.send(response.encode())
-	return
-
 # --- ---
 
 def main_loop():
@@ -203,7 +113,7 @@ def main_loop():
 		for d in device_list:
 			if not d.device_id and d.pending_response is None:
 				log.info("New device detected, requesting ID")
-				if not d.device_send(messaging.generic_request_identity()):
+				if d.device_send(messaging.generic_request_identity()) <= 0:
 					log.info("New device failed to respond")
 					socket_close(d.soc_connection, poller)
 					device_list.remove(d)
@@ -227,12 +137,14 @@ def main_loop():
 				device_list.append(SmartHome_Device(conn))
 
 			else:
-				dash_conn = next((d for d in dashboard_connections if d.fileno() == fd), None)
+				dash_conn = next((conn for conn in dashboard_connections if conn.fileno() == fd), None)
 				if dash_conn is not None:
 					if handle_socket_error(dash_conn, event, poller):
 						dashboard_connections.remove(dash_conn)
 					else:
-						handle_dashboard_message(dash_conn, dash_conn.recv(2048).decode())
+						message = dash_conn.recv(2048).decode()
+						response = handle_dashboard_message(message, device_list, job_handler)
+						dash_conn.send(response.encode())
 
 				device = device_from_identifier(fd)
 				if device is not None:
@@ -267,5 +179,5 @@ def run():
 	except KeyboardInterrupt:
 		raise
 	except:
-		log.exception("Caught unhandled exception; device manager has crashed!", stack_info = True)
-		raise
+		log.exception("Caught unhandled exception; device manager has crashed!")
+		exit(1)

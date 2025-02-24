@@ -5,8 +5,7 @@ from common import device_definitions as defs
 from common.log_handler import logger as log
 
 from device_manager import messaging_interchange as messaging
-from device_manager import utilities as utils
-import copy, datetime, json, socket, sys, time, os, logging
+import copy, datetime, sys, time
 
 def parse_packet(packet):
 	try:
@@ -43,6 +42,9 @@ class SmartHome_Device:
 	STATUS_OK = 0
 	STATUS_UNRESPONSIVE = 1
 	STATUS_ERROR = 2
+
+	ERROR_NO_SOCKET = -1
+	ERROR_QUEUE_FULL = -2
 
 	MAX_SEQUENCE_NUM = 32767
 	TX_BUFFER_SIZE = 128
@@ -135,7 +137,7 @@ class SmartHome_Device:
 			next_message = self.pending_transmissions[0]
 
 			if self.soc_connection:
-				log.info("Transmitting: <" + str(next_message.packet) + "> to device " + str(self.device_id) + ". " + str(next_message.retries) + " retries available...")
+				log.debug("Transmitting: <" + str(next_message.packet) + "> to device " + str(self.device_id) + ". " + str(next_message.retries) + " retries available...")
 				self.pending_response = next_message
 				try:
 					transmit_packet()
@@ -169,7 +171,7 @@ class SmartHome_Device:
 				log.warning("Socket recv failed.", exc_info = True)
 				return -1
 
-			log.info("Received <" + msg + "> from device: " + str(self.device_id))
+			log.debug("Received <" + msg + "> from device: " + str(self.device_id))
 
 			self.update_last_contact()
 
@@ -186,19 +188,20 @@ class SmartHome_Device:
 		if cmd == defs.Device_Protocol.CMD_GET or cmd == defs.Device_Protocol.CMD_SET:
 			self.update_attributes(reg, val, query = True)
 
+		#TODO: Throw into queue and wait for (re)connection?
 		if self.soc_connection is None:
-			return 0
+			return SmartHome_Device.ERROR_NO_SOCKET
 
 		current_seq = self.msg_seq
 		self.msg_seq += 1
 		if self.msg_seq >= SmartHome_Device.MAX_SEQUENCE_NUM:
 			self.msg_seq = 1
 
-		log.info("Enqueue: <" + m + "> to device " + str(self.device_id))
+		log.debug("Enqueue: <" + m + "> to device " + str(self.device_id))
 
 		if len(self.pending_transmissions) >= self.max_pending_messages:
-			log.debug("Device send buffer full")
-			return 0
+			log.warning("Device send buffer full")
+			return SmartHome_Device.ERROR_QUEUE_FULL
 		
 		submitted_message = Pending_Message(m, time.monotonic(), self.msg_retries)
 

@@ -28,14 +28,17 @@ def message_transaction(request_data, timeout = 1.0):
 			}
 		}
 	
-	soc.settimeout(timeout)
-	soc.send(json.dumps(request_data).encode())
-
 	response = ""
 
 	try:
+		soc.settimeout(timeout)
+		soc.send(json.dumps(request_data).encode())
 		response = soc.recv(65536).decode()
+
 		log.debug("Device manager response raw: " + response)
+
+		soc.shutdown(socket.SHUT_RDWR)
+		soc.close()
 	except:
 		log.debug("Unhandled socket exception", exc_info = True)
 		return {
@@ -44,9 +47,6 @@ def message_transaction(request_data, timeout = 1.0):
 				"details": "Device manager socket 'recv' failed."
 			}
 		}
-
-	soc.shutdown(socket.SHUT_RDWR)
-	soc.close()
 
 	return json.loads(response)
 
@@ -69,7 +69,7 @@ def fetch_devices(device_id = None, device_type_label = None, meta_info = None):
 
 	return message_transaction(query)
 
-def device_command(device_id, packet):
+def send_device_command(device_id, packet):
 	query = {
 		"category": "device",
 		"directive": "command",
@@ -81,7 +81,7 @@ def device_command(device_id, packet):
 
 	return message_transaction(query)
 
-def device_schedule(device_id, schedule_data):
+def submit_device_schedule(device_id, schedule_data):
 	query = {
 		"category": "schedule",
 		"directive": "create",

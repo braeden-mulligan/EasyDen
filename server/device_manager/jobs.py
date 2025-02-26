@@ -3,15 +3,27 @@ sys.path.append("..")
 from common import server_config as config
 from common import device_definitions as defs
 from common.log_handler import logger as log
-from device_manager import messaging_interchange as messaging
+from common import device_messaging as messaging
 from device_manager import utilities as utils
 from database import operations as db
 
-import copy, json, datetime, schedule, time
+import json, schedule, time
 
+#TODO: Refactor jobs and schedules
 
-# data format: {"recurring": <bool>, "time": {"hour": <int>, "minute": <int>, "days": <string (eg. "mon,thu,sat")>}, "command": <string>, "pause": <int>}
 class Device_Command_Schedule:
+	"""
+	data: {
+		"recurring": bool,
+		"time": {
+			"hour": int,
+			"minute": int,
+			"days": string - eg. "mon,thu,sat"
+		},
+		"command": string,
+		"pause": int
+	}
+	"""
 	def __init__(self, device, data, schedule_id = None):
 		self.schedule_id = schedule_id
 		self.device = device
@@ -123,8 +135,22 @@ class Nexus_Jobs:
 	def fetch_schedules(self, device_id):
 		return [s.get_data() for s in self.schedules if s.device.device_id == device_id]
 
-	#{("id": <int>,) "action": "create"|"delete"|"edit", "recurring": <bool>, "time": {"hour": "3", "minute": "14", "days": "tue,thu,sun"}, "command": "02,66,42840000", "pause": <int>}
 	def submit_schedule(self, device_id, data):
+		"""
+		data: {
+			"id": int,
+			"action": "create"|"delete"|"edit",
+			"recurring": bool,
+			"time": {
+				"hour": int,
+				"minute": int,
+				"days": string - eg. "mon,thu,sat"
+			},
+			"command": string - device message eg. "02,66,42840000",
+			"pause": int
+		}
+		"""
+
 		log.info("Submitting schedule " + data + " for device " + str(device_id))
 		data = json.loads(data)
 

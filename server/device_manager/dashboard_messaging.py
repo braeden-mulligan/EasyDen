@@ -3,7 +3,6 @@ import sys
 sys.path.append("..")
 from common.log_handler import logger as log, set_log_level_console, set_log_level_file
 
-from device_manager import messaging_interchange as messaging
 from device_manager import utilities as utils
 from device_manager.device import SmartHome_Device
 

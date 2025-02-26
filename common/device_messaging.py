@@ -1,6 +1,4 @@
-import sys
-sys.path.append("..")
-from common import device_definitions as defs
+from . import device_definitions as defs
 
 import struct
 

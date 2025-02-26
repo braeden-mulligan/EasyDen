@@ -37,7 +37,7 @@ device_attribute_map = build_definition_mapping("_ATTR_")
 def device_type_id(type_name):
 	return device_type_map.get(type_name)
 
-def device_type_name(type_id):
+def device_type_label(type_id):
 	for key, val in device_type_map.items():
 		if val == type_id:
 			return key
@@ -48,9 +48,9 @@ def attribute_id(attr_name):
 
 # Because the register mapping is not one-to-one we need device type
 # Type can be passed as either string or int
-def attribute_name(attr_id, device_type):
+def attribute_label(attr_id, device_type):
 	if isinstance(device_type, int):
-		device_type = device_type_name(device_type)
+		device_type = device_type_label(device_type)
 	if not device_type:
 		return None
 	type_name = device_type.removeprefix("DEVICE_TYPE_")

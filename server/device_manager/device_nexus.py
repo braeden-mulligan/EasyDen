@@ -2,12 +2,12 @@ import sys
 sys.path.append("..")
 from common import server_config as config
 from common import defines
+from common import device_messaging
 from common.log_handler import logger as log, init_log_file
 
 from device_manager.device import SmartHome_Device
 from device_manager.jobs import Nexus_Jobs
 from device_manager.dashboard_messaging import handle_dashboard_message
-from device_manager import messaging_interchange as messaging
 
 from database import operations as db
 
@@ -17,8 +17,6 @@ dashboard_connections = []
 device_list = []
 job_handler = None
 
-
-# --- Socket Management ---
 
 def listener_init(dashboard = False):
 	addr_fam = socket.AF_INET
@@ -55,8 +53,6 @@ def handle_socket_error(soc, event, poll_obj):
 	return False
 
 
-# --- Device Messaging Tools ---
-
 def device_from_identifier(soc_fd = -1, device_id = -1):
 	for d in device_list:
 		if soc_fd == d.soc_fd or device_id == d.device_id:
@@ -83,8 +79,6 @@ def handle_device_message(device):
 				device_list.remove(device)
 
 	return True
-
-# --- ---
 
 def main_loop():
 	global device_list
@@ -113,7 +107,7 @@ def main_loop():
 		for d in device_list:
 			if not d.device_id and d.pending_response is None:
 				log.info("New device detected, requesting ID")
-				if d.device_send(messaging.generic_request_identity()) <= 0:
+				if d.device_send(device_messaging.generic_request_identity()) <= 0:
 					log.info("New device failed to respond")
 					socket_close(d.soc_connection, poller)
 					device_list.remove(d)

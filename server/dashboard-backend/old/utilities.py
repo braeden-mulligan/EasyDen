@@ -1,8 +1,7 @@
 import sys
 sys.path.append("..")
-from configs import device_definitions as dm_defs
-
-import device_manager.messaging_interchange as interchange
+from common import device_definitions as dm_defs
+import common.device_messaging as interchange
 
 def register_id(label):
 	return dm_defs.register_id(label)

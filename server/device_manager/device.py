@@ -4,7 +4,7 @@ from common import server_config as config
 from common import device_definitions as defs
 from common.log_handler import logger as log
 
-from device_manager import messaging_interchange as messaging
+from common import device_messaging as messaging
 import copy, datetime, sys, time
 
 def parse_packet(packet):

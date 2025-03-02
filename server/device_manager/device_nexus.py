@@ -2,7 +2,7 @@ import sys
 sys.path.append("..")
 from common import server_config as config
 from common import defines
-from common import device_messaging
+from common import device_protocol_helpers
 from common.log_handler import logger as log, init_log_file
 
 from device_manager.device import SmartHome_Device
@@ -107,7 +107,7 @@ def main_loop():
 		for d in device_list:
 			if not d.device_id and d.pending_response is None:
 				log.info("New device detected, requesting ID")
-				if d.device_send(device_messaging.generic_request_identity()) <= 0:
+				if d.device_send(device_protocol_helpers.generic_request_identity()) <= 0:
 					log.info("New device failed to respond")
 					socket_close(d.soc_connection, poller)
 					device_list.remove(d)

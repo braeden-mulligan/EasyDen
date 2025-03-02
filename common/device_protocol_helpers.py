@@ -1,4 +1,5 @@
 from . import device_definitions as defs
+from . import utils
 
 import struct
 
@@ -57,38 +58,15 @@ def build_command_from_float(register, value):
 		return None
 
 	packed_float = struct.unpack("!I", struct.pack("!f", value))[0]
-	return template.format(_set, register_id, packed_float);
+
+	return template.format(_set, register_id, packed_float)
 
 def build_command_from_int(register, value):
 	register_id = _map_to_register_id(register)
 	if register_id is None:
 		return None
 
-	return template.format(_set, register_id, value);
-
-def list_to_bitmask(sub_attribute_list):
-	high_byte = 0
-	low_byte = 0
-	for i, val in enumerate(sub_attribute_list):
-		if val >= 0:
-			high_byte |= (1 << i)
-		if val > 0:
-			low_byte |= (1 << i)
-
-	reg_value = high_byte << 8 | low_byte
-	return reg_value
-
-
-def bitmask_to_list(reg_value, item_count):
-	sub_attribute_list = []
-
-	for i in range(item_count):
-		if reg_value & (1 << i):
-			sub_attribute_list.append(1)
-		else:
-			sub_attribute_list.append(0)
-
-	return sub_attribute_list
+	return template.format(_set, register_id, value)
 
 def generic_request_identity():
 	return template.format(defs.Device_Protocol.CMD_IDY, 0, 0)
@@ -103,14 +81,15 @@ def poweroutlet_get_count():
 def poweroutlet_get_state():
 	return template.format(_get, _reg_id("POWEROUTLET_ATTR_STATE"), 0)
 
-
 # pass a list 
 def poweroutlet_set_state(socket_states):
 	for i in range(len(socket_states)):
 		if socket_states[i] is None:
 			socket_states[i] = -1
 		socket_states[i] = int(socket_states[i])
-	reg_value = list_to_bitmask(socket_states)
+
+	reg_value = utils.list_to_bitmask(socket_states)
+
 	return template.format(_set, _reg_id("POWEROUTLET_ATTR_STATE"), reg_value)
 
 # return list 
@@ -121,13 +100,9 @@ def poweroutlet_read_state(reg_value, socket_count):
 	if isinstance(socket_count, str):
 		socket_count = int(socket_count, 16)
 
-	if socket_count > 8:
-		print("WARNING: poweroutlet_read_state invalid argument passed.")
-		socket_count = 8
+	socket_values = utils.bitmask_to_list(reg_value, socket_count)
+	socket_selection = utils.bitmask_to_list(reg_value >> 8, socket_count)
 
-	socket_values = bitmask_to_list(reg_value, socket_count)
-	socket_selection = bitmask_to_list(reg_value >> 8, socket_count)
-	print(socket_values, socket_selection)
 	return (socket_values, socket_selection)
 
 
@@ -143,7 +118,7 @@ def thermostat_get_humidity():
 def thermostat_set_temperature(value):
 	#TODO: check value is float
 	packed_float = struct.unpack("!i", struct.pack("!f", value))[0]
-	return template.format(_set, _reg_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"), packed_float);
+	return template.format(_set, _reg_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"), packed_float)
 
 
 def irrigation_get_moisture(sensor):
@@ -176,10 +151,10 @@ def irrigation_read_plant_enable(reg_value, sensor_count):
 		print("WARNING: irrigation_read_plant_enable invalid argument passed.")
 		sensor_count = 8
 	
-	return bitmask_to_list(reg_value, sensor_count)
+	return utils.bitmask_to_list(reg_value, sensor_count)
 
 def irrigation_set_plant_enable(status_list):
-	reg_value = list_to_bitmask(status_list)
+	reg_value = utils.list_to_bitmask(status_list)
 	return template.format(_set, _reg_id("IRRIGATION_ATTR_PLANT_ENABLE"), reg_value)
 
 def irrigation_read_calibration_settings(reg_value):

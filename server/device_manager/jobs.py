@@ -3,7 +3,7 @@ sys.path.append("..")
 from common import server_config as config
 from common import device_definitions as defs
 from common.log_handler import logger as log
-from common import device_messaging as messaging
+from common import device_protocol_helpers as messaging
 from device_manager import utilities as utils
 from database import operations as db
 

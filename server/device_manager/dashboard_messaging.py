@@ -82,17 +82,36 @@ def send_device_command(data, device_list):
 
 def update_device_name(data, device_list):
 	device = next((d for d in device_list if d.device_id == data.get("id")), None)
+	if not device :
+		return {
+			"error": {
+				"code": "DEVICE_NOT_FOUND",
+				"details": "Device ID: " + str(data.get("id")) + " not found."
+			}
+		}
+
 	device.name = data.get("name", device.name)
 	db.update_device_name(device)
-	return
+
+	return {
+		"result": [device.get_data()]
+	}
 
 def handle_dashboard_message(message, device_list, job_handler):
-	log.info("Dashboard message: [" + message + "]")
+	log.info("Dashboard message: <" + message + ">")
 
 	message = json.loads(message)
 	# category = message.get("category")
 	# directive = message.get("directive")
 	params = message.get("parameters")
+
+	if not params or not message.get("category") or not message.get("directive"):
+		return {
+			"error": {
+				"code": "INVALID_MESSAGE",
+				"details": "Message missing field: category, directive, or parameters"
+			}
+		}
 
 	response = {
 		"error": {
@@ -114,9 +133,8 @@ def handle_dashboard_message(message, device_list, job_handler):
 			response = filter_devices(params, device_list, job_handler)
 		case { "category": "device", "directive": "command" }:
 			response = send_device_command(params, device_list)
-		case { "category": "device", "directive": "rename" }:
-			update_device_name(params, device_list)
-			response = response_success
+		case { "category": "device", "directive": "update" }:
+			response = update_device_name(params, device_list)
 
 		case { "category": "schedule", "directive": "fetch" }:
 			response = response_unimplemented
@@ -126,7 +144,7 @@ def handle_dashboard_message(message, device_list, job_handler):
 		case { "category": "schedule", "directive": "delete" }:
 			job_handler.submit_schedule(None, params.get("schedule"))
 			response = response_success
-		case { "category": "schedule", "directive": "edit" }:
+		case { "category": "schedule", "directive": "update" }:
 			response = response_unimplemented
 		
 		case { "category": "config", "directive": "fetch" }:

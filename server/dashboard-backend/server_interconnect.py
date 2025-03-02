@@ -50,7 +50,7 @@ def message_transaction(request_data, timeout = 1.0):
 
 	return json.loads(response)
 
-def fetch_devices(device_id = None, device_type_label = None, meta_info = None):
+def fetch_devices(device_id = None, device_type = None, meta_info = None):
 	query = {
 		"category": "device",
 		"directive": "fetch",
@@ -59,8 +59,8 @@ def fetch_devices(device_id = None, device_type_label = None, meta_info = None):
 
 	if device_id:
 		query["parameters"]["id"] = device_id
-	elif device_type_label:
-		query["parameters"]["type"] = defs.device_type_id(device_type_label)
+	elif device_type:
+		query["parameters"]["type"] = defs.device_type_id(device_type) if isinstance(device_type, str) else device_type
 	else:
 		query["parameters"]["all"] = True
 

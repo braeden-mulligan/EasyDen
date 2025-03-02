@@ -4,11 +4,12 @@ from pathlib import Path
 
 import importlib, json
 
-handle_query = importlib.import_module("dashboard-backend.query_handler").handle_query
+handle_query = importlib.import_module("dashboard-backend.api").handle_query
 
 REACT_APP_PATH = str(Path(__file__).parent) + "/dashboard-frontend/build"
 
 dashboard_app = Flask(__name__, static_folder=REACT_APP_PATH, static_url_path="/")
+
 CORS(dashboard_app, origins=["http://localhost:*", "https://localhost:*"])
 
 @dashboard_app.route("/", methods=["GET", "POST"])

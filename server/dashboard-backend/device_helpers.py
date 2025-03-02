@@ -6,29 +6,34 @@
 # def register_id(label):
 # 	return dm_defs.register_id(label)
 
-# def unpack_attribute(registers, register_label):
-# 	attribute = {}
+import common.device_protocol_helpers as device_protocol
+from common import device_definitions as device_defs
 
-# 	value = interchange.reg_to_int(registers, register_label)
+def unpack_attribute_to_int(attribute_label, attributes):
+	attribute = {}
 
-# 	if value is not None:
-# 		key = str(dm_defs.register_id(register_label))
-# 		attribute = { "value": value, "register": key }
+	value = device_protocol.reg_to_int(attributes, attribute_label)
 
-# 	return attribute
+	if value is not None:
+		key = device_defs.attribute_id(attribute_label)
+		attribute = { "value": value, "id": key }
 
-# def unpack_attribute_to_float(registers, reg_label):
-# 	attr = unpack_attribute(registers, reg_label)
-# 	attr["value"] = interchange.reg_to_float(registers, reg_label)
-# 	if attr["value"] == float("inf") or attr["value"] == float("-inf"):
-# 		attr["value"] = None
-# 	return attr
+	return attribute
 
-# def prune_device_data(device):
-# 	#del device["type"]
-# 	del device["initialized"]
-# 	del device["registers"]
-# 	return
+def unpack_attribute_to_float(attribute_label, attributes):
+	attr = unpack_attribute_to_int(attributes, attribute_label)
+
+	attr["value"] = device_protocol.reg_to_float(attributes, attribute_label)
+
+	if attr["value"] == float("inf") or attr["value"] == float("-inf"):
+		attr["value"] = None
+
+	return attr
+
+def prune_device_data(device):
+	#del device["type"]
+	del device["initialized"]
+	del device["attributes"]
 
 # def build_command(attribute, integer_register_values = [], float_register_values = []):
 # 	register = int(attribute["register"])

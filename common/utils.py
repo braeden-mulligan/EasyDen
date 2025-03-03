@@ -1,3 +1,5 @@
+# Devices that have multiple binary i/o channels for an attribute map bits from lowest byte to determine state.
+# To control which channels to toggle, set the corresponding bit of high byte. Else consider low byte bit null.
 def list_to_bitmask(value_list):
 	high_byte = 0
 	low_byte = 0

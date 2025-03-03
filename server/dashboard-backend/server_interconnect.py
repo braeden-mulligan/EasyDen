@@ -69,13 +69,13 @@ def fetch_devices(device_id = None, device_type = None, meta_info = None):
 
 	return message_transaction(query)
 
-def send_device_command(device_id, packet):
+def send_device_command(device_id, command_packet):
 	query = {
 		"category": "device",
 		"directive": "command",
 		"parameters": {
 			"id": device_id,
-			"command": packet 
+			"command": command_packet 
 		}
 	}
 

@@ -9,7 +9,7 @@ export const Debug_Page = function() {
 		const formJson = Object.fromEntries(formData.entries());
 
 		formJson.parameters = JSON.parse(formJson.parameters);
-		formJson.entity = "debug";
+		formJson.entity = formJson.entity || "debug";
 
 		console.log("form data:", formJson);
 
@@ -21,8 +21,17 @@ export const Debug_Page = function() {
 	return (
 	<div>
 		<h1>Debug Page</h1>
+		<h2>Device manager</h2>
 		<form onSubmit={(e) => debug_form_submit(e)}>
 			<input type="text" placeholder="category" name="category" />
+			<input type="text" placeholder="directive" name="directive" />
+			<textarea type="text" placeholder="parameters" name="parameters" />
+			<button type="submit">Submit</button>
+		</form>
+
+		<h2>Dashboard Backend</h2>
+		<form onSubmit={(e) => debug_form_submit(e)}>
+			<input type="text" placeholder="entity" name="entity" />
 			<input type="text" placeholder="directive" name="directive" />
 			<textarea type="text" placeholder="parameters" name="parameters" />
 			<button type="submit">Submit</button>

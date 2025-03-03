@@ -32,11 +32,6 @@ def filter_devices(data, device_list, job_handler):
 		for d in devices:
 			d["schedules"] = job_handler.fetch_schedules(d["id"])
 
-			if "attributes" not in d:
-				continue
-
-			utils.hexify_attribute_values(d["attributes"])
-
 	return {
 		"result": devices
 	}
@@ -97,12 +92,9 @@ def update_device_name(data, device_list):
 		"result": [device.get_data()]
 	}
 
-def handle_dashboard_message(message, device_list, job_handler):
-	log.info("Dashboard message: <" + message + ">")
+def _handle_dashboard_message(message, device_list, job_handler):
+	log.info("Dashboard message: <" + str(message) + ">")
 
-	message = json.loads(message)
-	# category = message.get("category")
-	# directive = message.get("directive")
 	params = message.get("parameters")
 
 	if not params or not message.get("category") or not message.get("directive"):
@@ -155,40 +147,17 @@ def handle_dashboard_message(message, device_list, job_handler):
 		case { "category": "debug" }:
 			response = response_unimplemented
 
-	# if category == "device":
-	# 	if directive == "fetch":
-	# 		response = filter_devices(params, device_list, job_handler)
-		
-	# 	elif directive == "command":
-	# 		response = send_device_command(params, device_list)
+	return response
 
-	# 	elif directive == "rename":
-	# 		update_device_name(params, device_list)
-	# 		response = response_success
-
-	# elif category == "schedule":
-	# 	if directive == "fetch":
-	# 		response = response_unimplemented
-
-	# 	elif directive == "create":
-	# 		job_handler.submit_schedule(params.get("device-id"), params.get("schedule"))
-	# 		response = response_success
-
-	# 	elif directive == "delete":
-	# 		job_handler.submit_schedule(None, params.get("schedule"))
-	# 		response = response_success
-		
-	# 	elif directive == "edit":
-	# 		response = response_unimplemented
-	
-	# elif category == "config":
-	# 	if directive == "fetch":
-	# 		response = response_unimplemented
-
-	# 	elif directive == "set":
-	# 		response = response_unimplemented
-
-	# elif category == "debug":
-	# 	response = response_unimplemented
-
-	return json.dumps(response)
+def handle_dashboard_message(message, device_list, job_handler):
+	message = json.loads(message)
+	try:
+		return json.dumps(_handle_dashboard_message(message, device_list, job_handler))
+	except Exception as e:
+		log.error("Error processing dashboard message.", exc_info = True)
+		return json.dumps({
+			"error": {
+				"code": "UNHANDLED_EXCEPTION",
+				"details": "Device manager: " + str(e)
+			}
+		})

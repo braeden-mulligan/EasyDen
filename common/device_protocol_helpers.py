@@ -5,81 +5,58 @@ import struct
 
 _get = defs.Device_Protocol.CMD_GET
 _set = defs.Device_Protocol.CMD_SET
-_reg_id = defs.attribute_id
+_attr_id = defs.attribute_id
 
 template = "{:02X},{:02X},{:08X}" 
 
-def _reg_id_parse(registers, reg_label = None, reg_id = None):
-	reg_value_str = None
-	try:
-		if reg_label:
-			reg_value_str = registers[str(_reg_id(reg_label))]["value"]
-		elif reg_id:
-			reg_value_str = registers[str(reg_id)]["value"]
-	except KeyError:
-		try:
-			if reg_label:
-				reg_value_str = registers[_reg_id(reg_label)]["value"]
-			elif reg_id:
-				reg_value_str = registers[reg_id]["value"]
-		except KeyError:
-			return None
+# Where applicapble <attribute_identifier> may be either the attribute label string or the id integer.
 
-	if reg_value_str:
-		reg_value_str = reg_value_str.replace("0x", "")
+def attribute_as_int(attribute_identifier, attributes):
+	if isinstance(attribute_identifier, str):
+		attribute_identifier = _attr_id(attribute_identifier)
 
-	return reg_value_str
+	return attributes.get(str(attribute_identifier), {}).get("value", None)
 
-def reg_to_float(registers, reg_label = None, reg_id = None):
-	reg_str = _reg_id_parse(registers, reg_label, reg_id)
-	if reg_str:
-		return struct.unpack("!f", bytes.fromhex(reg_str))[0]
+def attribute_as_float(attribute_identifier, attributes):
+	value = attribute_as_int(attribute_identifier, attributes)
 
-	return None
+	if value is not None:
+		value = struct.unpack("=f", struct.pack("=I", value))[0]
 
-def reg_to_int(registers, reg_label = None, reg_id = None):
-	reg_str = _reg_id_parse(registers, reg_label, reg_id)
-	if reg_str:
-		return int(reg_str, 16)
+	return value
 
-	return None
+def build_command_from_float(attribute_identifier, value):
+	if isinstance(attribute_identifier, str):
+		attribute_identifier = _attr_id(attribute_identifier)
 
-def _map_to_register_id(reg):
-	if isinstance(reg, str):
-		return _reg_id(reg)
-	elif isinstance(reg, int):
-		return reg
-
-	return None
-
-def build_command_from_float(register, value):
-	register_id = _map_to_register_id(register)
-	if register_id is None:
+	if attribute_identifier is None:
 		return None
 
-	packed_float = struct.unpack("!I", struct.pack("!f", value))[0]
+	packed_float = struct.unpack("=I", struct.pack("=f", value))[0]
 
-	return template.format(_set, register_id, packed_float)
+	return template.format(_set, attribute_identifier, packed_float)
 
-def build_command_from_int(register, value):
-	register_id = _map_to_register_id(register)
-	if register_id is None:
+def build_command_from_int(attribute_identifier, value):
+	if isinstance(attribute_identifier, str):
+		attribute_identifier = _attr_id(attribute_identifier)
+
+	if attribute_identifier is None:
 		return None
 
-	return template.format(_set, register_id, value)
+	return template.format(_set, attribute_identifier, value)
 
 def generic_request_identity():
 	return template.format(defs.Device_Protocol.CMD_IDY, 0, 0)
 
 def generic_ping():
-	return template.format(_get, _reg_id("GENERIC_ATTR_PING"), 0)
+	return template.format(_get, _attr_id("GENERIC_ATTR_PING"), 0)
 
 
 def poweroutlet_get_count():
-	return template.format(_get, _reg_id("POWEROUTLET_ATTR_SOCKET_COUNT"), 0)
+	return template.format(_get, _attr_id("POWEROUTLET_ATTR_SOCKET_COUNT"), 0)
 
 def poweroutlet_get_state():
-	return template.format(_get, _reg_id("POWEROUTLET_ATTR_STATE"), 0)
+	return template.format(_get, _attr_id("POWEROUTLET_ATTR_STATE"), 0)
 
 # pass a list 
 def poweroutlet_set_state(socket_states):
@@ -88,56 +65,55 @@ def poweroutlet_set_state(socket_states):
 			socket_states[i] = -1
 		socket_states[i] = int(socket_states[i])
 
-	reg_value = utils.list_to_bitmask(socket_states)
+	attr_value = utils.list_to_bitmask(socket_states)
 
-	return template.format(_set, _reg_id("POWEROUTLET_ATTR_STATE"), reg_value)
+	return template.format(_set, _attr_id("POWEROUTLET_ATTR_STATE"), attr_value)
 
 # return list 
-def poweroutlet_read_state(reg_value, socket_count):
-	if isinstance(reg_value, str):
-		reg_value = int(reg_value, 16)
+def poweroutlet_read_state(attr_value, socket_count):
+	if isinstance(attr_value, str):
+		attr_value = int(attr_value, 16)
 
 	if isinstance(socket_count, str):
 		socket_count = int(socket_count, 16)
 
-	socket_values = utils.bitmask_to_list(reg_value, socket_count)
-	socket_selection = utils.bitmask_to_list(reg_value >> 8, socket_count)
+	socket_values = utils.bitmask_to_list(attr_value, socket_count)
+	socket_selection = utils.bitmask_to_list(attr_value >> 8, socket_count)
 
 	return (socket_values, socket_selection)
 
 
 def thermostat_get_temperature():
-	return template.format(_get, _reg_id("THERMOSTAT_ATTR_TEMPERATURE"), 0)
+	return template.format(_get, _attr_id("THERMOSTAT_ATTR_TEMPERATURE"), 0)
 
 def thermostat_get_target_temperature():
-	return template.format(_get, _reg_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"), 0)
+	return template.format(_get, _attr_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"), 0)
 
 def thermostat_get_humidity():
-	return template.format(_get, _reg_id("THERMOSTAT_ATTR_HUMIDITY"), 0)
+	return template.format(_get, _attr_id("THERMOSTAT_ATTR_HUMIDITY"), 0)
 
 def thermostat_set_temperature(value):
-	#TODO: check value is float
-	packed_float = struct.unpack("!i", struct.pack("!f", value))[0]
-	return template.format(_set, _reg_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"), packed_float)
+	packed_float = struct.unpack("=I", struct.pack("=f", value))[0]
+	return template.format(_set, _attr_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"), packed_float)
 
 
 def irrigation_get_moisture(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_ATTR_MOISTURE_" + str(sensor)), 0)
+	return template.format(_get, _attr_id("IRRIGATION_ATTR_MOISTURE_" + str(sensor)), 0)
 
 def irrigation_get_moisture_raw(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_ATTR_SENSOR_RAW_" + str(sensor)), 0)
+	return template.format(_get, _attr_id("IRRIGATION_ATTR_SENSOR_RAW_" + str(sensor)), 0)
 
 def irrigation_get_sensor_raw_max(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_ATTR_SENSOR_RAW_MAX_" + str(sensor)), 0)
+	return template.format(_get, _attr_id("IRRIGATION_ATTR_SENSOR_RAW_MAX_" + str(sensor)), 0)
 
 def irrigation_get_sensor_raw_min(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_ATTR_SENSOR_RAW_MIN_" + str(sensor)), 0)
+	return template.format(_get, _attr_id("IRRIGATION_ATTR_SENSOR_RAW_MIN_" + str(sensor)), 0)
 
 def irrigation_get_sensor_recorded_max(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_ATTR_SENSOR_RECORDED_MAX_" + str(sensor)), 0)
+	return template.format(_get, _attr_id("IRRIGATION_ATTR_SENSOR_RECORDED_MAX_" + str(sensor)), 0)
 
 def irrigation_get_sensor_recorded_min(sensor):
-	return template.format(_get, _reg_id("IRRIGATION_ATTR_SENSOR_RECORDED_MIN_" + str(sensor)), 0)
+	return template.format(_get, _attr_id("IRRIGATION_ATTR_SENSOR_RECORDED_MIN_" + str(sensor)), 0)
 
 def irrigation_read_plant_enable(reg_value, sensor_count):
 	if isinstance(reg_value, str):
@@ -146,16 +122,11 @@ def irrigation_read_plant_enable(reg_value, sensor_count):
 	if isinstance(sensor_count, str):
 		sensor_count = int(sensor_count, 16)
 
-	if sensor_count > 8:
-		# TODO: Throw error instead?
-		print("WARNING: irrigation_read_plant_enable invalid argument passed.")
-		sensor_count = 8
-	
 	return utils.bitmask_to_list(reg_value, sensor_count)
 
 def irrigation_set_plant_enable(status_list):
 	reg_value = utils.list_to_bitmask(status_list)
-	return template.format(_set, _reg_id("IRRIGATION_ATTR_PLANT_ENABLE"), reg_value)
+	return template.format(_set, _attr_id("IRRIGATION_ATTR_PLANT_ENABLE"), reg_value)
 
 def irrigation_read_calibration_settings(reg_value):
 	if isinstance(reg_value, str):
@@ -168,4 +139,4 @@ def irrigation_read_calibration_settings(reg_value):
 
 def irrigation_set_calibration_settings(mode, plant_select):
 	reg_value = int(mode) | (int(plant_select) << 8)
-	return template.format(_set, _reg_id("IRRIGATION_ATTR_CALIBRATION_MODE"), reg_value)
+	return template.format(_set, _attr_id("IRRIGATION_ATTR_CALIBRATION_MODE"), reg_value)

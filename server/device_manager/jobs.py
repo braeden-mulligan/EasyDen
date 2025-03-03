@@ -231,7 +231,7 @@ class Nexus_Jobs:
 			if not device["initialized"]:
 				continue
 
-			utils.hexify_attribute_values(device["attributes"])
+			# utils.hexify_attribute_values(device["attributes"])
 			entry = (
 			  device["id"],
 			  messaging.reg_to_float(device["attributes"], reg_label = "THERMOSTAT_ATTR_TEMPERATURE"),

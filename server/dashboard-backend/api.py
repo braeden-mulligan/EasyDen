@@ -18,27 +18,26 @@ def handle_query(request):
 			"type": string,
 			"name": string,
 			"command": {
-				"attribute": string,
+				"attribute_id": int,
 				"value": object
 			},
 			"config": "string",
-			"schedule": bool
+			"schedule": 
 			"data": object,
+			"timeout": number
 		}
 	}
 	"""
 
 	log.debug(request)
 
-	entity = request.get("entity")
-	match entity:
+	match request.get("entity"):
 		case "irrigation":
 			pass
 		case "poweroutlet":
-			return  poweroutlet.delegate_operation(request)
+			return  poweroutlet.handle_request(request)
 		case "thermostat":
 			pass
-			# return thermostat.fetch()
 		case "schedule":
 			pass
 		case "server":

@@ -2,42 +2,56 @@ import sys
 sys.path.append("..")
 
 from common import server_config as config
-
 from .. import server_interconnect as interconnect
-# from dashboard import utilities as utils
 
 import time
 
-def fetch_device(request, processor):
-	# device_id = request.get("id")
-	devices = interconnect.fetch_devices(meta_info = True)
+def fetch(request_data, device_data_processor):
+	device_id = request_data.get("id")
+	device_type = request_data.get("type")
+	include_meta_info = request_data.get("include-meta-info")
 
-	return processor(devices)
+	response = interconnect.fetch_devices(device_id, device_type, include_meta_info)
 
-def command(request, packet, processor):
-	device_id = request.get("id")
+	if response["result"]:
+		response["result"] = device_data_processor(response["result"])
+		return response
 
-	interconnect.send_device_command(device_id, packet)
+	if not response["error"]:
+		return { 
+			"error": {
+				"code": "UNKNOWN",
+			}
+		}
+	
+	return response
 
-#TODO: Clean up...
-	#if request.args.get("all") == true
-	# submit best-effort cmd
-	# else
-	timeout = time.monotonic() + (request.args.get("timeout") or (config.TX_TIMEOUT * (config.MAX_TX_RETRIES  + 1) + 1.0))
+def command(request_data, command_packet, device_data_processor):
+	device_id = request_data.get("id")
+
+	response = interconnect.send_device_command(device_id, command_packet)
+
+	if response.get("error"):
+		return response
+
+	timeout = time.monotonic() + (request_data.get("timeout") or (config.TX_TIMEOUT * (config.MAX_TX_RETRIES  + 1) + 1.0))
+
 	while time.monotonic() < timeout:
 		time.sleep(0.15)
 		devices = interconnect.fetch_devices(device_id).get("result")
 		if not devices:
 			continue 
 
-	#TODO: get target from packet
-		last_query = devices[0]["attributes"].get(str(target_register), {}).get("queried_at")
-		last_update = devices[0]["attributes"].get(str(target_register), {}).get("updated_at")
+		target_attribute = int(command_packet.split(",")[1], 16)
+
+		last_query = devices[0]["attributes"].get(str(target_attribute), {}).get("queried_at")
+		last_update = devices[0]["attributes"].get(str(target_attribute), {}).get("updated_at")
+
 		if last_query is None or last_update is None:
 			continue
 
 		if last_update > last_query:
-			return processor(devices)
+			return device_data_processor(devices)
 
 	return {
 		"error": {
@@ -63,7 +77,3 @@ def command(request, packet, processor):
 # 	response_label, devices = interconnect.fetch_devices(device_id, device_type_label = type_label)
 	
 # 	return Response(response = json.dumps(processor(devices)), mimetype = "application/json")
-
-# def error(message):
-# 	data = {"error": message}
-# 	return Response(response = json.dumps(data), mimetype = "application/json")

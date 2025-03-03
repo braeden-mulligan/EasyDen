@@ -1,7 +1,8 @@
 import common.device_protocol_helpers as device_protocol
 
-from .. import server_interconnect as interconnect
+from common import device_definitions as device_defs
 from ..device_helpers import *
+from . import base_device as base
 
 def poweroutlet_processor(poweroutlets):
 	valid_devices = []
@@ -10,13 +11,13 @@ def poweroutlet_processor(poweroutlets):
 		if not device["initialized"]:
 			continue
 
-		device["attributes"] = {}
-		device["attributes"]["enabled"] = unpack_attribute_to_int(device["attributes"], "GENERIC_ATTR_ENABLE")
-		device["attributes"]["socket_count"] = unpack_attribute_to_int(device["attributes"], "POWEROUTLET_ATTR_SOCKET_COUNT")
+		attributes = {}
+		attributes["enabled"] = repack_int_attribute("GENERIC_ATTR_ENABLE", device["attributes"])
+		attributes["socket_count"] = repack_int_attribute("POWEROUTLET_ATTR_SOCKET_COUNT", device["attributes"])
 
-		outlet_state = unpack_attribute_to_int(device["attributes"], "POWEROUTLET_ATTR_STATE")
-		outlet_state["value"], _ = device_protocol.poweroutlet_read_state(outlet_state["value"], device["attributes"]["socket_count"]["value"])
-		device["attributes"]["socket_states"] = outlet_state
+		outlet_state = repack_int_attribute("POWEROUTLET_ATTR_STATE", device["attributes"])
+		outlet_state["value"], _ = device_protocol.poweroutlet_read_state(outlet_state["value"], attributes["socket_count"]["value"])
+		attributes["socket_states"] = outlet_state
 
 		# def schedule_processor(register, value, device = device):
 		# 	if register == utils.register_id("POWEROUTLET_REG_STATE"):
@@ -30,65 +31,51 @@ def poweroutlet_processor(poweroutlets):
 		# utils.reformat_schedules(device, schedule_processor)
 
 		prune_device_data(device)
+		device["attributes"] = attributes
 
 		valid_devices.append(device)
 
 	return valid_devices
 
-def fetch(request_data):
-	device_id = request_data.get("id")
-	device_type = request_data.get("type")
-	include_meta_info = request_data.get("include-meta-info")
+def poweroutlet_build_command(command_data):
+	command_packet = build_command(command_data, [], [])
 
-	response = interconnect.fetch_devices(device_id, device_type, include_meta_info)
+	if int(command_data["attribute_id"]) == device_defs.attribute_id("POWEROUTLET_ATTR_STATE"):
+		command_packet = device_protocol.poweroutlet_set_state(command_data["value"])
 
-	if response.result:
-		response.result = poweroutlet_processor(response.result)
-		return response
-
-	if not response.error:
-		return { 
-			"error": {
-				"code": "UNKNOWN",
-			}
-		}
-	
-	return response
+	return command_packet
 
 def command(request_data):
-	pass
+	command_data = request_data.get("command")
 
-def delegate_operation(request_data):
-	operation = request_data.get("operation")
-	match operation:
+	try:
+		command_packet = poweroutlet_build_command(command_data)
+	except Exception as e:
+		return {
+			"error": {
+				"code": "INVALID_OPERATION",
+				"details": "Failed to build poweroutlet command: " + str(e)
+			}
+		}
+
+	return base.command(request_data, command_packet, poweroutlet_processor)
+
+# def set_schedule(request):
+	# return base.set_schedule(request, poweroutlet_build_command, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
+
+def handle_request(request):
+	directive = request.get("directive")
+	request_data = request.get("parameters")
+
+	match directive:
 		case "get":
-			return fetch(request_data)
+			return base.fetch(request_data, poweroutlet_processor)
 		case "put":
 			return command(request_data)
 		case _:
 			return {
 				"error":  {
 					"code": "INVALID_OPERATION",
-					"details": ("Missing" if not operation else "Invalid") + " operation."
+					"details": ("Missing" if not directive else "Invalid") + " directive."
 				}
 			}
-
-# def command(request):
-# 	command_data = json.loads(request.data.decode())
-# 	message = poweroutlet_build_command(command_data)
-
-# 	if message:
-# 		return base.command(request, command_data["register"], message, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
-	
-# 	return base.error({ "error": None })
-
-# def set_schedule(request):
-# 	return base.set_schedule(request, poweroutlet_build_command, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
-
-# def poweroutlet_build_command(attribute):
-# 	message = utils.build_command(attribute, [], [])
-
-# 	if int(attribute["register"]) == utils.register_id("POWEROUTLET_REG_STATE"):
-# 		message = interchange.poweroutlet_set_state(attribute["attribute_data"])
-
-# 	return message

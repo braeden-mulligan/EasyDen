@@ -36,47 +36,47 @@ uint32_t handle_server_get(uint16_t reg) {
 
 	switch (reg) {
 
-	case THERMOSTAT_REG_TEMPERATURE:
+	case THERMOSTAT_ATTR_TEMPERATURE:
 		value_conversion.sensor = temperature;
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_HUMIDITY:
+	case THERMOSTAT_ATTR_HUMIDITY:
 		value_conversion.sensor = humidity;
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_HUMIDITY_SENSOR_COUNT:
+	case THERMOSTAT_ATTR_HUMIDITY_SENSOR_COUNT:
 		return humidity_sensor_count;
 
-	case GENERIC_REG_ENABLE:
+	case GENERIC_ATTR_ENABLE:
 		return thermostat_enabled;
 
-	case GENERIC_REG_APP_INTERVAL:
+	case GENERIC_ATTR_APP_INTERVAL:
 		return app_conf.application_interval;
 
-	case THERMOSTAT_REG_TARGET_TEMPERATURE:
+	case THERMOSTAT_ATTR_TARGET_TEMPERATURE:
 		value_conversion.sensor = target_temperature;
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_TEMPERATURE_CORRECTION:
+	case THERMOSTAT_ATTR_TEMPERATURE_CORRECTION:
 		value_conversion.sensor = temperature_correction;
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_THRESHOLD_HIGH:
+	case THERMOSTAT_ATTR_THRESHOLD_HIGH:
 		value_conversion.sensor = threshold_high;
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_THRESHOLD_LOW:
+	case THERMOSTAT_ATTR_THRESHOLD_LOW:
 		value_conversion.sensor = threshold_low;
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_HUMIDITY_CORRECTION:
+	case THERMOSTAT_ATTR_HUMIDITY_CORRECTION:
 		value_conversion.sensor = humidity_correction;
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_MAX_HEAT_TIME:
+	case THERMOSTAT_ATTR_MAX_HEAT_TIME:
 		return max_heat_time;
 
-	case THERMOSTAT_REG_MIN_COOLDOWN_TIME:
+	case THERMOSTAT_ATTR_MIN_COOLDOWN_TIME:
 		return min_cooldown_time;
 
 // Debug
@@ -100,45 +100,45 @@ uint32_t handle_server_set(uint16_t reg, uint32_t val) {
 	} value_conversion = { .reg = val }; 
 
 	switch (reg) {
-	case GENERIC_REG_BLINK:
+	case GENERIC_ATTR_BLINK:
 		set_conf_fast_period();
 		blink_trigger = 1;
 		break;
 
-	case GENERIC_REG_ENABLE:
+	case GENERIC_ATTR_ENABLE:
 		set_thermostat_enabled(val);
 		return thermostat_enabled;
 
-	case GENERIC_REG_APP_INTERVAL:
+	case GENERIC_ATTR_APP_INTERVAL:
 		app_conf.application_interval = (val > 3) ? val : 3;
 		wifi_framework_init(app_conf);
 		return app_conf.application_interval;
 
-	case THERMOSTAT_REG_TARGET_TEMPERATURE:
+	case THERMOSTAT_ATTR_TARGET_TEMPERATURE:
 		set_target_temperature(value_conversion.sensor);
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_TEMPERATURE_CORRECTION:
+	case THERMOSTAT_ATTR_TEMPERATURE_CORRECTION:
 		set_temperature_correction(value_conversion.sensor);
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_THRESHOLD_HIGH:
+	case THERMOSTAT_ATTR_THRESHOLD_HIGH:
 		set_threshold_high(value_conversion.sensor);
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_THRESHOLD_LOW:
+	case THERMOSTAT_ATTR_THRESHOLD_LOW:
 		set_threshold_low(value_conversion.sensor);
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_HUMIDITY_CORRECTION:
+	case THERMOSTAT_ATTR_HUMIDITY_CORRECTION:
 		set_humidity_correction(value_conversion.sensor);
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_MAX_HEAT_TIME:
+	case THERMOSTAT_ATTR_MAX_HEAT_TIME:
 		set_max_heat_time(value_conversion.reg);
 		return value_conversion.reg;
 
-	case THERMOSTAT_REG_MIN_COOLDOWN_TIME:
+	case THERMOSTAT_ATTR_MIN_COOLDOWN_TIME:
 		set_min_cooldown_time(value_conversion.reg);
 		return value_conversion.reg;
 	}

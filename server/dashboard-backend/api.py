@@ -1,10 +1,8 @@
 import sys
 sys.path.append("..")
 from common.log_handler import logger as log
-# from .controllers import base_device as base
 from .controllers import poweroutlet
-# from .controllers import thermostat
-
+from .controllers import thermostat
 from .server_interconnect import message_transaction
 
 def handle_query(request):
@@ -37,7 +35,7 @@ def handle_query(request):
 		case "poweroutlet":
 			return  poweroutlet.handle_request(request)
 		case "thermostat":
-			pass
+			return thermostat.handle_request(request)
 		case "schedule":
 			pass
 		case "server":

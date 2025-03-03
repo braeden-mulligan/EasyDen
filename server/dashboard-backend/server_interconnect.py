@@ -81,15 +81,15 @@ def send_device_command(device_id, command_packet):
 
 	return message_transaction(query)
 
-def submit_device_schedule(device_id, schedule_data):
-	query = {
-		"category": "schedule",
-		"directive": "create",
-		"parameters": {
-			"device-id": device_id,
-			"schedule": schedule_data
-		}
-	}
+# def submit_device_schedule(device_id, schedule_data):
+# 	query = {
+# 		"category": "schedule",
+# 		"directive": "create",
+# 		"parameters": {
+# 			"device-id": device_id,
+# 			"schedule": schedule_data
+# 		}
+# 	}
 
-	return message_transaction(query)
+# 	return message_transaction(query)
 

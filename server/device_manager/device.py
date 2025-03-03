@@ -4,7 +4,7 @@ from common import server_config as config
 from common import device_definitions as defs
 from common.log_handler import logger as log
 
-from common import device_protocol_helpers as messaging
+from common import device_protocol_helpers as device_protocol
 import copy, datetime, sys, time
 
 def parse_packet(packet):
@@ -159,7 +159,7 @@ class SmartHome_Device:
 				return
 		
 		if self.online_status and (time.monotonic() > self.soc_last_heartbeat + config.DEVICE_KEEPALIVE):
-			self.device_send(messaging.generic_ping())
+			self.device_send(device_protocol.generic_ping())
 			self.soc_last_heartbeat = time.monotonic()
 
 	def device_recv(self):
@@ -334,6 +334,6 @@ class SmartHome_Device:
 			attribute = self.attributes.get(reg, None)
 			if attribute is None or attribute["updated_at"] < attribute["queried_at"]:
 				self.fully_initialized = False
-				self.device_send(messaging.template.format(defs.Device_Protocol.CMD_GET, reg, 0))
+				self.device_send(device_protocol.template.format(defs.Device_Protocol.CMD_GET, reg, 0))
 
 		return self.fully_initialized

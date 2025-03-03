@@ -11,13 +11,13 @@ def poweroutlet_processor(poweroutlets):
 		if not device["initialized"]:
 			continue
 
-		attributes = {}
-		attributes["enabled"] = repack_int_attribute("GENERIC_ATTR_ENABLE", device["attributes"])
-		attributes["socket_count"] = repack_int_attribute("POWEROUTLET_ATTR_SOCKET_COUNT", device["attributes"])
+		translated_attributes = {}
+		translated_attributes["enabled"] = repack_int_attribute("GENERIC_ATTR_ENABLE", device["attributes"])
+		translated_attributes["socket_count"] = repack_int_attribute("POWEROUTLET_ATTR_SOCKET_COUNT", device["attributes"])
 
 		outlet_state = repack_int_attribute("POWEROUTLET_ATTR_STATE", device["attributes"])
-		outlet_state["value"], _ = device_protocol.poweroutlet_read_state(outlet_state["value"], attributes["socket_count"]["value"])
-		attributes["socket_states"] = outlet_state
+		outlet_state["value"], _ = device_protocol.poweroutlet_read_state(outlet_state["value"], translated_attributes["socket_count"]["value"])
+		translated_attributes["socket_states"] = outlet_state
 
 		# def schedule_processor(register, value, device = device):
 		# 	if register == utils.register_id("POWEROUTLET_REG_STATE"):
@@ -31,7 +31,7 @@ def poweroutlet_processor(poweroutlets):
 		# utils.reformat_schedules(device, schedule_processor)
 
 		prune_device_data(device)
-		device["attributes"] = attributes
+		device["attributes"] = translated_attributes
 
 		valid_devices.append(device)
 

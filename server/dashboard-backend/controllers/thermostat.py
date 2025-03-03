@@ -1,68 +1,82 @@
-from flask import request 
+from common import device_definitions as device_defs
+from ..device_helpers import *
+from . import base_device as base
 
-# from dashboard import utilities as utils
-# from dashboard.controllers import base_device as base
+FLOAT_ATTRIBUTE_VALUES = [
+	device_defs.attribute_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"),
+	device_defs.attribute_id("THERMOSTAT_ATTR_THRESHOLD_HIGH"),
+	device_defs.attribute_id("THERMOSTAT_ATTR_THRESHOLD_LOW"),
+	device_defs.attribute_id("THERMOSTAT_ATTR_TEMPERATURE_CORRECTION")
+]
 
-# import common.device_messaging as interchange
+INTEGER_ATTRIBUTE_VALUES = [
+	device_defs.attribute_id("THERMOSTAT_ATTR_MAX_HEAT_TIME"),
+	device_defs.attribute_id("THERMOSTAT_ATTR_MIN_COOLDOWN_TIME")
+]
 
-# import json
+def thermostat_processor(thermostats):
+	valid_devices = []
+	for device in thermostats:
+		if not device["initialized"]:
+			continue
 
-# FLOAT_REGISTER_VALUES = [
-# 	utils.register_id("THERMOSTAT_REG_TARGET_TEMPERATURE"),
-# 	utils.register_id("THERMOSTAT_REG_THRESHOLD_HIGH"),
-# 	utils.register_id("THERMOSTAT_REG_THRESHOLD_LOW"),
-# 	utils.register_id("THERMOSTAT_REG_TEMPERATURE_CORRECTION")
-# ]
+		translated_attributes = {}
 
-# INTEGER_REGISTER_VALUES = [
-# 	utils.register_id("THERMOSTAT_REG_MAX_HEAT_TIME"),
-# 	utils.register_id("THERMOSTAT_REG_MIN_COOLDOWN_TIME")
-# ]
+		translated_attributes["enabled"] = repack_int_attribute("GENERIC_ATTR_ENABLE", device["attributes"])
+		translated_attributes["temperature"] = repack_float_attribute("THERMOSTAT_ATTR_TEMPERATURE", device["attributes"])
+		translated_attributes["target_temperature"] = repack_float_attribute("THERMOSTAT_ATTR_TARGET_TEMPERATURE", device["attributes"])
+		translated_attributes["humidity"] = repack_float_attribute("THERMOSTAT_ATTR_HUMIDITY", device["attributes"])
+		translated_attributes["threshold_high"] = repack_float_attribute("THERMOSTAT_ATTR_THRESHOLD_HIGH", device["attributes"])
+		translated_attributes["threshold_low"] = repack_float_attribute("THERMOSTAT_ATTR_THRESHOLD_LOW", device["attributes"])
+		translated_attributes["temperature_correction"] = repack_float_attribute("THERMOSTAT_ATTR_TEMPERATURE_CORRECTION", device["attributes"])
+		translated_attributes["max_heat_time"] = repack_int_attribute("THERMOSTAT_ATTR_MAX_HEAT_TIME", device["attributes"])
+		translated_attributes["min_cooldown_time"] = repack_int_attribute("THERMOSTAT_ATTR_MIN_COOLDOWN_TIME", device["attributes"])
 
-# def thermostat_processor(thermostats):
-# 	valid_devices = []
-# 	for device in thermostats:
-# 		if not device["initialized"]:
-# 			continue
+		# def schedule_processor(register, value, device = device):
+		# 	if register == device_defs.attribute_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"):
+		# 		target_temperature = interchange.reg_to_float({ str(register): { "value": value }}, reg_id = register)
+		# 		return ("target_temperature", target_temperature)
 
-# 		device["attributes"] = {}
+		# device_defs.reformat_schedules(device, schedule_processor)
 
-# 		device["attributes"]["enabled"] = utils.unpack_attribute(device["registers"], "GENERIC_REG_ENABLE")
-# 		device["attributes"]["temperature"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_TEMPERATURE")
-# 		device["attributes"]["target_temperature"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_TARGET_TEMPERATURE")
-# 		device["attributes"]["humidity"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_HUMIDITY")
-# 		device["attributes"]["threshold_high"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_THRESHOLD_HIGH")
-# 		device["attributes"]["threshold_low"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_THRESHOLD_LOW")
-# 		device["attributes"]["temperature_correction"] = utils.unpack_attribute_to_float(device["registers"], "THERMOSTAT_REG_TEMPERATURE_CORRECTION")
-# 		device["attributes"]["max_heat_time"] = utils.unpack_attribute(device["registers"], "THERMOSTAT_REG_MAX_HEAT_TIME")
-# 		device["attributes"]["min_cooldown_time"] = utils.unpack_attribute(device["registers"], "THERMOSTAT_REG_MIN_COOLDOWN_TIME")
+		prune_device_data(device)
+		device["attributes"] = translated_attributes
 
-# 		def schedule_processor(register, value, device = device):
-# 			if register == utils.register_id("THERMOSTAT_REG_TARGET_TEMPERATURE"):
-# 				target_temperature = interchange.reg_to_float({ str(register): { "value": value }}, reg_id = register)
-# 				return ("target_temperature", target_temperature)
+		valid_devices.append(device)
 
-# 		utils.reformat_schedules(device, schedule_processor)
-# 		utils.prune_device_data(device)
+	return valid_devices
 
-# 		valid_devices.append(device)
+def command(request_data):
+	command_data = request_data.get("command")
 
-# 	return valid_devices
+	try:
+		command_packet = build_command(command_data, INTEGER_ATTRIBUTE_VALUES, FLOAT_ATTRIBUTE_VALUES)
+	except Exception as e:
+		return {
+			"error": {
+				"code": "INVALID_OPERATION",
+				"details": "Failed to build thermostat command: " + str(e)
+			}
+		}
 
-def fetch(request):
-	return base.fetch(request, thermostat_processor, "SH_TYPE_THERMOSTAT")
-
-# def command(request):
-# 	command_data = json.loads(request.data.decode())
-# 	message = utils.build_command(command_data, INTEGER_REGISTER_VALUES, FLOAT_REGISTER_VALUES)
-
-# 	if message:
-# 		return base.command(request, command_data["register"], message, thermostat_processor, "SH_TYPE_THERMOSTAT")
-	
-# 	return base.error({ "error": None })
+	return base.command(request_data, command_packet, thermostat_processor)
 
 # def set_schedule(request):
 # 	return base.set_schedule(request, thermostat_build_command, thermostat_processor, "SH_TYPE_THERMOSTAT")
 
-# def thermostat_build_command(data):
-# 	return utils.build_command(data, INTEGER_REGISTER_VALUES, FLOAT_REGISTER_VALUES)
+def handle_request(request):
+	directive = request.get("directive")
+	request_data = request.get("parameters")
+
+	match directive:
+		case "get":
+			return base.fetch(request_data, thermostat_processor)
+		case "put":
+			return command(request_data)
+		case _:
+			return {
+				"error":  {
+					"code": "INVALID_OPERATION",
+					"details": ("Missing" if not directive else "Invalid") + " directive."
+				}
+			}

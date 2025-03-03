@@ -3,8 +3,8 @@ sys.path.append("..")
 from common import server_config as config
 from common import device_definitions as defs
 from common.log_handler import logger as log
-from common import device_protocol_helpers as messaging
-from device_manager import utilities as utils
+from common import device_protocol_helpers as device_protocol
+# from device_manager import utilities as utils
 from database import operations as db
 
 import json, schedule, time
@@ -122,10 +122,10 @@ class Nexus_Jobs:
 
 	def run_tasks(self):
 		self.query_thermostats()
-		self.log_temperature()
-		self.query_irrigation()
+		# self.log_temperature()
+		# self.query_irrigation()
 		self.keepalive()
-		schedule.run_pending()
+		# schedule.run_pending()
 		#Scrub expired one-time scheduled events from list
 		for s in self.schedules:
 			if s.job is None:
@@ -208,7 +208,7 @@ class Nexus_Jobs:
 
 		thermostats = [d for d in self.device_list if d.device_type == defs.device_type_id("DEVICE_TYPE_THERMOSTAT")]
 		for device in thermostats:
-			device.device_send(messaging.thermostat_get_temperature())
+			device.device_send(device_protocol.thermostat_get_temperature())
 			#TODO: if device has humidity sensor
 			#device.device_send(messaging.thermostat_get_humidity())
 
@@ -234,9 +234,9 @@ class Nexus_Jobs:
 			# utils.hexify_attribute_values(device["attributes"])
 			entry = (
 			  device["id"],
-			  messaging.reg_to_float(device["attributes"], reg_label = "THERMOSTAT_ATTR_TEMPERATURE"),
-			  messaging.reg_to_float(device["attributes"], reg_label = "THERMOSTAT_ATTR_TARGET_TEMPERATURE"),
-			  messaging.reg_to_int(device["attributes"], reg_label = "GENERIC_ATTR_ENABLE"),
+			  device_protocol.reg_to_float(device["attributes"], reg_label = "THERMOSTAT_ATTR_TEMPERATURE"),
+			  device_protocol.reg_to_float(device["attributes"], reg_label = "THERMOSTAT_ATTR_TARGET_TEMPERATURE"),
+			  device_protocol.reg_to_int(device["attributes"], reg_label = "GENERIC_ATTR_ENABLE"),
 			  device["online"],
 			  int(time.time())
 			)
@@ -258,12 +258,12 @@ class Nexus_Jobs:
 		irrigators = [d for d in self.device_list if d.device_type == defs.device_type_id("DEVICE_TYPE_IRRIGATION")]
 		for device in irrigators:
 			for i in range(defs.IRRIGATION_MAX_SENSOR_COUNT):
-				device.device_send(messaging.irrigation_get_moisture(i))
-				device.device_send(messaging.irrigation_get_moisture_raw(i))
-				device.device_send(messaging.irrigation_get_sensor_raw_max(i))
-				device.device_send(messaging.irrigation_get_sensor_raw_min(i))
-				device.device_send(messaging.irrigation_get_sensor_recorded_max(i))
-				device.device_send(messaging.irrigation_get_sensor_recorded_min(i))
+				device.device_send(device_protocol.irrigation_get_moisture(i))
+				device.device_send(device_protocol.irrigation_get_moisture_raw(i))
+				device.device_send(device_protocol.irrigation_get_sensor_raw_max(i))
+				device.device_send(device_protocol.irrigation_get_sensor_raw_min(i))
+				device.device_send(device_protocol.irrigation_get_sensor_recorded_max(i))
+				device.device_send(device_protocol.irrigation_get_sensor_recorded_min(i))
 
 		self.last_irrigation_query = time.monotonic()
 

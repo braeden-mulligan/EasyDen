@@ -7,11 +7,7 @@ from .. import server_interconnect as interconnect
 import time
 
 def fetch(request_data, device_data_processor):
-	device_id = request_data.get("id")
-	device_type = request_data.get("type")
-	include_meta_info = request_data.get("include-meta-info")
-
-	response = interconnect.fetch_devices(device_id, device_type, include_meta_info)
+	response = interconnect.fetch_devices(request_data)
 
 	if response["result"]:
 		response["result"] = device_data_processor(response["result"])
@@ -26,10 +22,9 @@ def fetch(request_data, device_data_processor):
 	
 	return response
 
+# NOTE: Only supports one device at a time for now
 def command(request_data, command_packet, device_data_processor):
-	device_id = request_data.get("id")
-
-	response = interconnect.send_device_command(device_id, command_packet)
+	response = interconnect.send_device_command(request_data, command_packet)
 
 	if response.get("error"):
 		return response
@@ -38,7 +33,7 @@ def command(request_data, command_packet, device_data_processor):
 
 	while time.monotonic() < timeout:
 		time.sleep(0.15)
-		devices = interconnect.fetch_devices(device_id).get("result")
+		devices = interconnect.fetch_devices(request_data).get("result")
 		if not devices:
 			continue 
 

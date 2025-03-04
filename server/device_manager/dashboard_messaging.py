@@ -97,11 +97,11 @@ def _handle_dashboard_message(message, device_list, job_handler):
 
 	params = message.get("parameters")
 
-	if not params or not message.get("category") or not message.get("directive"):
+	if not params or not message.get("entity") or not message.get("directive"):
 		return {
 			"error": {
 				"code": "INVALID_MESSAGE",
-				"details": "Message missing field: category, directive, or parameters"
+				"details": "Message missing field: entity, directive, or parameters"
 			}
 		}
 
@@ -121,30 +121,30 @@ def _handle_dashboard_message(message, device_list, job_handler):
 	}
 	
 	match message:
-		case { "category": "device", "directive": "fetch" }:
+		case { "entity": "device", "directive": "fetch" }:
 			response = filter_devices(params, device_list, job_handler)
-		case { "category": "device", "directive": "command" }:
+		case { "entity": "device", "directive": "command" }:
 			response = send_device_command(params, device_list)
-		case { "category": "device", "directive": "update" }:
+		case { "entity": "device", "directive": "update" }:
 			response = update_device_name(params, device_list)
 
-		case { "category": "schedule", "directive": "fetch" }:
+		case { "entity": "schedule", "directive": "fetch" }:
 			response = response_unimplemented
-		case { "category": "schedule", "directive": "create" }:
+		case { "entity": "schedule", "directive": "create" }:
 			job_handler.submit_schedule(params.get("device-id"), params.get("schedule"))
 			response = response_success
-		case { "category": "schedule", "directive": "delete" }:
+		case { "entity": "schedule", "directive": "delete" }:
 			job_handler.submit_schedule(None, params.get("schedule"))
 			response = response_success
-		case { "category": "schedule", "directive": "update" }:
+		case { "entity": "schedule", "directive": "update" }:
 			response = response_unimplemented
 		
-		case { "category": "config", "directive": "fetch" }:
+		case { "entity": "config", "directive": "fetch" }:
 			response = response_unimplemented
-		case { "category": "config", "directive": "set" }:
+		case { "entity": "config", "directive": "set" }:
 			response = response_unimplemented
 		
-		case { "category": "debug" }:
+		case { "entity": "debug" }:
 			response = response_unimplemented
 
 	return response

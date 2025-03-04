@@ -7,7 +7,7 @@ from common import device_definitions as defs
 
 import json, socket
 
-def message_transaction(request_data, timeout = 1.0):
+def interconnect_transact(request_data, timeout = 1.0):
 	soc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 	try:
 		soc.connect(defines.SERVER_INTERCONNECT_PATH)
@@ -50,40 +50,34 @@ def message_transaction(request_data, timeout = 1.0):
 
 	return json.loads(response)
 
-def fetch_devices(device_id = None, device_type = None, meta_info = None):
+def fetch_devices(request_data): 
 	query = {
-		"category": "device",
+		"entity": "device",
 		"directive": "fetch",
-		"parameters": {}
+		"parameters": request_data
 	}
 
-	if device_id:
-		query["parameters"]["id"] = device_id
-	elif device_type:
+	device_type = request_data.get("type")
+
+	if device_type:
 		query["parameters"]["type"] = defs.device_type_id(device_type) if isinstance(device_type, str) else device_type
-	else:
-		query["parameters"]["all"] = True
 
-	if meta_info:
-		query["parameters"]["include-meta-info"] = meta_info
+	return interconnect_transact(query)
 
-	return message_transaction(query)
-
-def send_device_command(device_id, command_packet):
+def send_device_command(request_data, command_packet):
 	query = {
-		"category": "device",
+		"entity": "device",
 		"directive": "command",
-		"parameters": {
-			"id": device_id,
-			"command": command_packet 
-		}
+		"parameters": request_data
 	}
 
-	return message_transaction(query)
+	query["parameters"]["command"] = command_packet
+
+	return interconnect_transact(query)
 
 # def submit_device_schedule(device_id, schedule_data):
 # 	query = {
-# 		"category": "schedule",
+# 		"entity": "schedule",
 # 		"directive": "create",
 # 		"parameters": {
 # 			"device-id": device_id,

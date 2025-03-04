@@ -68,9 +68,9 @@ def handle_request(request):
 	request_data = request.get("parameters")
 
 	match directive:
-		case "get":
+		case "fetch":
 			return base.fetch(request_data, poweroutlet_processor)
-		case "put":
+		case "command":
 			return command(request_data)
 		case _:
 			return {

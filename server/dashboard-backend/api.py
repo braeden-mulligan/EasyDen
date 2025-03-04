@@ -3,15 +3,15 @@ sys.path.append("..")
 from common.log_handler import logger as log
 from .controllers import poweroutlet
 from .controllers import thermostat
-from .server_interconnect import message_transaction
+from .server_interconnect import interconnect_transact
 
 def handle_query(request):
 	"""
+	request format:
 	{
-		"entity": "irrigation" | "poweroutlet" | "thermostat" | "server" | "debug",
-		"operation": "get" | "put" | "update" | "delete",
+		"entity": "irrigation" | "poweroutlet" | "thermostat" | "schedule" | "config",
+		"directive": "fetch" | "command" | "put" | "update" | "delete",
 		"parameters": {
-			"all": bool,
 			"id": string,
 			"type": string,
 			"name": string,
@@ -29,6 +29,9 @@ def handle_query(request):
 
 	log.debug(request)
 
+	if request.get("debug-passthrough"):
+		return interconnect_transact(request)
+
 	match request.get("entity"):
 		case "irrigation":
 			pass
@@ -40,8 +43,6 @@ def handle_query(request):
 			pass
 		case "server":
 			pass
-		case "debug":
-			return message_transaction(request)
 		case _:
 			return {
 				"error": {

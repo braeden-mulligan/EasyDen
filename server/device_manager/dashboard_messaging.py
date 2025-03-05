@@ -2,8 +2,9 @@
 import sys
 sys.path.append("..")
 from common.log_handler import logger as log, set_log_level_console, set_log_level_file
+from common.defines import *
+from common.utils import error_response
 
-from device_manager import utilities as utils
 from device_manager.device import SmartHome_Device
 
 from database import operations as db
@@ -58,15 +59,9 @@ def send_device_command(data, device_list):
 	for d in devices:
 		result = d.device_send(data.get("command"))	
 		if result == SmartHome_Device.ERROR_NO_SOCKET:
-			errors.append({
-				"code": "ERROR_NO_SOCKET",
-				"details": "Device ID: " + str(d.device_id) + " has no socket connection."
-			})
+			errors.append(error_response(E_DEVICE, "Device ID: " + str(d.device_id) + " has no socket connection."))
 		elif result == SmartHome_Device.ERROR_QUEUE_FULL:
-			errors.append({
-				"code": "ERROR_QUEUE_FULL",
-				"details": "Device ID: " + str(d.device_id) + " message queue is full somehow."
-			})
+			errors.append(error_response(E_DEVICE, "Device ID: " + str(d.device_id) + " message queue is full somehow."))
 		else:
 			success += 1
 			
@@ -78,12 +73,7 @@ def send_device_command(data, device_list):
 def update_device_name(data, device_list):
 	device = next((d for d in device_list if d.device_id == data.get("id")), None)
 	if not device :
-		return {
-			"error": {
-				"code": "DEVICE_NOT_FOUND",
-				"details": "Device ID: " + str(data.get("id")) + " not found."
-			}
-		}
+		return error_response(E_DEVICE, "Device ID: " + str(data.get("id")) + " not found.")
 
 	device.name = data.get("name", device.name)
 	db.update_device_name(device)
@@ -98,27 +88,13 @@ def _handle_dashboard_message(message, device_list, job_handler):
 	params = message.get("parameters")
 
 	if not params or not message.get("entity") or not message.get("directive"):
-		return {
-			"error": {
-				"code": "INVALID_MESSAGE",
-				"details": "Message missing field: entity, directive, or parameters"
-			}
-		}
+		return error_response(E_INVALID_REQUEST, "Dashboard message missing field: entity, directive, or parameters")
 
-	response = {
-		"error": {
-			"code": "UNKNOWN",
-			"details": "Invalid message format"
-		}
-	}
+	response = error_response()
 	response_success = {
 		"result": "success"
 	}
-	response_unimplemented = {
-		"error": {
-			"code": "UNIMPLEMENTED",
-		}
-	}
+	response_unimplemented = error_response(E_UNIMPLEMENTED)
 	
 	match message:
 		case { "entity": "device", "directive": "fetch" }:
@@ -155,9 +131,4 @@ def handle_dashboard_message(message, device_list, job_handler):
 		return json.dumps(_handle_dashboard_message(message, device_list, job_handler))
 	except Exception as e:
 		log.error("Error processing dashboard message.", exc_info = True)
-		return json.dumps({
-			"error": {
-				"code": "UNHANDLED_EXCEPTION",
-				"details": "Device manager: " + str(e)
-			}
-		})
+		return json.dumps(error_response(E_UNKNOWN, "Device manager undandled exception.", e))

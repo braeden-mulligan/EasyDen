@@ -1,5 +1,6 @@
 import sys
 sys.path.append("..")
+from common import defines, utils
 from common.log_handler import logger as log
 from .controllers import poweroutlet
 from .controllers import thermostat
@@ -44,16 +45,6 @@ def handle_query(request):
 		case "server":
 			pass
 		case _:
-			return {
-				"error": {
-					"code": "INVALID_REQUEST",
-					"details": "Unknown entity specified."
-				}
-			}
+			return utils.error_response(defines.E_INVALID_REQUEST, "Unknown entity specified.")
 	
-	return {
-		"error": {
-			"code": "UNKNOWN",
-			"details": "Unknown error occurred."
-		}
-	}
+	return utils.error_response()

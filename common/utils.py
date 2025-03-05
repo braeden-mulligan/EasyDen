@@ -1,3 +1,5 @@
+from . import defines
+
 # Devices that have multiple binary i/o channels for an attribute map bits from lowest byte to determine state.
 # To control which channels to toggle, set the corresponding bit of high byte. Else consider low byte bit null.
 def list_to_bitmask(value_list):
@@ -25,3 +27,18 @@ def bitmask_to_list(value, item_count):
 			value_list.append(0)
 
 	return value_list
+
+def error_response(code = None, details = None, exception = None):
+	response = {
+		"error": {
+			"code": code if code is not None else defines.E_UNKNOWN,
+		}
+	}
+
+	if details is not None:
+		response["error"]["details"] = details
+
+	if exception is not None:
+		response["error"]["exception"] = repr(exception)
+
+	return response

@@ -1,6 +1,8 @@
 import sys
 sys.path.append("..")
 
+from common.defines import *
+from common.utils import error_response
 from common import server_config as config
 from .. import server_interconnect as interconnect
 
@@ -14,11 +16,7 @@ def fetch(request_data, device_data_processor):
 		return response
 
 	if not response["error"]:
-		return { 
-			"error": {
-				"code": "UNKNOWN",
-			}
-		}
+		return error_response()
 	
 	return response
 
@@ -48,12 +46,7 @@ def command(request_data, command_packet, device_data_processor):
 		if last_update > last_query:
 			return device_data_processor(devices)
 
-	return {
-		"error": {
-			"code": "TIMEOUT",
-			"details": "Device could not be reached."
-		}
-	}
+	return error_response(E_TIMEOUT, "Device response could not be confirmed.")
 
 # def set_schedule(request, command_builder, processor, type_label):
 # 	data = json.loads(request.data.decode())

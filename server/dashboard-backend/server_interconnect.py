@@ -1,32 +1,23 @@
 import sys
 sys.path.append("..")
 
-from common import defines
+from common.defines import *
 from common.log_handler import logger as log
 from common import device_definitions as defs
+from common.utils import error_response
 
 import json, socket
 
 def interconnect_transact(request_data, timeout = 1.0):
 	soc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 	try:
-		soc.connect(defines.SERVER_INTERCONNECT_PATH)
-	except ConnectionRefusedError as e:
+		soc.connect(SERVER_INTERCONNECT_PATH)
+	except ConnectionRefusedError:
 		log.debug("Connection refused:", exc_info = True )
-		return {
-			"error": {
-				"code": "CONNECTION_REFUSED",
-				"details": "Device manager socket connection failed. Is the device manager running?"
-			}
-		}
-	except: 
+		return error_response(E_SERVER_INTERCONNECT, "Device manager socket connection refused. Is the device manager running?")
+	except Exception as e: 
 		log.debug("Unhandled socket exception", exc_info = True)
-		return {
-			"error": {
-				"code": "UNKNOWN",
-				"details": "Device manager socket connection failed."
-			}
-		}
+		return error_response(E_SERVER_INTERCONNECT, "Device manager socket connection failed.", e)
 	
 	response = ""
 
@@ -39,14 +30,9 @@ def interconnect_transact(request_data, timeout = 1.0):
 
 		soc.shutdown(socket.SHUT_RDWR)
 		soc.close()
-	except:
+	except Exception as e:
 		log.debug("Unhandled socket exception", exc_info = True)
-		return {
-			"error": {
-				"code": "UNKNOWN",
-				"details": "Device manager socket 'recv' failed."
-			}
-		}
+		return error_response(E_SERVER_INTERCONNECT, "Device manager socket 'recv' failed.", e)
 
 	return json.loads(response)
 

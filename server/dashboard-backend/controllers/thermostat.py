@@ -1,3 +1,5 @@
+from common.defines import *
+from common.utils import error_response
 from common import device_definitions as device_defs
 from ..device_helpers import *
 from . import base_device as base
@@ -52,12 +54,7 @@ def command(request_data):
 	try:
 		command_packet = build_command(command_data, INTEGER_ATTRIBUTE_VALUES, FLOAT_ATTRIBUTE_VALUES)
 	except Exception as e:
-		return {
-			"error": {
-				"code": "INVALID_OPERATION",
-				"details": "Failed to build thermostat command: " + str(e)
-			}
-		}
+		return error_response(E_REQUEST_FAILED, "Failed to build thermostat command.", e)
 
 	return base.command(request_data, command_packet, thermostat_processor)
 
@@ -74,9 +71,4 @@ def handle_request(request):
 		case "command":
 			return command(request_data)
 		case _:
-			return {
-				"error":  {
-					"code": "INVALID_OPERATION",
-					"details": ("Missing" if not directive else "Invalid") + " directive."
-				}
-			}
+			return error_response(E_INVALID_REQUEST, ("Missing" if not directive else "Invalid") + " directive.")

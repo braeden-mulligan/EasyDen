@@ -3,14 +3,13 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
-    "@emotion/react": "^11.11.3",
-    "@emotion/styled": "^11.11.0",
     "@mui/icons-material": "^5.15.2",
-    "@mui/material": "^5.15.2",
     "react": "^18.2.0",
+    "react-device-detect": "^2.2.3",
     "react-dom": "^18.2.0",
-    "react-router-dom": "^6.21.1",
-    "react-scripts": "5.0.1"
+    "react-router": "^7.3.0",
+    "react-scripts": "5.0.1",
+    "zustand": "^5.0.3"
   },
   "scripts": {
     "start": "react-scripts start",

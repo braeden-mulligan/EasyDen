@@ -1,4 +1,10 @@
 import { SERVER_ADDR } from "./defines"
+import { add_notification } from "./store";
+
+export const default_error_handler = function (error) {
+	//TODO: implement this.
+	add_notification(error)
+}
 
 export const request = async function(data = {}, error_handler = null) {
 	return fetch(
@@ -15,9 +21,6 @@ export const request = async function(data = {}, error_handler = null) {
 		response = await response.json();
 
 		if (response.error) {
-			const default_error_handler = function () {
-				//TODO: implement this.
-			}
 			error_handler ? error_handler(response.error) : default_error_handler(response.error);
 		}
 

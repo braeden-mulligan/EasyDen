@@ -1,7 +1,8 @@
 import { BrowserRouter, Routes, Route } from "react-router"
 import { isMobile, useMobileOrientation } from "react-device-detect";
 
-import { NavbarTop, NavbarSide } from "./navigation";
+import { NavbarTop, NavbarSide } from "./layout/navigation";
+import { NotificationSnackbar } from "./layout/notification";
 import { DebugPage } from "./pages/debug";
 import { OverviewPage } from "./pages/overview";
 import { ThermostatPage } from "./pages/thermostat";
@@ -32,6 +33,9 @@ function AppMain() {
 					</Routes>
 				</main>
 			</div>
+			<footer>
+				<NotificationSnackbar />
+			</footer>
 		</BrowserRouter>
 	);
 }

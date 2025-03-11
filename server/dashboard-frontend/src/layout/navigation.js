@@ -24,18 +24,18 @@ export const NavbarTop = function ({ manage_sidebar }) {
 	}
 
 	return (
-		<div style={{ display: "flex", height: "32px" }}>
+		<div style={{ display: "flex", "flex-direction": "row" }}>
 			{
 				manage_sidebar && 
-				<button onClick={() => set_nav_menu_open(!nav_menu_open) }>
+				<button style={{ height: "32px" }} onClick={() => set_nav_menu_open(!nav_menu_open) }>
 					<MenuIcon />
 				</button>
 			}
 			<NavLink to="/" >
-				<img src="favicon.ico" style={{ height: "100%" }} />	
+				<img src="favicon.ico" style={{ height: "32px" }} />	
 			</NavLink>
-			{ nav_menu_open && <NavbarSide /> }
-			<h1>{`EasyDen - ${path_map[location.pathname] || location.pathname.substring(1)}` }</h1>
+			{ manage_sidebar && nav_menu_open && <NavbarSide /> }
+			<h2>{`EasyDen - ${path_map[location.pathname] || location.pathname.substring(1)}` }</h2>
 		</div>
 	)
 }

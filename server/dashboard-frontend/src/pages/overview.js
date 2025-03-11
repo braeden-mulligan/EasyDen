@@ -1,11 +1,11 @@
-import { request } from "../api";
+import { default_error_handler, request } from "../api";
 
 export const OverviewPage = function() {
 	const handleClick = async function () {
 		let x  = await request({hello: "world"}, (error) => {
-			console.log("Test error handler: " + JSON.stringify(error));
+			default_error_handler(error)
+			console.log("Test custom error handler: " + JSON.stringify(error));
 		})
-		console.log(x)
 	}
 
 	return (

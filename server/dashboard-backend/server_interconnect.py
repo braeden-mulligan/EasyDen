@@ -48,6 +48,8 @@ def fetch_devices(request_params = {}):
 	if device_type:
 		query["parameters"]["type"] = defs.device_type_id(device_type) if isinstance(device_type, str) else device_type
 
+	request_params["include-schedules"] = True
+
 	return interconnect_transact(query)
 
 def send_device_command(command_packet, request_params = {}):

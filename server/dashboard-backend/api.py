@@ -44,7 +44,7 @@ def handle_query(request):
 		case "thermostat":
 			return thermostat.handle_request(request)
 		case "schedule":
-			pass
+			return interconnect_transact(request)
 		case "server":
 			pass
 		case _:

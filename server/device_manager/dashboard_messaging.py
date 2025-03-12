@@ -20,11 +20,11 @@ def filter_devices(data, device_list, job_handler):
 			device_data = {**device_data, "last-contact": d.last_contact, "reconnect-count": d.reconnect_count, "message-queue-retention-time": d.msg_queue_retention_time}
 
 		if data.get("id"):
-			if isinstance(data.get("id"), list) and d.device_id in data.get("id"):
+			if isinstance(data.get("id"), list) and d.id in data.get("id"):
 				devices.append(device_data) 
-			elif d.device_id == data.get("id"):
+			elif d.id == data.get("id"):
 				devices.append(device_data)
-		elif data.get("type") and d.device_type == data.get("type"):
+		elif data.get("type") and d.type == data.get("type"):
 			devices.append(device_data)
 		elif data.get("all"):
 			devices.append(device_data)
@@ -42,11 +42,11 @@ def send_device_command(data, device_list):
 
 	for d in device_list:
 		if data.get("id"):
-			if isinstance(data.get("id"), list) and d.device_id in data.get("id"):
+			if isinstance(data.get("id"), list) and d.id in data.get("id"):
 				devices.append(d) 
-			elif d.device_id == data.get("id"):
+			elif d.id == data.get("id"):
 				devices.append(d)
-		elif data.get("type") and d.device_type == data.get("type"):
+		elif data.get("type") and d.type == data.get("type"):
 			devices.append(d)
 		elif data.get("all"):
 			devices.append(d)
@@ -62,9 +62,9 @@ def send_device_command(data, device_list):
 	for d in devices:
 		result = d.device_send(data.get("command"))	
 		if result == SmartHome_Device.ERROR_NO_SOCKET:
-			errors.append(error_response(E_DEVICE, "Device ID: " + str(d.device_id) + " has no socket connection."))
+			errors.append(error_response(E_DEVICE, "Device ID: " + str(d.id) + " has no socket connection."))
 		elif result == SmartHome_Device.ERROR_QUEUE_FULL:
-			errors.append(error_response(E_DEVICE, "Device ID: " + str(d.device_id) + " message queue is full somehow."))
+			errors.append(error_response(E_DEVICE, "Device ID: " + str(d.id) + " message queue is full somehow."))
 		else:
 			success += 1
 			
@@ -74,7 +74,7 @@ def send_device_command(data, device_list):
 	}
 
 def update_device_name(data, device_list):
-	device = next((d for d in device_list if d.device_id == data.get("id")), None)
+	device = next((d for d in device_list if d.id == data.get("id")), None)
 	if not device :
 		return error_response(E_DEVICE, "Device ID: " + str(data.get("id")) + " not found.")
 
@@ -94,37 +94,32 @@ def _handle_dashboard_message(message, device_list, job_handler):
 		return error_response(E_INVALID_REQUEST, "Dashboard message missing field: entity or directive")
 
 	response = error_response()
-	response_success = {
-		"result": "success"
-	}
 	response_unimplemented = error_response(E_UNIMPLEMENTED)
 	
 	match message:
 		case { "entity": "device", "directive": "fetch" }:
-			response = filter_devices(params, device_list, job_handler)
+			return filter_devices(params, device_list, job_handler)
 		case { "entity": "device", "directive": "command" }:
-			response = send_device_command(params, device_list)
+			return send_device_command(params, device_list)
 		case { "entity": "device", "directive": "update" }:
-			response = update_device_name(params, device_list)
+			return update_device_name(params, device_list)
 
 		case { "entity": "schedule", "directive": "fetch" }:
-			response = response_unimplemented
+			return response_unimplemented
 		case { "entity": "schedule", "directive": "create" }:
-			job_handler.submit_schedule(params.get("device-id"), params.get("schedule"))
-			response = response_success
+			return job_handler.create_schedule(params.get("device-id"), params.get("schedule"))
 		case { "entity": "schedule", "directive": "delete" }:
-			job_handler.submit_schedule(None, params.get("schedule"))
-			response = response_success
+			return job_handler.delete_schedule(params.get("schedule-id"))
 		case { "entity": "schedule", "directive": "update" }:
-			response = response_unimplemented
+			return response_unimplemented
 		
 		case { "entity": "config", "directive": "fetch" }:
-			response = response_unimplemented
+			return response_unimplemented
 		case { "entity": "config", "directive": "set" }:
-			response = response_unimplemented
+			return response_unimplemented
 		
 		case { "entity": "debug" }:
-			response = response_unimplemented
+			return response_unimplemented
 
 	return response
 

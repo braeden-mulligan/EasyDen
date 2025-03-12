@@ -55,7 +55,7 @@ def handle_socket_error(soc, event, poll_obj):
 
 def device_from_identifier(soc_fd = -1, device_id = -1):
 	for d in device_list:
-		if soc_fd == d.soc_fd or device_id == d.device_id:
+		if soc_fd == d.soc_fd or device_id == d.id:
 			return d
 	return None
 
@@ -70,7 +70,7 @@ def handle_device_message(device):
 		db.add_device(device)
 
 		for existing_device in device_list:
-			if recv_code == existing_device.device_id and device is not existing_device:
+			if recv_code == existing_device.id and device is not existing_device:
 				# We have an already existing entry with this id. This would happen if a device drops and reconnects.
 				# Update old entry with new socket and delete current device object.
 				log.debug("Existing device found with id " + str(recv_code))
@@ -86,7 +86,7 @@ def main_loop():
 
 	def device_entry_loader(db_row):
 		device = SmartHome_Device()
-		device.device_id, device.device_type, device.name = db_row
+		device.id, device.type, device.name = db_row
 		device_list.append(device)
 
 	db.load_devices(device_entry_loader)
@@ -105,7 +105,7 @@ def main_loop():
 
 	while True:
 		for d in device_list:
-			if not d.device_id and d.pending_response is None:
+			if not d.id and d.pending_response is None:
 				log.info("New device detected, requesting ID")
 				if d.device_send(device_protocol_helpers.generic_request_identity()) <= 0:
 					log.info("New device failed to respond")
@@ -143,7 +143,7 @@ def main_loop():
 				device = device_from_identifier(fd)
 				if device is not None:
 					if handle_socket_error(device.soc_connection, event, poller):
-						log.info("Device " + str(device.device_id) + " disconnected.")
+						log.info("Device " + str(device.id) + " disconnected.")
 						device.disconnect()
 					elif not handle_device_message(device):
 						#TODO: Decide what to do depending how handle_device_message fails
@@ -154,10 +154,10 @@ def main_loop():
 			device_status = d.update_pending()
 			
 			if device_status == SmartHome_Device.STATUS_UNRESPONSIVE:
-				log.info("Device " + str(d.device_id) + " unresponsive. Closing connection")
+				log.info("Device " + str(d.id) + " unresponsive. Closing connection")
 
 			elif device_status == SmartHome_Device.STATUS_ERROR:
-				log.info("Device " + str(d.device_id) + " socket error handled. Closing connection")
+				log.info("Device " + str(d.id) + " socket error handled. Closing connection")
 			
 			if device_status != SmartHome_Device.STATUS_OK:
 				handle_socket_error(d.soc_connection, select.POLLHUP, poller)

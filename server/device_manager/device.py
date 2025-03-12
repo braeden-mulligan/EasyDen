@@ -51,8 +51,8 @@ class SmartHome_Device:
 
 	def __init__(self, socket_connection = None):
 		# Attributes returned on device query.
-		self.device_type = 0
-		self.device_id = 0
+		self.type = 0
+		self.id = 0
 		self.attributes = {} #(reg, {value, queried_at, updated_at})
 		self.name = "Default Name"
 		self.online_status = False 
@@ -83,14 +83,14 @@ class SmartHome_Device:
 		return
 
 	def get_data(self):
-		device_obj = {}
-		device_obj["type"] = self.device_type
-		device_obj["id"] = self.device_id
-		device_obj["name"] = self.name
-		device_obj["online"] = self.online_status
-		device_obj["initialized"] = self.fully_initialized
-		device_obj["attributes"] = copy.deepcopy(self.attributes)
-		return device_obj
+		return {
+			"type": self.type,
+			"id": self.id,
+			"name": self.name,
+			"online": self.online_status,
+			"initialized": self.fully_initialized,
+			"attributes": copy.deepcopy(self.attributes)
+		}
 
 	def disconnect(self):
 		self.online_status = False
@@ -137,7 +137,7 @@ class SmartHome_Device:
 			next_message = self.pending_transmissions[0]
 
 			if self.soc_connection:
-				log.debug("Transmitting: <" + str(next_message.packet) + "> to device " + str(self.device_id) + ". " + str(next_message.retries) + " retries available...")
+				log.debug("Transmitting: <" + str(next_message.packet) + "> to device " + str(self.id) + ". " + str(next_message.retries) + " retries available...")
 				self.pending_response = next_message
 				try:
 					transmit_packet()
@@ -171,7 +171,7 @@ class SmartHome_Device:
 				log.warning("Socket recv failed.", exc_info = True)
 				return -1
 
-			log.debug("Received <" + msg + "> from device: " + str(self.device_id))
+			log.debug("Received <" + msg + "> from device: " + str(self.id))
 
 			self.update_last_contact()
 
@@ -197,7 +197,7 @@ class SmartHome_Device:
 		if self.msg_seq >= SmartHome_Device.MAX_SEQUENCE_NUM:
 			self.msg_seq = 1
 
-		log.debug("Enqueue: <" + m + "> to device " + str(self.device_id))
+		log.debug("Enqueue: <" + m + "> to device " + str(self.id))
 
 		if len(self.pending_transmissions) >= self.max_pending_messages:
 			log.warning("Device send buffer full")
@@ -279,27 +279,27 @@ class SmartHome_Device:
 			self.update_attributes(sent_reg, msg_val, update = True)
 
 		elif msg_cmd == defs.Device_Protocol.CMD_IDY:
-			self.device_type = msg_reg
-			self.device_id = msg_val
-			return self.device_id
+			self.type = msg_reg
+			self.id = msg_val
+			return self.id
 
 		return 0
 
 	def initialization_task(self):
 		if self.fully_initialized:
 			return True
-		if not self.device_id or self.pending_response:
+		if not self.id or self.pending_response:
 			return False
 
 		necessary_attributes = [
 			defs.attribute_id("GENERIC_ATTR_ENABLE")
 		]
 
-		if self.device_type == defs.device_type_id("DEVICE_TYPE_POWEROUTLET"):
+		if self.type == defs.device_type_id("DEVICE_TYPE_POWEROUTLET"):
 			necessary_attributes.append(defs.attribute_id("POWEROUTLET_ATTR_SOCKET_COUNT"))
 			necessary_attributes.append(defs.attribute_id("POWEROUTLET_ATTR_STATE"))
 
-		elif self.device_type == defs.device_type_id("DEVICE_TYPE_THERMOSTAT"):
+		elif self.type == defs.device_type_id("DEVICE_TYPE_THERMOSTAT"):
 			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_TEMPERATURE"))
 			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"))
 			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_TEMPERATURE_CORRECTION"))
@@ -309,7 +309,7 @@ class SmartHome_Device:
 			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_MIN_COOLDOWN_TIME"))
 			necessary_attributes.append(defs.attribute_id("THERMOSTAT_ATTR_HUMIDITY_SENSOR_COUNT"))
 
-		elif self.device_type == defs.device_type_id("DEVICE_TYPE_IRRIGATION"):
+		elif self.type == defs.device_type_id("DEVICE_TYPE_IRRIGATION"):
 			necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_SENSOR_COUNT"))
 			necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_PLANT_ENABLE"))
 			necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_MOISTURE_CHANGE_HYSTERESIS_TIME"))

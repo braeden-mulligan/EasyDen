@@ -15,12 +15,12 @@ CREATE TABLE if NOT EXISTS schedules (
 );
 
 CREATE TABLE if NOT EXISTS thermostat_data (
-	ext_id INTEGER NOT NULL,
+	device_id INTEGER NOT NULL,
 	temperature REAL,
 	target_temperature REAL,
 	device_enabled INTEGER,
 	online_status INTEGER,
 	timestamp INTEGER NOT NULL,
-	UNIQUE (ext_id, timestamp)
+	UNIQUE (device_id, timestamp)
 )
 EOF

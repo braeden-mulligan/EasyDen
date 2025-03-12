@@ -4,7 +4,8 @@ from common import server_config as config
 from common import device_definitions as defs
 from common.log_handler import logger as log
 from common import device_protocol_helpers as device_protocol
-# from device_manager import utilities as utils
+from common.defines import *
+from common.utils import error_response
 from database import operations as db
 
 import json, schedule, time
@@ -20,12 +21,12 @@ class Device_Command_Schedule:
 			"minute": int,
 			"days": string - eg. "mon,thu,sat"
 		},
-		"command": string,
+		"command": string - device message eg. "02,66,42840000",
 		"pause": int
 	}
 	"""
 	def __init__(self, device, data, schedule_id = None):
-		self.schedule_id = schedule_id
+		self.id = schedule_id
 		self.device = device
 		self.recurring = data["recurring"]
 		self.time = data["time"]
@@ -36,7 +37,7 @@ class Device_Command_Schedule:
 	def __eq__(self, other):
 		if type(other) is not type(self):
 			return False
-		if other.device.device_id != self.device.device_id:
+		if other.device.id != self.device.id:
 			return False
 		if other.command != self.command:
 			return False
@@ -51,7 +52,7 @@ class Device_Command_Schedule:
 
 	def get_data(self):
 		return {
-			"id": self.schedule_id,
+			"id": self.id,
 			"recurring": self.recurring,
 			"time": self.time,
 			"command": self.command,
@@ -99,8 +100,8 @@ class Device_Command_Schedule:
 class Nexus_Jobs:
 	def __init__(self, device_list):
 		self.thermostat_query_interval = config.DEVICE_KEEPALIVE * 0.95
-		self.irrigation_query_interval = 10.0
-		self.temperature_record_interval = 600.0
+		# self.irrigation_query_interval = 10.0
+		# self.temperature_record_interval = 600.0
 
 		self.last_thermostat_query = time.monotonic()
 		self.last_irrigation_query = time.monotonic()
@@ -111,7 +112,7 @@ class Nexus_Jobs:
 		self.last_temperature_record = time.monotonic()
 
 		def schedule_entry_loader(db_row):
-			device = next((d for d in device_list if d.device_id == db_row[2]), None)
+			device = next((d for d in device_list if d.id == db_row[2]), None)
 			if device:
 				self.schedules.append(Device_Command_Schedule(device, json.loads(db_row[1]), db_row[0]))
 
@@ -126,94 +127,91 @@ class Nexus_Jobs:
 		# self.query_irrigation()
 		self.keepalive()
 		# schedule.run_pending()
+
 		#Scrub expired one-time scheduled events from list
 		for s in self.schedules:
 			if s.job is None:
-				db.remove_schedule(s.schedule_id)
+				db.remove_schedule(s.id)
 		self.schedules[:] = [schedule for schedule in self.schedules if schedule.job is not None]
 
 	def fetch_schedules(self, device_id):
-		return [s.get_data() for s in self.schedules if s.device.device_id == device_id]
+		return [s.get_data() for s in self.schedules if s.device.id == device_id]
 
-	def submit_schedule(self, device_id, data):
+	def create_schedule(self, device_id, data):
 		"""
-		data: {
-			"id": int,
-			"action": "create"|"delete"|"edit",
-			"recurring": bool,
-			"time": {
-				"hour": int,
-				"minute": int,
-				"days": string - eg. "mon,thu,sat"
-			},
-			"command": string - device message eg. "02,66,42840000",
-			"pause": int
-		}
+		data: Device_Command_Schedule init data
 		"""
 
-		log.info("Submitting schedule " + data + " for device " + str(device_id))
-		data = json.loads(data)
-
-		action = data["action"]
-		del data["action"]
+		log.debug("Submitting schedule " + str(data) + " for device " + str(device_id))
 
 		device = None
 		for entry in self.device_list:
-			if entry.device_id == device_id:
+			if entry.id == device_id:
 				device = entry
 				break
 		
-		if action == "delete":
-			for s in self.schedules:
-				if s.schedule_id == int(data["id"]):
-					s.cancel_schedule()
-					self.schedules.remove(s)
-					db.remove_schedule(s.schedule_id)
-					log.debug("Successfully removed schedule")
-					return True
-			log.debug("Failed to find schedule")
-
-		elif action == "create":
-			try:
-				new_schedule = Device_Command_Schedule(device, data)
-			except KeyError:
-				log.warning("Could not create schedule. Bad argument provided.")
-				return False
+		try:
+			new_schedule = Device_Command_Schedule(device, data)
 
 			for s in self.schedules:
 				if new_schedule == s:
-					log.info("Cannot add duplicate event (overlapping schedule)")
-					return False
+					error_details = "Cannot add duplicate event (overlapping schedule)"
+					log.info(error_details)
+					return error_response(E_REQUEST_FAILED, error_details)
 
-			new_schedule.schedule_id = db.add_schedule(new_schedule)
+			new_schedule.id = db.add_schedule(new_schedule)
 			new_schedule.enqueue_job()
 			self.schedules.append(new_schedule)
+
 			log.debug("New schedule added!")
-			return True
 
-		elif action == "edit":
+			return {
+				"result": "success",
+				"schedule-id": new_schedule.id
+			}
+
+		except KeyError:
+			error_details = "Could not create schedule. Bad argument provided."
+			log.warning(error_details)
+			return error_response(E_INVALID_REQUEST, error_details)
+
+		except Exception as e:
+			error_details = "Failed to create schedule."
+			log.error(error_details, exc_info = True)
+			return error_response(E_UNKNOWN, error_details, e)
+
+
+	def delete_schedule(self, schedule_id):
+		try:
 			for s in self.schedules:
-				if s.schedule_id == data["id"]:
-					s.pause = data["pause"]
-					db.update_schedule(s.schedule_id)
-					log.debug("Edited schedule " + str(s.schedule_id))
-					return True
-			log.info("Failed to find schedule")
+				if s.id == schedule_id:
+					s.cancel_schedule()
+					self.schedules.remove(s)
+					db.remove_schedule(s.id)
+					log.debug("Successfully removed schedule")
+					return {
+						"result": "success"
+					}
 
-		return False
+			error_details = "Failed to find schedule"
+			log.debug(error_details)
+			return error_response(E_REQUEST_FAILED, error_details)
+
+		except Exception as e:
+			return error_response(E_UNKNOWN, "Failed to delete schedule", e)
 
 	def query_thermostats(self):
 		if time.monotonic() < self.last_thermostat_query + self.thermostat_query_interval:
 			return
 
-		thermostats = [d for d in self.device_list if d.device_type == defs.device_type_id("DEVICE_TYPE_THERMOSTAT")]
+		thermostats = [d for d in self.device_list if d.type == defs.device_type_id("DEVICE_TYPE_THERMOSTAT")]
 		for device in thermostats:
 			device.device_send(device_protocol.thermostat_get_temperature())
 			#TODO: if device has humidity sensor
 			#device.device_send(messaging.thermostat_get_humidity())
 
 		self.last_thermostat_query = time.monotonic()
-		self.log_temperature_flag = True
+		# self.log_temperature_flag = True
 
 	def log_temperature(self):
 		log_delay = 10.0
@@ -226,7 +224,7 @@ class Nexus_Jobs:
 		if self.log_temperature_flag == False:
 			return
 
-		thermostats = [d.get_data() for d in self.device_list if d.device_type == defs.device_type_id("DEVICE_TYPE_THERMOSTAT")]
+		thermostats = [d.get_data() for d in self.device_list if d.type == defs.device_type_id("DEVICE_TYPE_THERMOSTAT")]
 		for device in thermostats:
 			if not device["initialized"]:
 				continue
@@ -255,7 +253,7 @@ class Nexus_Jobs:
 		if time.monotonic() < self.last_irrigation_query + self.irrigation_query_interval:
 			return
 
-		irrigators = [d for d in self.device_list if d.device_type == defs.device_type_id("DEVICE_TYPE_IRRIGATION")]
+		irrigators = [d for d in self.device_list if d.type == defs.device_type_id("DEVICE_TYPE_IRRIGATION")]
 		for device in irrigators:
 			for i in range(defs.IRRIGATION_MAX_SENSOR_COUNT):
 				device.device_send(device_protocol.irrigation_get_moisture(i))

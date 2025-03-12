@@ -22,7 +22,7 @@ def load_devices(entry_processor, db = None):
 
 @db_connection
 def add_device(device, db = None):
-	query = "insert into devices(id, type, name) values({}, {}, \"{}\")".format(device.device_id, device.device_type, device.name)
+	query = "insert into devices(id, type, name) values({}, {}, \"{}\")".format(device.id, device.type, device.name)
 	try:
 		db.execute(query)
 	except sqlite3.IntegrityError:
@@ -31,7 +31,7 @@ def add_device(device, db = None):
 #TODO
 @db_connection
 def update_device_name(device, db = None):
-	query = "update devices set name = \"{}\" where id = {}".format(device.name, device.device_id)
+	query = "update devices set name = \"{}\" where id = {}".format(device.name, device.id)
 	db.execute(query)
 	return 
 
@@ -49,16 +49,16 @@ def remove_schedule(id, db = None):
 	db.execute("delete from schedules where id={}".format(id))
 
 @db_connection
-def add_schedule(schedule_obj, db = None):
-	schedule_data = schedule_obj.get_data()
+def add_schedule(schedule, db = None):
+	schedule_data = schedule.get_data()
 	schedule_data.pop("id", None)
-	query = "insert into schedules(data, device_id) values(?, {})".format(schedule_obj.device.device_id)
+	query = "insert into schedules(data, device_id) values(?, {})".format(schedule.device.id)
 	db.execute(query, (json.dumps(schedule_data),))
 	return db.lastrowid
 
 @db_connection
 def load_schedules(device_list, entry_processor, db = None):
-	device_ids = [d.device_id for d in device_list]
+	device_ids = [d.id for d in device_list]
 	query = "select * from schedules where device_id in ({ids})".format(ids = ','.join(['?'] * len(device_ids)))
 	rows = db.execute(query, device_ids)
 	#row = (schedule id, data, device_id)

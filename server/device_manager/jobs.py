@@ -149,6 +149,9 @@ class Nexus_Jobs:
 			if entry.id == device_id:
 				device = entry
 				break
+
+		if device is None:
+			return error_response(E_REQUEST_FAILED, "Device not found")
 		
 		try:
 			new_schedule = Device_Command_Schedule(device, data)
@@ -177,7 +180,7 @@ class Nexus_Jobs:
 
 		except Exception as e:
 			error_details = "Failed to create schedule."
-			log.error(error_details, exc_info = True)
+			log.exception(error_details)
 			return error_response(E_UNKNOWN, error_details, e)
 
 

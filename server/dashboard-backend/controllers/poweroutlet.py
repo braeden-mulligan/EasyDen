@@ -21,19 +21,11 @@ def poweroutlet_processor(poweroutlets):
 		outlet_state["value"], _ = device_protocol.poweroutlet_read_state(outlet_state["value"], translated_attributes["socket_count"]["value"])
 		translated_attributes["socket_states"] = outlet_state
 
-		# def schedule_processor(register, value, device = device):
-		# 	if register == utils.register_id("POWEROUTLET_REG_STATE"):
-		# 		socket_state = interchange.reg_to_int({ str(register): { "value": value }}, reg_id = register)		
-		# 		socket_values, socket_selection = interchange.poweroutlet_read_state(socket_state, device["attributes"]["socket_count"]["value"])
-		# 		for i, entry in enumerate(socket_selection):
-		# 			if not entry:
-		# 				socket_values[i] = None
-		# 		return ("socket_states", socket_values)
-
-		# utils.reformat_schedules(device, schedule_processor)
-
 		prune_device_data(device)
 		device["attributes"] = translated_attributes
+
+		if device.get("schedules"):
+			poweroulet_repack_schedules(device)
 
 		valid_devices.append(device)
 
@@ -42,8 +34,8 @@ def poweroutlet_processor(poweroutlets):
 def poweroutlet_build_command(command_data):
 	command_packet = build_command(command_data, [], [])
 
-	if int(command_data["attribute_id"]) == device_defs.attribute_id("POWEROUTLET_ATTR_STATE"):
-		command_packet = device_protocol.poweroutlet_set_state(command_data["value"])
+	if int(command_data["attribute-id"]) == device_defs.attribute_id("POWEROUTLET_ATTR_STATE"):
+		command_packet = device_protocol.poweroutlet_set_state(command_data["attribute-value"])
 
 	return command_packet
 
@@ -57,14 +49,26 @@ def command(request_params):
 
 	return base.command(request_params, command_packet, poweroutlet_processor)
 
-# def set_schedule(request):
-	# return base.set_schedule(request, poweroutlet_build_command, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
+def poweroulet_repack_schedules(device):
+	def schedule_processor(attr, value):
+		if attr == device_defs.attribute_id("POWEROUTLET_ATTR_STATE"):
+			socket_count = device["attributes"]["socket_count"]["value"]
+			socket_values, socket_selection = device_protocol.poweroutlet_read_state(value, socket_count)
+
+			for i, entry in enumerate(socket_selection):
+				if not entry:
+					socket_values[i] = None
+
+			return ("socket_states", socket_values)
+
+	for schedule in device["schedules"]:
+		repack_schedule(schedule, schedule_processor)
 
 def handle_request(request):
 	directive = request.get("directive")
 	request_params = request.get("parameters") 
 
-	request_params["type"] = device_defs.device_type_id("DEVICE_TYPE_POWEROUTLET")
+	request_params["device-type"] = device_defs.device_type_id("DEVICE_TYPE_POWEROUTLET")
 
 	match directive:
 		case "fetch":

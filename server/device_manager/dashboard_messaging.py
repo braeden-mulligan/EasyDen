@@ -11,25 +11,25 @@ from database import operations as db
 
 import json
 
-def filter_devices(data, device_list, job_handler):
+def filter_devices(params, device_list, job_handler):
 	devices = []
 
 	for d in device_list:
 		device_data = d.get_data()
-		if data.get("include-meta-info"):
+		if params.get("include-meta-info"):
 			device_data = {**device_data, "last-contact": d.last_contact, "reconnect-count": d.reconnect_count, "message-queue-retention-time": d.msg_queue_retention_time}
 
-		if data.get("id"):
-			if isinstance(data.get("id"), list) and d.id in data.get("id"):
+		if params.get("device-id"):
+			if isinstance(params.get("device-id"), list) and d.id in params.get("device-id"):
 				devices.append(device_data) 
-			elif d.id == data.get("id"):
+			elif d.id == params.get("device-id"):
 				devices.append(device_data)
-		elif data.get("type") and d.type == data.get("type"):
+		elif params.get("device-type") and d.type == params.get("device-type"):
 			devices.append(device_data)
-		elif data.get("all"):
+		elif params.get("all"):
 			devices.append(device_data)
 	
-	if data.get("include-schedules"):
+	if params.get("include-schedules"):
 		for d in devices:
 			d["schedules"] = job_handler.fetch_schedules(d["id"])
 
@@ -37,18 +37,18 @@ def filter_devices(data, device_list, job_handler):
 		"result": devices
 	}
 
-def send_device_command(data, device_list):
+def send_device_command(params, device_list):
 	devices = []
 
 	for d in device_list:
-		if data.get("id"):
-			if isinstance(data.get("id"), list) and d.id in data.get("id"):
+		if params.get("device-id"):
+			if isinstance(params.get("device-id"), list) and d.id in params.get("device-id"):
 				devices.append(d) 
-			elif d.id == data.get("id"):
+			elif d.id == params.get("device-id"):
 				devices.append(d)
-		elif data.get("type") and d.type == data.get("type"):
+		elif params.get("device-type") and d.type == params.get("device-type"):
 			devices.append(d)
-		elif data.get("all"):
+		elif params.get("all"):
 			devices.append(d)
 	
 	success = 0
@@ -60,7 +60,7 @@ def send_device_command(data, device_list):
 		}
 
 	for d in devices:
-		result = d.device_send(data.get("command"))	
+		result = d.device_send(params.get("command"))	
 		if result == SmartHome_Device.ERROR_NO_SOCKET:
 			errors.append(error_response(E_DEVICE, "Device ID: " + str(d.id) + " has no socket connection."))
 		elif result == SmartHome_Device.ERROR_QUEUE_FULL:
@@ -74,9 +74,9 @@ def send_device_command(data, device_list):
 	}
 
 def update_device_name(data, device_list):
-	device = next((d for d in device_list if d.id == data.get("id")), None)
+	device = next((d for d in device_list if d.id == data.get("device-id")), None)
 	if not device :
-		return error_response(E_DEVICE, "Device ID: " + str(data.get("id")) + " not found.")
+		return error_response(E_DEVICE, "Device ID: " + str(data.get("device-id")) + " not found.")
 
 	device.name = data.get("name", device.name)
 	db.update_device_name(device)
@@ -113,9 +113,11 @@ def _handle_dashboard_message(message, device_list, job_handler):
 		case { "entity": "schedule", "directive": "update" }:
 			return response_unimplemented
 		
-		case { "entity": "config", "directive": "fetch" }:
+		case { "entity": "server", "directive": "config-get" }:
 			return response_unimplemented
-		case { "entity": "config", "directive": "set" }:
+		case { "entity": "server", "directive": "config-set" }:
+			if "name" in params and "device-id" in params:
+				update_device_name(params, device_list)
 			return response_unimplemented
 		
 		case { "entity": "debug" }:
@@ -128,5 +130,5 @@ def handle_dashboard_message(message, device_list, job_handler):
 	try:
 		return json.dumps(_handle_dashboard_message(message, device_list, job_handler))
 	except Exception as e:
-		log.error("Error processing dashboard message.", exc_info = True)
+		log.exception("Error processing dashboard message.")
 		return json.dumps(error_response(E_UNKNOWN, "Device manager undandled exception.", e))

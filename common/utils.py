@@ -1,4 +1,12 @@
+import struct
 from . import defines
+
+
+def int32_to_float(value):
+	return struct.unpack("=f", struct.pack("=I", value))[0]
+
+def float_to_int32(value):
+	return struct.unpack("=I", struct.pack("=f", value))[0]
 
 # Devices that have multiple binary i/o channels for an attribute map bits from lowest byte to determine state.
 # To control which channels to toggle, set the corresponding bit of high byte. Else consider low byte bit null.

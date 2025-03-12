@@ -1,5 +1,5 @@
 from common.defines import *
-from common.utils import error_response
+from common.utils import error_response, int32_to_float
 from common import device_definitions as device_defs
 from ..device_helpers import *
 from . import base_device as base
@@ -34,38 +34,42 @@ def thermostat_processor(thermostats):
 		translated_attributes["max_heat_time"] = repack_int_attribute("THERMOSTAT_ATTR_MAX_HEAT_TIME", device["attributes"])
 		translated_attributes["min_cooldown_time"] = repack_int_attribute("THERMOSTAT_ATTR_MIN_COOLDOWN_TIME", device["attributes"])
 
-		# def schedule_processor(register, value, device = device):
-		# 	if register == device_defs.attribute_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"):
-		# 		target_temperature = interchange.reg_to_float({ str(register): { "value": value }}, reg_id = register)
-		# 		return ("target_temperature", target_temperature)
-
-		# device_defs.reformat_schedules(device, schedule_processor)
-
 		prune_device_data(device)
 		device["attributes"] = translated_attributes
+
+		if device.get("schedules"):
+			thermostat_repack_schedules(device)
 
 		valid_devices.append(device)
 
 	return valid_devices
 
+def thermostat_build_command(command_data):
+	return build_command(command_data, INTEGER_ATTRIBUTE_VALUES, FLOAT_ATTRIBUTE_VALUES)
+
 def command(request_params):
 	command_data = request_params.get("command")
 
 	try:
-		command_packet = build_command(command_data, INTEGER_ATTRIBUTE_VALUES, FLOAT_ATTRIBUTE_VALUES)
+		command_packet = thermostat_build_command(command_data)
 	except Exception as e:
 		return error_response(E_REQUEST_FAILED, "Failed to build thermostat command.", e)
 
 	return base.command(request_params, command_packet, thermostat_processor)
 
-# def set_schedule(request):
-# 	return base.set_schedule(request, thermostat_build_command, thermostat_processor, "SH_TYPE_THERMOSTAT")
+def thermostat_repack_schedules(device):
+	def schedule_processor(attr, value):
+		if attr == device_defs.attribute_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"):
+			return ("target_temperature", int32_to_float(value))
+
+	for schedule in device["schedules"]:
+		repack_schedule(schedule, schedule_processor)
 
 def handle_request(request):
 	directive = request.get("directive")
 	request_params = request.get("parameters")
 
-	request_params["type"] = device_defs.device_type_id("DEVICE_TYPE_THERMOSTAT")
+	request_params["device-type"] = device_defs.device_type_id("DEVICE_TYPE_THERMOSTAT")
 
 	match directive:
 		case "fetch":

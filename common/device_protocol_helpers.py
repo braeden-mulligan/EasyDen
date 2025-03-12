@@ -21,7 +21,7 @@ def attribute_as_float(attribute_identifier, attributes):
 	value = attribute_as_int(attribute_identifier, attributes)
 
 	if value is not None:
-		value = struct.unpack("=f", struct.pack("=I", value))[0]
+		value = utils.int32_to_float(value)
 
 	return value
 
@@ -32,7 +32,7 @@ def build_command_from_float(attribute_identifier, value):
 	if attribute_identifier is None:
 		return None
 
-	packed_float = struct.unpack("=I", struct.pack("=f", value))[0]
+	packed_float = utils.float_to_int32(value)
 
 	return template.format(_set, attribute_identifier, packed_float)
 
@@ -93,7 +93,7 @@ def thermostat_get_humidity():
 	return template.format(_get, _attr_id("THERMOSTAT_ATTR_HUMIDITY"), 0)
 
 def thermostat_set_temperature(value):
-	packed_float = struct.unpack("=I", struct.pack("=f", value))[0]
+	packed_float = utils.float_to_int32(value) 
 	return template.format(_set, _attr_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"), packed_float)
 
 

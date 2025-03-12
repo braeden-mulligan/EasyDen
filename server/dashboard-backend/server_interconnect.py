@@ -43,10 +43,10 @@ def fetch_devices(request_params = {}):
 		"parameters": request_params
 	}
 
-	device_type = request_params.get("type")
+	device_type = request_params.get("device-type")
 
 	if device_type:
-		query["parameters"]["type"] = defs.device_type_id(device_type) if isinstance(device_type, str) else device_type
+		query["parameters"]["device-type"] = defs.device_type_id(device_type) if isinstance(device_type, str) else device_type
 
 	request_params["include-schedules"] = True
 
@@ -62,16 +62,3 @@ def send_device_command(command_packet, request_params = {}):
 	query["parameters"]["command"] = command_packet
 
 	return interconnect_transact(query)
-
-# def submit_device_schedule(device_id, schedule_data):
-# 	query = {
-# 		"entity": "schedule",
-# 		"directive": "create",
-# 		"parameters": {
-# 			"device-id": device_id,
-# 			"schedule": schedule_data
-# 		}
-# 	}
-
-# 	return message_transaction(query)
-

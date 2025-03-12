@@ -1,7 +1,7 @@
 import { useEffect } from "react";
 import { useGlobalStore } from "../store";
-import { start_device_polling } from "../utils";
-import { DEVICE_TYPE_MAP } from "../defines";
+import { DEVICE_TYPE_MAP, DEVICE_POLL_PERIOD_MS } from "../defines";
+import { fetch_devices } from "../api";
 import { Poweroutlet, Thermostat } from "../components/devices";
 
 export const DevicePanel = function({ device_types }) {
@@ -11,7 +11,17 @@ export const DevicePanel = function({ device_types }) {
 	 .filter((device) => device_types.some((type) => DEVICE_TYPE_MAP[device.type] == type));
 
 	useEffect(() => {
-		return start_device_polling(device_types);
+		for (const type of device_types) {
+			fetch_devices(type, undefined, true);
+		}
+
+		const poll_timer = setInterval(async () => {
+			for (const type of device_types) {
+				fetch_devices(type, undefined, true);
+			}
+		}, DEVICE_POLL_PERIOD_MS);
+
+		return () => clearInterval(poll_timer);
 	}, [])
 
 	const select_device_component = function(device) {

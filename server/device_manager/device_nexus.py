@@ -173,5 +173,5 @@ def run():
 	except KeyboardInterrupt:
 		raise
 	except:
-		log.exception("Caught unhandled exception; device manager has crashed!")
+		log.critical("Caught unhandled exception; device manager has crashed!", exc_info = True)
 		exit(1)

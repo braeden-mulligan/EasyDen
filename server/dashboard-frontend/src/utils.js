@@ -1,6 +1,3 @@
-import { DEVICE_POLL_PERIOD_MS } from "./defines";
-import { fetch_devices } from "./api";
-
 export const equal = function(obj_1, obj_2) {
 	function is_object(obj) {
   		return obj != null && typeof obj === 'object';
@@ -21,20 +18,4 @@ export const equal = function(obj_1, obj_2) {
 	}
 
 	return true;
-}
-
-export const start_device_polling = function(device_types) {
-	if (typeof device_types === "string") device_types = [device_types];
-
-	for (const type of device_types) {
-		fetch_devices(type, undefined, true);
-	}
-
-	const poll_timer = setInterval(async () => {
-		for (const type of device_types) {
-			fetch_devices(type, undefined, true);
-		}
-	}, DEVICE_POLL_PERIOD_MS);
-
-	return () => clearInterval(poll_timer);
 }

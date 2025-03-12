@@ -51,7 +51,6 @@ def remove_schedule(id, db = None):
 @db_connection
 def add_schedule(schedule, db = None):
 	schedule_data = schedule.get_data()
-	schedule_data.pop("id", None)
 	query = "insert into schedules(data, device_id) values(?, {})".format(schedule.device.id)
 	db.execute(query, (json.dumps(schedule_data),))
 	return db.lastrowid

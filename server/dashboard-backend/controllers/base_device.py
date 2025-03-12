@@ -48,20 +48,3 @@ def command(request_params, command_packet, device_data_processor):
 
 	return error_response(E_TIMEOUT, "Device response could not be confirmed.")
 
-# def set_schedule(request, command_builder, processor, type_label):
-# 	data = json.loads(request.data.decode())
-
-# 	if data["action"] == "create":
-# 		data["command"] = command_builder(data)
-
-# 	data.pop("register", None)
-# 	data.pop("attribute_data", None)
-
-# 	schedule_data = json.dumps(data)
-# 	print("Setting schedule:", schedule_data)
-
-# 	device_id = request.args.get("id")
-# 	interconnect.data_transaction(interconnect.device_schedule(device_id, schedule_data))
-# 	response_label, devices = interconnect.fetch_devices(device_id, device_type_label = type_label)
-	
-# 	return Response(response = json.dumps(processor(devices)), mimetype = "application/json")

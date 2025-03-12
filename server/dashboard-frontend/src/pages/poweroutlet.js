@@ -1,5 +1,5 @@
+import { DevicePanel } from "../layout/device-panel";
+
 export const PowerOutletPage = function() {
-	return (
-		<h1>Power Oultet Devices</h1>
-	)
+	return <DevicePanel device_types={"poweroutlet"} />
 }

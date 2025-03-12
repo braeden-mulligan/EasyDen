@@ -1,5 +1,5 @@
+import { DevicePanel } from "../layout/device-panel";
+
 export const ThermostatPage = function() {
-	return (
-		<h1>Thermostat Devices</h1>
-	)
+	return <DevicePanel device_types={"thermostat"} />
 }

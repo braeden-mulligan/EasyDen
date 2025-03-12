@@ -24,7 +24,7 @@ export const NavbarTop = function ({ manage_sidebar }) {
 	}
 
 	return (
-		<div style={{ display: "flex", "flex-direction": "row" }}>
+		<div style={{ display: "flex", flexDirection: "row" }}>
 			{
 				manage_sidebar && 
 				<button style={{ height: "32px" }} onClick={() => set_nav_menu_open(!nav_menu_open) }>

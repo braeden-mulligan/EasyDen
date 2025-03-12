@@ -48,27 +48,29 @@ def thermostat_processor(thermostats):
 
 	return valid_devices
 
-def command(request_data):
-	command_data = request_data.get("command")
+def command(request_params):
+	command_data = request_params.get("command")
 
 	try:
 		command_packet = build_command(command_data, INTEGER_ATTRIBUTE_VALUES, FLOAT_ATTRIBUTE_VALUES)
 	except Exception as e:
 		return error_response(E_REQUEST_FAILED, "Failed to build thermostat command.", e)
 
-	return base.command(request_data, command_packet, thermostat_processor)
+	return base.command(request_params, command_packet, thermostat_processor)
 
 # def set_schedule(request):
 # 	return base.set_schedule(request, thermostat_build_command, thermostat_processor, "SH_TYPE_THERMOSTAT")
 
 def handle_request(request):
 	directive = request.get("directive")
-	request_data = request.get("parameters")
+	request_params = request.get("parameters")
+
+	request_params["type"] = device_defs.device_type_id("DEVICE_TYPE_THERMOSTAT")
 
 	match directive:
 		case "fetch":
-			return base.fetch(request_data, thermostat_processor)
+			return base.fetch(request_params, thermostat_processor)
 		case "command":
-			return command(request_data)
+			return command(request_params)
 		case _:
 			return error_response(E_INVALID_REQUEST, ("Missing" if not directive else "Invalid") + " directive.")

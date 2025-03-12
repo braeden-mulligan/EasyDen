@@ -10,10 +10,8 @@ export const DebugPage = function() {
 
 		formJson.parameters = JSON.parse(formJson.parameters);
 
-		console.log("form data:", formJson);
-
 		request(formJson).then((response) => {
-			console.log("response:", response);
+			console.log("Debug response:", response);
 		})
 	}
 

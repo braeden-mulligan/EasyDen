@@ -8,30 +8,30 @@ from .. import server_interconnect as interconnect
 
 import time
 
-def fetch(request_data, device_data_processor):
-	response = interconnect.fetch_devices(request_data)
+def fetch(request_params, device_data_processor):
+	response = interconnect.fetch_devices(request_params)
 
-	if response["result"]:
+	if response.get("result") is not None:
 		response["result"] = device_data_processor(response["result"])
 		return response
 
-	if not response["error"]:
+	if response.get("error") is None:
 		return error_response()
 	
 	return response
 
 # NOTE: Only supports one device at a time for now
-def command(request_data, command_packet, device_data_processor):
-	response = interconnect.send_device_command(request_data, command_packet)
+def command(request_params, command_packet, device_data_processor):
+	response = interconnect.send_device_command(command_packet, request_params)
 
 	if response.get("error"):
 		return response
 
-	timeout = time.monotonic() + (request_data.get("timeout") or (config.TX_TIMEOUT * (config.MAX_TX_RETRIES  + 1) + 1.0))
+	timeout = time.monotonic() + (request_params.get("timeout") or (config.TX_TIMEOUT * (config.MAX_TX_RETRIES  + 1) + 1.0))
 
 	while time.monotonic() < timeout:
 		time.sleep(0.15)
-		devices = interconnect.fetch_devices(request_data).get("result")
+		devices = interconnect.fetch_devices(request_params).get("result")
 		if not devices:
 			continue 
 

@@ -1,5 +1,5 @@
 import { SERVER_ADDR } from "./defines"
-import { add_notification } from "./store";
+import { add_notification, update_device_list } from "./store";
 
 export const default_error_handler = function (error) {
 	//TODO: implement this.
@@ -29,4 +29,18 @@ export const request = async function(data = {}, error_handler = null) {
 	}).catch((error) => {
 		console.log("Unhandled error: " + error);
 	})
+}
+
+export const fetch_devices = async function(type, params, suppress_error = false) {
+	const response = await request({
+		entity: type || "device",
+		directive: "fetch",
+		parameters: params || {}
+	}, suppress_error ? () => {} : null)
+
+	if (response.result) {
+		update_device_list(response.result);
+	}
+
+	return response
 }

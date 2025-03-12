@@ -47,27 +47,29 @@ def poweroutlet_build_command(command_data):
 
 	return command_packet
 
-def command(request_data):
-	command_data = request_data.get("command")
+def command(request_params):
+	command_data = request_params.get("command")
 
 	try:
 		command_packet = poweroutlet_build_command(command_data)
 	except Exception as e:
 		return error_response(E_REQUEST_FAILED, "Failed to build poweroutlet command.", e)
 
-	return base.command(request_data, command_packet, poweroutlet_processor)
+	return base.command(request_params, command_packet, poweroutlet_processor)
 
 # def set_schedule(request):
 	# return base.set_schedule(request, poweroutlet_build_command, poweroutlet_processor, "SH_TYPE_POWEROUTLET")
 
 def handle_request(request):
 	directive = request.get("directive")
-	request_data = request.get("parameters")
+	request_params = request.get("parameters") 
+
+	request_params["type"] = device_defs.device_type_id("DEVICE_TYPE_POWEROUTLET")
 
 	match directive:
 		case "fetch":
-			return base.fetch(request_data, poweroutlet_processor)
+			return base.fetch(request_params, poweroutlet_processor)
 		case "command":
-			return command(request_data)
+			return command(request_params)
 		case _:
 			return error_response(E_INVALID_REQUEST, ("Missing" if not directive else "Invalid") + " directive.")

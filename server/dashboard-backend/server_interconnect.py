@@ -36,25 +36,25 @@ def interconnect_transact(request_data, timeout = 1.0):
 
 	return json.loads(response)
 
-def fetch_devices(request_data): 
+def fetch_devices(request_params = {}): 
 	query = {
 		"entity": "device",
 		"directive": "fetch",
-		"parameters": request_data
+		"parameters": request_params
 	}
 
-	device_type = request_data.get("type")
+	device_type = request_params.get("type")
 
 	if device_type:
 		query["parameters"]["type"] = defs.device_type_id(device_type) if isinstance(device_type, str) else device_type
 
 	return interconnect_transact(query)
 
-def send_device_command(request_data, command_packet):
+def send_device_command(command_packet, request_params = {}):
 	query = {
 		"entity": "device",
 		"directive": "command",
-		"parameters": request_data
+		"parameters": request_params
 	}
 
 	query["parameters"]["command"] = command_packet

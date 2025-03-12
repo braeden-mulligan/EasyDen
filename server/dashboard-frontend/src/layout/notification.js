@@ -1,9 +1,8 @@
-import { useStore } from "../store"
+import { useGlobalStore } from "../store"
 
 export const NotificationSnackbar = function() {
-	console.log("notification rendered")
-	const notifications = useStore((state) => state.notifications)
-	const clear_notifications = useStore((state) => state.clear_notifications);
+	const notifications = useGlobalStore((state) => state.notifications)
+	const clear_notifications = useGlobalStore((state) => state.clear_notifications);
 
 	if (!notifications.length) return null
 

@@ -19,15 +19,15 @@ def filter_devices(data, device_list, job_handler):
 		if data.get("include-meta-info"):
 			device_data = {**device_data, "last-contact": d.last_contact, "reconnect-count": d.reconnect_count, "message-queue-retention-time": d.msg_queue_retention_time}
 
-		if data.get("all"):
-			devices.append(device_data)
-		elif data.get("type") and d.device_type == data.get("type"):
-			devices.append(device_data)
-		elif data.get("id"):
+		if data.get("id"):
 			if isinstance(data.get("id"), list) and d.device_id in data.get("id"):
 				devices.append(device_data) 
 			elif d.device_id == data.get("id"):
 				devices.append(device_data)
+		elif data.get("type") and d.device_type == data.get("type"):
+			devices.append(device_data)
+		elif data.get("all"):
+			devices.append(device_data)
 	
 	if data.get("include-schedules"):
 		for d in devices:
@@ -41,11 +41,14 @@ def send_device_command(data, device_list):
 	devices = []
 
 	for d in device_list:
-		if data.get("all"):
-			devices.append(d)
+		if data.get("id"):
+			if isinstance(data.get("id"), list) and d.device_id in data.get("id"):
+				devices.append(d) 
+			elif d.device_id == data.get("id"):
+				devices.append(d)
 		elif data.get("type") and d.device_type == data.get("type"):
 			devices.append(d)
-		elif data.get("id") == d.device_id:
+		elif data.get("all"):
 			devices.append(d)
 	
 	success = 0
@@ -87,8 +90,8 @@ def _handle_dashboard_message(message, device_list, job_handler):
 
 	params = message.get("parameters")
 
-	if not params or not message.get("entity") or not message.get("directive"):
-		return error_response(E_INVALID_REQUEST, "Dashboard message missing field: entity, directive, or parameters")
+	if not message.get("entity") or not message.get("directive"):
+		return error_response(E_INVALID_REQUEST, "Dashboard message missing field: entity or directive")
 
 	response = error_response()
 	response_success = {

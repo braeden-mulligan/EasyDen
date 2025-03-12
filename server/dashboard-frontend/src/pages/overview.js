@@ -1,14 +1,17 @@
-import { default_error_handler, request } from "../api";
+import { useEffect } from "react";
+import { useGlobalStore } from "../store";
+import { start_device_polling } from "../utils";
 
 export const OverviewPage = function() {
-	const handleClick = async function () {
-		let x  = await request({hello: "world"}, (error) => {
-			default_error_handler(error)
-			console.log("Test custom error handler: " + JSON.stringify(error));
-		})
-	}
+	const devices = useGlobalStore((state) => state.devices)
+
+	useEffect(() => {
+		return start_device_polling(["thermostat", "poweroutlet"]);
+	}, [])
 
 	return (
-		<button onClick={handleClick}>Request</button>
+		<ul>
+			{devices.map((device) => <li key={device.id}>{JSON.stringify(device)}</li>)}
+		</ul>
 	)
 }

@@ -7,10 +7,7 @@ import { DebugPage } from "./pages/debug";
 import { OverviewPage } from "./pages/overview";
 import { ThermostatPage } from "./pages/thermostat";
 import { PowerOutletPage } from "./pages/poweroutlet";
-
-const NotFoundPage = function () {
-	return <div>404 Not Found</div>;
-}
+import { NotFoundPage } from "./pages/not-found";
 
 function AppMain() {
 	const { isPortrait } = useMobileOrientation();

@@ -1,22 +1,22 @@
 import { useEffect } from "react";
 import { useGlobalStore } from "../store";
-import { DEVICE_TYPE_MAP, DEVICE_POLL_PERIOD_MS } from "../defines";
+import { ENTITY_TYPE_MAP, DEVICE_POLL_PERIOD_MS } from "../defines";
 import { fetch_devices } from "../api";
 import { Poweroutlet, Thermostat } from "../components/devices";
 
-export const DevicePanel = function({ device_types }) {
-	if (typeof device_types === "string") device_types = [device_types];
+export const DevicePanel = function({ entity_types }) {
+	if (typeof entity_types === "string") entity_types = [entity_types];
 
 	const devices = useGlobalStore((state) => state.devices)
-	 .filter((device) => device_types.some((type) => DEVICE_TYPE_MAP[device.type] == type));
+	 .filter((device) => entity_types.some((entity) => ENTITY_TYPE_MAP[device.type] == entity));
 
 	useEffect(() => {
-		for (const type of device_types) {
+		for (const type of entity_types) {
 			fetch_devices(type, undefined, true);
 		}
 
 		const poll_timer = setInterval(async () => {
-			for (const type of device_types) {
+			for (const type of entity_types) {
 				fetch_devices(type, undefined, true);
 			}
 		}, DEVICE_POLL_PERIOD_MS);
@@ -25,7 +25,7 @@ export const DevicePanel = function({ device_types }) {
 	}, [])
 
 	const select_device_component = function(device) {
-		switch (DEVICE_TYPE_MAP[device.type]) {
+		switch (ENTITY_TYPE_MAP[device.type]) {
 			case "thermostat":
 				return <Thermostat device={device}/>
 			case "poweroutlet":

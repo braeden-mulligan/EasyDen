@@ -1,5 +1,5 @@
 import { DevicePanel } from "../layout/device-panel";
 
 export const OverviewPage = function() {
-	return <DevicePanel device_types={["thermostat", "poweroutlet"]}/>
+	return <DevicePanel entity_types={["thermostat", "poweroutlet"]}/>
 }

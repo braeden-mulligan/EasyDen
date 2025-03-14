@@ -126,7 +126,7 @@ class Nexus_Jobs:
 		# self.log_temperature()
 		# self.query_irrigation()
 		self.keepalive()
-		# schedule.run_pending()
+		schedule.run_pending()
 
 		#Scrub expired one-time scheduled events from list
 		for s in self.schedules:

@@ -44,7 +44,9 @@ def command(request_params, command_packet, device_data_processor):
 			continue
 
 		if last_update > last_query:
-			return device_data_processor(devices)
+			return {
+				"result": device_data_processor(devices)
+			}
 
 	return error_response(E_TIMEOUT, "Device response could not be confirmed.")
 

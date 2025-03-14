@@ -35,10 +35,6 @@ def create_schedule(request_params):
 
 	schedule_data["command"] = formatted_command
 
-	print("")
-	print(device_type, schedule_data, formatted_command)
-	print("")
-
 	return interconnect_transact({
 		"entity": "schedule",
 		"directive": "create",

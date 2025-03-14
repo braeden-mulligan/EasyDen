@@ -1,4 +1,4 @@
-export const DEVICE_TYPE_MAP = {
+export const ENTITY_TYPE_MAP = {
 	6: "irrigation",
 	7: "poweroutlet",
 	8: "thermostat"

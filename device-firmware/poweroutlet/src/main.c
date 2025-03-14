@@ -209,8 +209,15 @@ void outlet_init(void) {
 	uint8_t outlet7 = eeprom_read_byte((uint8_t*)EEPROM_ADDR_OUTLET_7_MEM);
 
 	uint32_t status_mask = 0x0000FF00;
-	status_mask |= outlet0 | (outlet1 << 1) | (outlet2 << 2) | (outlet3 << 3) |
-	  (outlet4 << 4) | (outlet5 << 5) | (outlet6 << 6) | (outlet7 << 7);
+	status_mask |= outlet0 << 0;
+	status_mask |= outlet1 << 1;
+	status_mask |= outlet2 << 2;
+	status_mask |= outlet3 << 3;
+	status_mask |= outlet4 << 4;
+	status_mask |= outlet5 << 5;
+	status_mask |= outlet6 << 6;
+	status_mask |= outlet7 << 7;
+	
 	if (values_inverted) status_mask = (0x0000FF00 | ~status_mask);
 
 	outlet_state_set(status_mask);

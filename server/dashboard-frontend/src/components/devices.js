@@ -2,14 +2,27 @@ import { useRef, useState } from "react";
 import { add_schedule, remove_schedule, send_command } from "../api";
 
 const InfoPane = function({ device }) {
+const set_attribute = function(attribute_id, value) {
+		const command = {
+			"attribute-id": attribute_id,
+			"attribute-value": value 
+		}
+
+		send_command(device, command);
+	} 
 	return (
 	<div>
 		<p>ID: { device.id } </p>
 		<p>Name: { device.name }</p>
 		<p>Online: { device.online.toString() }</p>
-		{/* <p>Device enabled: { attributes.enabled.value } &nbsp;
-			<button className="set" onClick={ () => update_attribute(attributes.enabled.register, + !attributes.enabled.value) } > Toggle </button>
-		</p> */}
+		<p>Device enabled: { device.attributes.enabled.value } &nbsp;
+			<button className="set" onClick={() => send_command(device, {
+				"attribute-id": device.attributes.enabled.id,
+				"attribute-value": + !device.attributes.enabled.value
+			})}>
+				Toggle
+			</button>
+		</p>
 	</div>
 	)
 }
@@ -239,17 +252,16 @@ export const Poweroutlet = function({ device }) {
 			return(
 			<li key={i}>
 				<span socket_id={i}>Socket {i}: {val ? "ON" : "OFF"} &nbsp; </span>
-				<button className="set" onClick={
-					() => {
-						let socket_states = device.attributes.socket_states.value.slice();
-						socket_states[i] = + !socket_states[i];
-						// set_attribute(attributes.socket_states., socket_states)
-						send_command(device, {
-							"attribute-id": device.attributes.socket_states.id,
-							"attribute-value": socket_states
-						})
-					}
-				} > Toggle </button>
+				<button className="set" onClick={() => {
+					const target_states = device.attributes.socket_states.value;
+					target_states[i] = !target_states[i]
+					send_command(device, {
+						"attribute-id": device.attributes.socket_states.id,
+						"attribute-value": target_states
+					})}}
+				>
+					Toggle
+				</button>
 			</li>
 			);
 		});

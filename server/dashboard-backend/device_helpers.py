@@ -1,11 +1,3 @@
-# import sys
-# sys.path.append("..")
-# from common import device_definitions as dm_defs
-# import common.device_messaging as interchange
-
-# def register_id(label):
-# 	return dm_defs.register_id(label)
-
 import common.device_protocol_helpers as device_protocol
 from common import device_definitions as device_defs
 

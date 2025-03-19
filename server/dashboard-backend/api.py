@@ -73,7 +73,7 @@ def handle_query(request):
 
 		match request.get("entity"):
 			case "irrigation":
-				pass
+				return utils.error_response(defines.E_UNIMPLEMENTED)
 			case "poweroutlet":
 				return poweroutlet.handle_request(request)
 			case "thermostat":
@@ -81,11 +81,9 @@ def handle_query(request):
 			case "schedule":
 				return schedules.handle_request(request)
 			case "server":
-				pass
+				return utils.error_response(defines.E_UNIMPLEMENTED)
 			case _:
 				return utils.error_response(defines.E_INVALID_REQUEST, "Unknown entity specified.")
-		
-		return utils.error_response()
 
 	except Exception as e:
 		log.exception("Unhandled exception")

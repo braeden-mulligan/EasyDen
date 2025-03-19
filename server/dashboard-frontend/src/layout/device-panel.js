@@ -2,9 +2,10 @@ import { useEffect } from "react";
 import { useGlobalStore } from "../store";
 import { ENTITY_TYPE_MAP, DEVICE_POLL_PERIOD_MS } from "../defines";
 import { fetch_devices } from "../api";
-import { Poweroutlet, Thermostat } from "../components/devices";
+import { Poweroutlet } from "../components/poweroutlet";
+import { Thermostat } from "../components/thermostat";
 
-export const DevicePanel = function({ entity_types }) {
+export const DevicePanel = function({ entity_types, brief }) {
 	if (typeof entity_types === "string") entity_types = [entity_types];
 
 	const devices = useGlobalStore((state) => state.devices)
@@ -27,9 +28,9 @@ export const DevicePanel = function({ entity_types }) {
 	const select_device_component = function(device) {
 		switch (ENTITY_TYPE_MAP[device.type]) {
 			case "thermostat":
-				return <Thermostat device={device}/>
+				return <Thermostat device={device} brief={brief}/>
 			case "poweroutlet":
-				return <Poweroutlet device={device}/>
+				return <Poweroutlet device={device} brief={brief}/>
 			default:
 				return (<>
 					<p>UNKNOWN DEVICE</p>

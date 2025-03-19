@@ -38,7 +38,7 @@ export const fetch_devices = async function(type, params, suppress_error = false
 		parameters: params || {}
 	}, suppress_error ? () => {} : null);
 
-	if (response.result) {
+	if (response?.result) {
 		update_device_list(response.result);
 	}
 
@@ -55,7 +55,7 @@ export const send_command = async function(device, command_data) {
 		}
 	});
 
-	if (response.result) {
+	if (response?.result) {
 		update_device_list(response.result);
 	}
 
@@ -73,7 +73,7 @@ export const add_schedule = async function(device, schedule_data) {
 		}
 	})
 
-	if (response.result){
+	if (response?.result){
 		fetch_devices(ENTITY_TYPE_MAP[device.type], {
 			"device-id": device.id
 		})
@@ -89,7 +89,7 @@ export const remove_schedule = async function(device, schedule_id){
 		}
 	})
 
-	if (response.result) {
+	if (response?.result) {
 		fetch_devices(ENTITY_TYPE_MAP[device.type], {
 			"device-id": device.id
 		})

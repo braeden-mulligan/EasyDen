@@ -18,29 +18,6 @@ export const InfoPane = function({ device, disabled }) {
 	)
 }
 
-// export const MutableAttribute = function({ description, attribute, set_attribute }) {
-// 	const current_target = useRef(null);
-// 	console.log("mutable attr", attribute);
-
-// 	return (
-// 		<p>
-// 			<span>{ description }: { attribute.value } &nbsp;
-// 				<input type="text" onChange={ 
-// 					(e) => { current_target.current = e.target.value; }
-// 				} /> 
-// 				<button className="set" onClick={
-// 					() => {
-// 						console.log(current_target.current)
-// 						set_attribute(attribute.id, current_target.current)
-// 					}
-// 				}> 
-// 					Set
-// 				</button>
-// 			</span>
-// 		</p>
-// 	);
-// }
-
 export const ScheduleTimeSelector = function({ schedule_data, on_update_schedule }) {
 	const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
 	const [selected_days, set_selected_days] = useState(days.map(() => false))

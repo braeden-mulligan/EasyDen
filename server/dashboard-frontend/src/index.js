@@ -10,18 +10,19 @@ import { ThermostatPage } from "./pages/thermostat";
 import { PowerOutletPage } from "./pages/poweroutlet";
 import { NotFoundPage } from "./pages/not-found";
 
+import "./main-layout.css"
+import "./theme.css"
+
 function AppMain() {
 	const { isPortrait } = useMobileOrientation();
 	const narrow_view = isMobile && isPortrait;
 
 	return (
 		<BrowserRouter>
-			<header>
-				<NavbarTop manage_sidebar={narrow_view} />
-			</header>
-			<div>
+			<NavbarTop manage_sidebar={narrow_view} />
+			<div className="layout-main">
 				{!narrow_view && <NavbarSide />}
-				<main>
+				<div className="content-main">
 					<Routes>
 						<Route path="/" element={<OverviewPage />} />
 						<Route path="thermostat" element={<ThermostatPage />} />
@@ -29,11 +30,9 @@ function AppMain() {
 						<Route path="debug" element={<DebugPage />} />
 						<Route path="*" element={<NotFoundPage />} />
 					</Routes>
-				</main>
+				</div>
 			</div>
-			<footer>
-				<NotificationSnackbar />
-			</footer>
+			<NotificationSnackbar />
 		</BrowserRouter>
 	);
 }

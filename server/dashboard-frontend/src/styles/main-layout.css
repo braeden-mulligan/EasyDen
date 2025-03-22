@@ -39,4 +39,5 @@ html, body {
 	align-items: center;
 	padding-left: 16px;
 	border-bottom: 1px solid grey;
+	z-index: 1000;
 }

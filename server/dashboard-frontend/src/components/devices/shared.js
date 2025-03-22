@@ -1,10 +1,11 @@
 import { useState } from "react";
 import DeviceUnknownIcon from "@mui/icons-material/DeviceUnknown";
 import SettingsIcon from '@mui/icons-material/Settings';
-import { ToggleSwitch } from "./toggle-switch/toggle-switch";
-import { send_command } from "../api";
+import { ToggleSwitch } from "../toggle-switch/toggle-switch";
+import { send_command } from "../../api";
+import { add_notification } from "../../store";
 
-export const InfoPane = function({ device, Icon, status, limited }) {
+export const InfoPane = function({ device, Icon, Settings, status, limited }) {
 	const [current_status, set_current_status] = useState(device.attributes.enabled.value);
 
 	const toggle_status = async function(value) {
@@ -26,7 +27,7 @@ export const InfoPane = function({ device, Icon, status, limited }) {
 		}}>
 			{<Icon fontSize="large"/> || <DeviceUnknownIcon fontSize="large" />}
 			<p>{device.name}</p>
-			<SettingsIcon fontSize="large"/>
+			<SettingsIcon fontSize="large" onClick={() => add_notification("Device ID:" + device.id) /*<Settings />*/ }/>
 		</div>
 		<hr/>
 		<div className="flex-row" style={{

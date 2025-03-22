@@ -1,7 +1,10 @@
 import { useState } from 'react';
-import { InfoPane, MutableAttribute, ScheduleTimeSelector } from './shared'
-import { add_schedule, remove_schedule, send_command } from "../api";
+import { InfoPane, ScheduleTimeSelector } from './shared'
+import { add_schedule, remove_schedule, send_command } from "../../api";
+import { Popover } from '../popover/popover';
 import DeviceThermostatIcon from "@mui/icons-material/DeviceThermostat";
+import TuneIcon from '@mui/icons-material/Tune';
+
 
 export const ThermostatSchedules = function({ device }) {
 	const [target_temperature, set_target_temperature] = useState(device.attributes.target_temperature.value);
@@ -61,6 +64,7 @@ export const ThermostatSchedules = function({ device }) {
 }
 
 export const Thermostat = function({ device, limited }) {
+	const [popover_open, set_popover_open] = useState(false);
 	const [target_temperature, set_target_temperature] = useState(device.attributes.target_temperature.value);
 
 	const set_attribute = function(attribute_id, value) {
@@ -73,7 +77,6 @@ export const Thermostat = function({ device, limited }) {
 	}
 
 	const status = (() => {
-		console.log(device.attributes.status?.value);
 		switch(device.attributes.status?.value) {
 			case 0:
 				return "Disabled";
@@ -90,21 +93,39 @@ export const Thermostat = function({ device, limited }) {
 
 	return (<>
 		<InfoPane device={device} Icon={DeviceThermostatIcon} status={status} limited={limited}/>
-		<p>Temperature: { device.attributes.temperature.value.toFixed(1) + " °C" }</p>
-		{!limited && <>
-			<input type="range" min="10" max="30" step="0.25" style={{ writingMode: "vertical-lr", direction: "rtl" }} value={target_temperature} onChange={ 
-				(e) => {
-					set_target_temperature(e.target.value)
-				}
-			} />
-			<label>{ target_temperature }</label>
-			<br />
-			<button className="set" onClick={
-				() => set_attribute(device.attributes.target_temperature.id, target_temperature)
-			}> 
-				Set
-			</button>
-		</>}
+		<div className="flex-column" style={{ justifyContent: "center" }}>
+			<h2>{device.attributes.temperature.value.toFixed(1) + " °C"}</h2>
+			<div className="flex-row" style={{ width: "100%",  justifyContent: "space-between"}}>
+				<div style={{ flex: 1, paddingLeft: "16px" }}/>
+				<p>{`Set point: ${device.attributes.target_temperature.value.toFixed(1)} °C`}</p>
+				<div className="flex-row" style={{
+					flex: 1,
+					justifyContent: "flex-end",
+					paddingRight: "16px"
+				}}>
+					<Popover is_open={popover_open} set_is_open={set_popover_open} reference_element={
+						<TuneIcon sx={{ border: "1px solid black", borderRadius: "4px" }}/>
+					}>
+						<div style={{ background: "white", padding: "16px", border: "1px solid grey", borderRadius: "4px", background: "white" }}>
+							<input type="range" min="10" max="30" step="0.25" 
+								style={{ writingMode: "vertical-lr", direction: "rtl"}} 
+								value={target_temperature}
+								onChange={(e) => {
+									set_target_temperature(e.target.value)
+								}}
+							/>
+							<p>{ target_temperature }</p>
+							<button className="set" onClick={() => {
+									set_attribute(device.attributes.target_temperature.id, target_temperature)
+									set_popover_open(false)
+							}}> 
+								Set
+							</button>
+						</div>
+					</Popover>
+				</div>
+			</div>
+		</div>
 		{/* <MutableAttribute description="Target Temperature" attribute={device.attributes.target_temperature} set_attribute={set_attribute}/> */}
 		{/* <Mutable_Attribute description="Temperature correction" attribute={ attributes.temperature_correction } update_attribute={ update_attribute } />
 		<Mutable_Attribute description="Threshold high" attribute={ attributes.threshold_high } update_attribute={ update_attribute } />

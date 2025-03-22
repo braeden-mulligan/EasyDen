@@ -1,7 +1,9 @@
 import { useState } from "react";
 import { InfoPane, ScheduleTimeSelector } from './shared'
-import { add_schedule, remove_schedule, send_command } from "../api";
+import { add_schedule, remove_schedule, send_command } from "../../api";
 import PowerIcon from "@mui/icons-material/Power";
+import OutletIcon from '@mui/icons-material/Outlet';
+import { ToggleSwitch } from "../toggle-switch/toggle-switch";
 
 export const PoweroutletSchedules = function({ device }) {
 	const [target_settings, set_target_settings] = useState(Array(device.attributes.socket_count.value).fill(null));
@@ -62,32 +64,25 @@ export const PoweroutletSchedules = function({ device }) {
 }
 
 export const Poweroutlet = function({ device, limited }) {
-	function render_socket_states() {
-		return device.attributes.socket_states.value.map((val, i) => {
-			return(
-			<li key={i}>
-				<span socket_id={i}>Socket {i}: {val ? "ON" : "OFF"} &nbsp; </span>
-				<button className="set" disabled={limited} onClick={() => {
-					const target_states = device.attributes.socket_states.value;
-					target_states[i] = !target_states[i]
-					send_command(device, {
-						"attribute-id": device.attributes.socket_states.id,
-						"attribute-value": target_states
-					})}}
-				>
-					Toggle
-				</button>
-			</li>
-			);
-		});
+	const set_socket_state = function(value, index) {
+		const target_states = device.attributes.socket_states.value;
+		target_states[index] = value;
+		send_command(device, {
+			"attribute-id": device.attributes.socket_states.id,
+			"attribute-value": target_states
+		})
 	}
 
 	return (<>
 		<InfoPane device={device} Icon={PowerIcon} limited={limited} />
-		<ul>
-			{ render_socket_states() }
-		</ul>
-		<br/>
+		<div className="flex-row" style={{ justifyContent: "space-evenly" }}>
+			{device.attributes.socket_states.value.map((val, i) => (
+				<div key={i} className="flex-column" style={{ gap: "24px", paddingBottom: "16px"}}>
+					<OutletIcon sx={{ color: val ? "darkgreen" : "darkred"}}/>
+					<ToggleSwitch value={val} onChange={(value) => set_socket_state(value, i)}/>
+				</div>
+			))}
+		</div>
 		{!limited && <PoweroutletSchedules device={device} />}
 	</>)
 }

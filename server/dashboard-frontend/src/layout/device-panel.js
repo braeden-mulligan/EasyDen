@@ -2,8 +2,8 @@ import { useEffect } from "react";
 import { useGlobalStore } from "../store";
 import { ENTITY_TYPE_MAP, DEVICE_POLL_PERIOD_MS } from "../defines";
 import { fetch_devices } from "../api";
-import { Poweroutlet } from "../components/poweroutlet";
-import { Thermostat } from "../components/thermostat";
+import { Poweroutlet } from "../components/devices/poweroutlet";
+import { Thermostat } from "../components/devices/thermostat";
 
 const styles = {
 	device_card: {

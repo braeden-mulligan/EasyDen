@@ -210,6 +210,7 @@ class Nexus_Jobs:
 		thermostats = [d for d in self.device_list if d.type == defs.device_type_id("DEVICE_TYPE_THERMOSTAT")]
 		for device in thermostats:
 			device.device_send(device_protocol.thermostat_get_temperature())
+			device.device_send(device_protocol.thermostat_get_status())
 			#TODO: if device has humidity sensor
 			#device.device_send(messaging.thermostat_get_humidity())
 

@@ -2,8 +2,22 @@ import { useState } from "react";
 import DeviceUnknownIcon from "@mui/icons-material/DeviceUnknown";
 import SettingsIcon from '@mui/icons-material/Settings';
 import { ToggleSwitch } from "./toggle-switch/toggle-switch";
+import { send_command } from "../api";
 
 export const InfoPane = function({ device, Icon, status, limited }) {
+	const [current_status, set_current_status] = useState(device.attributes.enabled.value);
+
+	const toggle_status = async function(value) {
+		const response = await send_command(device, {
+			"attribute-id": device.attributes.enabled.id,
+			"attribute-value": +value
+		});
+
+		if (response?.result) {
+			set_current_status(response.result[0].attributes.enabled.value);
+		}
+	}
+
 	return (<>
 		<div className="flex-row" style={{
 			height: "48px",
@@ -14,9 +28,7 @@ export const InfoPane = function({ device, Icon, status, limited }) {
 			<p>{device.name}</p>
 			<SettingsIcon fontSize="large"/>
 		</div>
-
 		<hr/>
-
 		<div className="flex-row" style={{
 			height: "40px",
 			width: "100%",
@@ -28,41 +40,35 @@ export const InfoPane = function({ device, Icon, status, limited }) {
 					<p style={{ color: "green"}}>Online</p> :
 					<p style={{ color: "red" }}>Offline</p> 
 				}
-				<p>&nbsp;|&nbsp;</p>
+				<p>&nbsp;&nbsp;&nbsp;&nbsp;|&nbsp;&nbsp;&nbsp;&nbsp;</p>
 				<p>{status ? status : device.attributes.enabled.value ? "Enabled" : "Disabled" }</p>
 			</div>
 			<div className="flex-row" style={{
 				flex: 1,
 				justifyContent: "flex-end",
 			}}>
-				<ToggleSwitch style={{ paddingRight: "12px" }} disabled={limited}/>
+				<ToggleSwitch style={{ paddingRight: "12px" }} value={current_status} onChange={toggle_status} disabled={limited}/>
 			</div>
-			{/* <button className="set" style={{ flex: 1 }} disabled={disabled} onClick={() => send_command(device, {
-				"attribute-id": device.attributes.enabled.id,
-				"attribute-value": + !device.attributes.enabled.value
-			})}>
-				Toggle
-			</button> */}
 		</div>
 		<hr/>
-	</>)
+	</>);
 }
 
 export const ScheduleTimeSelector = function({ schedule_data, on_update_schedule }) {
 	const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-	const [selected_days, set_selected_days] = useState(days.map(() => false))
+	const [selected_days, set_selected_days] = useState(days.map(() => false));
 
 	function days_to_string(selected_days) {
-		return days.filter((_, i) => selected_days[i]).map(day => day.toLowerCase()).join(",")
+		return days.filter((_, i) => selected_days[i]).map(day => day.toLowerCase()).join(",");
 	}
 
 	function handle_day_change(day_index, value) {
 		const new_days = selected_days.slice(); 
 		new_days[day_index] = value;
 
-		const new_schedule_time = {...schedule_data.time}
+		const new_schedule_time = {...schedule_data.time};
 		new_schedule_time.days = days_to_string(new_days);
-		on_update_schedule({time: new_schedule_time})
+		on_update_schedule({time: new_schedule_time});
 
  		set_selected_days(new_days);
 	}
@@ -73,7 +79,7 @@ export const ScheduleTimeSelector = function({ schedule_data, on_update_schedule
 			const [hour, minute] = e.target.value.split(":");
 			new_schedule_time.hour = hour;
 			new_schedule_time.minute = minute;
-			on_update_schedule({ time: new_schedule_time})
+			on_update_schedule({ time: new_schedule_time});
 		}}/>
 		{days.map((day, i) => (
 			<div key={day}>
@@ -85,7 +91,7 @@ export const ScheduleTimeSelector = function({ schedule_data, on_update_schedule
 			<input type={"checkbox"} id={"Recurring"} onChange={(e) => on_update_schedule({...schedule_data, recurring: !e.target.checked})}/>
 			<label>One-time</label>
 		</div>
-	</>)
+	</>);
 }
 
 

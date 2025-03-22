@@ -34,6 +34,12 @@ def thermostat_processor(thermostats):
 		translated_attributes["max_heat_time"] = repack_int_attribute("THERMOSTAT_ATTR_MAX_HEAT_TIME", device["attributes"])
 		translated_attributes["min_cooldown_time"] = repack_int_attribute("THERMOSTAT_ATTR_MIN_COOLDOWN_TIME", device["attributes"])
 
+		# TODO: Make this not so ad hoc
+		translated_attributes["status"] = {
+			"id": 200,
+			"value": device["attributes"].get("200", {}).get("value", 69)
+		}
+
 		prune_device_data(device)
 		device["attributes"] = translated_attributes
 

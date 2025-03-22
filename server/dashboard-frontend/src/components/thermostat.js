@@ -72,8 +72,24 @@ export const Thermostat = function({ device, limited }) {
 		send_command(device, command);
 	}
 
+	const status = (() => {
+		console.log(device.attributes.status?.value);
+		switch(device.attributes.status?.value) {
+			case 0:
+				return "Disabled";
+			case 1:
+				return "Idle";
+			case 2: 
+				return "Heating 🔥";
+			case 3:
+				return "Forced idle";
+		}
+
+		return "Status unknown";
+	})();
+
 	return (<>
-		<InfoPane device={device} Icon={DeviceThermostatIcon} status="Idle" limited={limited}/>
+		<InfoPane device={device} Icon={DeviceThermostatIcon} status={status} limited={limited}/>
 		<p>Temperature: { device.attributes.temperature.value.toFixed(1) + " °C" }</p>
 		{!limited && <>
 			<input type="range" min="10" max="30" step="0.25" style={{ writingMode: "vertical-lr", direction: "rtl" }} value={target_temperature} onChange={ 

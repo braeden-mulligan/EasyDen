@@ -96,6 +96,9 @@ def thermostat_set_temperature(value):
 	packed_float = utils.float_to_int32(value) 
 	return template.format(_set, _attr_id("THERMOSTAT_ATTR_TARGET_TEMPERATURE"), packed_float)
 
+def thermostat_get_status():
+	return template.format(_get, 200, 0)
+
 
 def irrigation_get_moisture(sensor):
 	return template.format(_get, _attr_id("IRRIGATION_ATTR_MOISTURE_" + str(sensor)), 0)

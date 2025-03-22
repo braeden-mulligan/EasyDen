@@ -12,10 +12,11 @@ const styles = {
 	},
 	device_card_css: `
 		.device-card {
-			width: 250px;
+			width: 280px;
+			max-width: 360px;
 		}
 
-		@media (orientation: portrait) and (max-width: 548px) {
+		@media (orientation: portrait) and (max-width: 608px) {
 			.device-card {
 				width: 100%;
 			}
@@ -76,7 +77,7 @@ export const DevicePanel = function({ entity_types, limited}) {
 
 	return (
 		<div style={styles.panel_container}>
-			{devices.map((device) =><DeviceCard device={device} limited={limited}/>)}
+			{devices.map((device) =><DeviceCard key={device.id} device={device} limited={limited}/>)}
 		</div>
 	)
 }

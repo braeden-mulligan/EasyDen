@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { InfoPane, ScheduleTimeSelector } from './shared'
 import { add_schedule, remove_schedule, send_command } from "../api";
+import PowerIcon from "@mui/icons-material/Power";
 
 export const PoweroutletSchedules = function({ device }) {
 	const [target_settings, set_target_settings] = useState(Array(device.attributes.socket_count.value).fill(null));
@@ -60,13 +61,13 @@ export const PoweroutletSchedules = function({ device }) {
 	);
 }
 
-export const Poweroutlet = function({ device, brief }) {
+export const Poweroutlet = function({ device, limited }) {
 	function render_socket_states() {
 		return device.attributes.socket_states.value.map((val, i) => {
 			return(
 			<li key={i}>
 				<span socket_id={i}>Socket {i}: {val ? "ON" : "OFF"} &nbsp; </span>
-				<button className="set" disabled={brief} onClick={() => {
+				<button className="set" disabled={limited} onClick={() => {
 					const target_states = device.attributes.socket_states.value;
 					target_states[i] = !target_states[i]
 					send_command(device, {
@@ -82,12 +83,11 @@ export const Poweroutlet = function({ device, brief }) {
 	}
 
 	return (<>
-		<p>POWEROUTLET</p>
-		<InfoPane device={device} disabled={brief}/>
+		<InfoPane device={device} Icon={PowerIcon} limited={limited} />
 		<ul>
 			{ render_socket_states() }
 		</ul>
 		<br/>
-		{!brief && <PoweroutletSchedules device={device} />}
+		{!limited && <PoweroutletSchedules device={device} />}
 	</>)
 }

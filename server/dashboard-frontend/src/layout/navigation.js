@@ -57,7 +57,6 @@ const path_name_map = {
 }
 
 export const NavbarSide = function ({ managed, close_sidebar }) {
-	console.log("managed?", managed);
 	const nav_items = ["/", "/thermostat", "/poweroutlet"];
 
 	const location = useLocation();

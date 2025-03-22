@@ -10,8 +10,9 @@ import { ThermostatPage } from "./pages/thermostat";
 import { PowerOutletPage } from "./pages/poweroutlet";
 import { NotFoundPage } from "./pages/not-found";
 
-import "./main-layout.css"
-import "./theme.css"
+import "./styles/main-layout.css"
+import "./styles/theme.css"
+import "./styles/common.css"
 
 function AppMain() {
 	const { isPortrait } = useMobileOrientation();

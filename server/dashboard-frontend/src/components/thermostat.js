@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { InfoPane, MutableAttribute, ScheduleTimeSelector } from './shared'
 import { add_schedule, remove_schedule, send_command } from "../api";
+import DeviceThermostatIcon from "@mui/icons-material/DeviceThermostat";
 
 export const ThermostatSchedules = function({ device }) {
 	const [target_temperature, set_target_temperature] = useState(device.attributes.target_temperature.value);
@@ -59,7 +60,7 @@ export const ThermostatSchedules = function({ device }) {
 	);
 }
 
-export const Thermostat = function({ device, brief }) {
+export const Thermostat = function({ device, limited }) {
 	const [target_temperature, set_target_temperature] = useState(device.attributes.target_temperature.value);
 
 	const set_attribute = function(attribute_id, value) {
@@ -72,10 +73,9 @@ export const Thermostat = function({ device, brief }) {
 	}
 
 	return (<>
-		<p>THERMOSTAT</p>
-		<InfoPane device={device} disabled={brief}/>
+		<InfoPane device={device} Icon={DeviceThermostatIcon} status="Idle" limited={limited}/>
 		<p>Temperature: { device.attributes.temperature.value.toFixed(1) + " °C" }</p>
-		{!brief && <>
+		{!limited && <>
 			<input type="range" min="10" max="30" step="0.25" style={{ writingMode: "vertical-lr", direction: "rtl" }} value={target_temperature} onChange={ 
 				(e) => {
 					set_target_temperature(e.target.value)
@@ -96,7 +96,7 @@ export const Thermostat = function({ device, brief }) {
 		<Mutable_Attribute description="Max heat time" attribute={ attributes.max_heat_time } update_attribute={ update_attribute } />
 		<Mutable_Attribute description="Min cooldown time" attribute={ attributes.min_cooldown_time } update_attribute={ update_attribute } />
 		<p>{JSON.stringify(device)}</p> */}
-		{!brief && <ThermostatSchedules device={device} />}
+		{!limited && <ThermostatSchedules device={device} />}
 	</>)
 }
 

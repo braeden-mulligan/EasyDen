@@ -1,21 +1,51 @@
-import { useRef, useState } from "react";
+import { useState } from "react";
+import DeviceUnknownIcon from "@mui/icons-material/DeviceUnknown";
+import SettingsIcon from '@mui/icons-material/Settings';
+import { ToggleSwitch } from "./toggle-switch/toggle-switch";
 
-export const InfoPane = function({ device, disabled }) {
-	return (
-	<div>
-		<p>ID: { device.id } </p>
-		<p>Name: { device.name }</p>
-		<p>Online: { device.online.toString() }</p>
-		<p>Device enabled: { device.attributes.enabled.value } &nbsp;
-			<button className="set" disabled={disabled} onClick={() => send_command(device, {
+export const InfoPane = function({ device, Icon, status, limited }) {
+	return (<>
+		<div className="flex-row" style={{
+			height: "48px",
+			justifyContent: "space-between",
+			padding: "4px 8px"
+		}}>
+			{<Icon fontSize="large"/> || <DeviceUnknownIcon fontSize="large" />}
+			<p>{device.name}</p>
+			<SettingsIcon fontSize="large"/>
+		</div>
+
+		<hr/>
+
+		<div className="flex-row" style={{
+			height: "40px",
+			width: "100%",
+			justifyContent: "space-between"
+		}}>
+			<div style={{ flex: 1 }}/>
+			<div className="flex-row">
+				{device.online ? 
+					<p style={{ color: "green"}}>Online</p> :
+					<p style={{ color: "red" }}>Offline</p> 
+				}
+				<p>&nbsp;|&nbsp;</p>
+				<p>{status ? status : device.attributes.enabled.value ? "Enabled" : "Disabled" }</p>
+			</div>
+			<div className="flex-row" style={{
+				flex: 1,
+				justifyContent: "flex-end",
+			}}>
+				<ToggleSwitch style={{ paddingRight: "12px" }} disabled={limited}/>
+			</div>
+			{/* <button className="set" style={{ flex: 1 }} disabled={disabled} onClick={() => send_command(device, {
 				"attribute-id": device.attributes.enabled.id,
 				"attribute-value": + !device.attributes.enabled.value
 			})}>
 				Toggle
-			</button>
-		</p>
-	</div>
-	)
+			</button> */}
+		</div>
+		<hr/>
+	</>)
 }
 
 export const ScheduleTimeSelector = function({ schedule_data, on_update_schedule }) {

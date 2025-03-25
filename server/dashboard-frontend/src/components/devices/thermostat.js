@@ -4,6 +4,7 @@ import { add_schedule, remove_schedule, send_command } from "../../api";
 import { Popover } from '../popover/popover';
 import DeviceThermostatIcon from "@mui/icons-material/DeviceThermostat";
 import TuneIcon from '@mui/icons-material/Tune';
+import { theme } from '../../styles/theme';
 
 
 export const ThermostatSchedules = function({ device }) {
@@ -106,7 +107,7 @@ export const Thermostat = function({ device, limited }) {
 					<Popover is_open={popover_open} set_is_open={set_popover_open} reference_element={
 						<TuneIcon sx={{ border: "1px solid black", borderRadius: "4px" }}/>
 					}>
-						<div style={{ background: "white", padding: "16px", border: "1px solid grey", borderRadius: "4px", background: "white" }}>
+						<div style={{ backgroundColor: theme.light.card_color, padding: "16px", border: theme.border_thin, borderRadius: "4px" }}>
 							<input type="range" min="10" max="30" step="0.25" 
 								style={{ writingMode: "vertical-lr", direction: "rtl"}} 
 								value={target_temperature}

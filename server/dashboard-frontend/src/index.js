@@ -13,17 +13,19 @@ import { NotFoundPage } from "./pages/not-found";
 import "./styles/main-layout.css"
 import "./styles/theme.css"
 import "./styles/common.css"
+import { theme } from './styles/theme';
 
 function AppMain() {
-	const { isPortrait } = useMobileOrientation();
-	const narrow_view = isMobile && isPortrait;
+	const { isPortrait, isLandscape } = useMobileOrientation();
+	const mobile_portrait = isMobile && isPortrait;
+	const mobile_landscape = isMobile && isLandscape;
 
 	return (
 		<BrowserRouter>
-			<NavbarTop manage_sidebar={narrow_view} />
+			{!mobile_landscape && <NavbarTop manage_sidebar={mobile_portrait} />}
 			<div className="layout-main">
-				{!narrow_view && <NavbarSide />}
-				<div className="content-main">
+				{!mobile_portrait && <NavbarSide />}
+				<div className="content-main" style={{backgroundColor: theme.light.gutter_color}}>
 					<Routes>
 						<Route path="/" element={<OverviewPage />} />
 						<Route path="thermostat" element={<ThermostatPage />} />

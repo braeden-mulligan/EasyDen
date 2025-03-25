@@ -4,10 +4,12 @@ import { ENTITY_TYPE_MAP, DEVICE_POLL_PERIOD_MS } from "../defines";
 import { fetch_devices } from "../api";
 import { Poweroutlet } from "../components/devices/poweroutlet";
 import { Thermostat } from "../components/devices/thermostat";
+import { theme } from "../styles/theme";
 
 const styles = {
 	device_card: {
-		border: "1px solid grey",
+		backgroundColor: theme.light.card_color,
+		border: theme.border_thin,
 		borderRadius: "8px"
 	},
 	device_card_css: `
@@ -28,7 +30,7 @@ const styles = {
 		display: "flex",
 		flexDirection: "row",
 		flexWrap: "wrap",
-		gap: "1rem",
+		gap: "1rem"
 	},
 }
 

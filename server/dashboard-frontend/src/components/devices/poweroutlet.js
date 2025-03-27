@@ -1,88 +1,76 @@
-import { useState } from "react";
-import { InfoPane, ScheduleTimeSelector } from './shared'
-import { add_schedule, remove_schedule, send_command } from "../../api";
+import { useEffect, useState } from "react";
+import { InfoPane, Schedules } from './shared'
+import { send_command } from "../../api";
 import PowerIcon from "@mui/icons-material/Power";
 import OutletIcon from '@mui/icons-material/Outlet';
 import { ToggleSwitch } from "../toggle-switch/toggle-switch";
 
-export const PoweroutletSchedules = function({ device }) {
-	const [target_settings, set_target_settings] = useState(Array(device.attributes.socket_count.value).fill(null));
+const SocketSelector = function({ device, on_select, initial_state, disabled }) {
+	const [target_states, set_target_states] = useState(initial_state || device.attributes.socket_states.value.map((val) => null));
 
-	const [new_schedule_data, set_new_schedule_data] = useState({
-		command: {},
-		time: {},
-		recurring: true,
-		pause: 0
-	});
-
-	let rendered_schedules = device.schedules.map((schedule) => {
-		return(
-			<li key={ JSON.stringify(schedule.id)}> { JSON.stringify(schedule) }
-				<button className="set" onClick={() => remove_schedule(device, schedule.id)}> Remove </button>
-			</li>
-		)
-	})
-
-	if (!rendered_schedules.length) {
-		rendered_schedules = <p>None</p>;
+	const set_socket_state = function(value, index) {
+		const new_state = target_states.slice();
+		new_state[index] = value;
+		set_target_states(new_state);
+		on_select({
+			"attribute-id": device.attributes.socket_states.id,
+			"attribute-value": new_state
+		});
 	}
+
+	useEffect(() => {
+		on_select({
+			"attribute-id": device.attributes.socket_states.id,
+			"attribute-value": device.attributes.socket_states.value.map((val) => null)
+		});
+	}, []);
 
 	return (
-		<div>
-			<b>Schedules</b>
-			<ul>
-				{ rendered_schedules }
-			</ul>
-			<br />
-			<b>New Schedule</b>
-			<div><span>
-				Socket values&nbsp;
-				{target_settings.map((_, index) => (
-					<input key={index} type="number" min={-1} max={1} onChange={(e) => { 
-						const target_states = target_settings.slice();
-						target_states[index] = Number(e.target.value) > -1 ? !!Number(e.target.value) : null;
-						set_target_settings(target_states) }}
-					/>)
-				)}
-			</span></div>	
-			<ScheduleTimeSelector 
-				schedule_data={new_schedule_data}
-				on_update_schedule={(updated_data) => set_new_schedule_data((prev) => ({...prev, ...updated_data}))}
-			/>
-			<button className="set" onClick={() => {
-				add_schedule(device, {
-					...new_schedule_data,
-					command: {
-						"attribute-id": device.attributes.socket_states.id,
-						"attribute-value": target_settings
-					}
-				})
-			}}> Add 
-			</button>
-		</div>	
-	);
-}
-
-export const Poweroutlet = function({ device, limited }) {
-	const set_socket_state = function(value, index) {
-		const target_states = device.attributes.socket_states.value;
-		target_states[index] = value;
-		send_command(device, {
-			"attribute-id": device.attributes.socket_states.id,
-			"attribute-value": target_states
-		})
-	}
-
-	return (<>
-		<InfoPane device={device} Icon={PowerIcon} limited={limited} />
-		<div className="flex-row" style={{ justifyContent: "space-evenly" }}>
-			{device.attributes.socket_states.value.map((val, i) => (
-				<div key={i} className="flex-column" style={{ gap: "24px", paddingBottom: "16px"}}>
-					<OutletIcon sx={{ color: val ? "darkgreen" : "darkred"}}/>
-					<ToggleSwitch value={val} onChange={(value) => set_socket_state(value, i)}/>
+		<div className="flex-row" style={{ justifyContent: "space-evenly", gap: "16px", padding: "0 16px"}}>
+			{target_states.map((val, i) => (
+				<div key={i} className="flex-column" style={{ gap: "16px", paddingBottom: "16px"}}>
+					<OutletIcon sx={{ color: val == null ? "grey" : val ?  "darkgreen" : "darkred"}}
+						onClick={() => {
+							if (!initial_state) {
+								target_states[i] == null ? 
+								set_socket_state(false, i) :
+								set_socket_state(null, i)
+							} else {
+								set_socket_state(!val, i);
+							}
+						}}
+					/>
+					<ToggleSwitch  value={val} onChange={(value) => set_socket_state(value, i)} disabled={disabled}/>
 				</div>
 			))}
 		</div>
-		{!limited && <PoweroutletSchedules device={device} />}
+	)
+}
+
+const SocketRenderer = function({ schedule }) {
+	switch(schedule.command.attribute_name) {
+		case "socket_states":
+			return (
+				<div style={{ display: "flex", gap: "8px" }}>
+					{schedule.command.value.map((val, i) => (
+						<OutletIcon sx={{ color: val == null ? "grey" : val ?  "darkgreen" : "darkred"}}/>
+					))}
+				</div>
+			)
+	}
+}
+
+export const Poweroutlet = function({ device, limited }) {
+	return (<>
+		<InfoPane device={device} Icon={PowerIcon} limited={limited} />
+		<SocketSelector
+			device={device} 
+			on_select={(new_command) => {
+				send_command(device, new_command);
+			}}
+			initial_state={device.attributes.socket_states.value}
+			disabled={!device.online}
+		/>
+		{!limited && <Schedules device={device} AttributeRenderer={SocketRenderer} AttributeSelector={SocketSelector} />}
 	</>)
 }

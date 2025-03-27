@@ -7,14 +7,9 @@ import { Thermostat } from "../components/devices/thermostat";
 import { theme } from "../styles/theme";
 
 const styles = {
-	device_card: {
-		backgroundColor: theme.light.card_color,
-		border: theme.border_thin,
-		borderRadius: "8px"
-	},
 	device_card_css: `
 		.device-card {
-			width: 280px;
+			width: 300px;
 			max-width: 360px;
 		}
 
@@ -50,7 +45,7 @@ const DeviceCard = function({ device, limited }) {
 	}
 
 	return (<>
-		<div className="device-card" style={styles.device_card}>
+		<div className="device-card" style={theme.light.card}>
 			{select_device_component()}
 		</div>
 		<style>{styles.device_card_css}</style>

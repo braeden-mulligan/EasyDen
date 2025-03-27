@@ -1,13 +1,17 @@
 export const theme = {
 	light: {
-		card_color: "#f6f4f4",
+		card: {
+			backgroundColor: "#f6f4f4",
+			border: "1px solid grey",
+			borderRadius: "4px"
+		},
 		navbar_color: "#f6f4f4",
 		gutter_color: "#edebeb"
 	},
 	dark: {
-		card_color: "",
-		navbar_color: "",
-		gutter_color: "",
 	},
-	border_thin: "1px solid grey"
+	border_thin: "1px solid grey",
+	z_index: {
+		popover: 10
+	}
 }

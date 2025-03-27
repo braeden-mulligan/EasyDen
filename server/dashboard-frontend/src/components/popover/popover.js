@@ -11,6 +11,7 @@ import {
   FloatingFocusManager
 } from '@floating-ui/react';
 import { isMobile, useMobileOrientation } from "react-device-detect";
+import { theme } from '../../styles/theme';
 
 export const Popover = function({ reference_element, is_open, set_is_open, children, placement, offset_opts, style }) {
 	const { isLandscape } = useMobileOrientation();
@@ -44,7 +45,7 @@ export const Popover = function({ reference_element, is_open, set_is_open, child
 			<FloatingFocusManager context={context} modal={false}>
 				<div
 					ref={refs.setFloating}
-					style={{...floatingStyles, ...style}}
+					style={{ ...floatingStyles, zIndex: theme.z_index.popover, ...style }}
 					{...getFloatingProps()}
 				>
 					{children}

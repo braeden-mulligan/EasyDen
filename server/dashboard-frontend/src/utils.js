@@ -19,3 +19,13 @@ export const equal = function(obj_1, obj_2) {
 
 	return true;
 }
+
+export function capitalize(input) {
+    if (typeof input === "string") {
+        return input.charAt(0).toUpperCase() + input.slice(1);
+    } else if (Array.isArray(input)) {
+        return input.map(word => word.charAt(0).toUpperCase() + word.slice(1));
+    } 
+
+	throw new TypeError("Input must be a string or an array of strings");
+}

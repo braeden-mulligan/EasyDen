@@ -1,9 +1,31 @@
 import { useState } from "react";
 import DeviceUnknownIcon from "@mui/icons-material/DeviceUnknown";
 import SettingsIcon from '@mui/icons-material/Settings';
+import AddIcon from '@mui/icons-material/Add';
+import RemoveIcon from '@mui/icons-material/Remove';
 import { ToggleSwitch } from "../toggle-switch/toggle-switch";
-import { send_command } from "../../api";
+import { add_schedule, remove_schedule, send_command } from "../../api";
 import { add_notification } from "../../store";
+import { capitalize } from "../../utils";
+import { theme } from "../../styles/theme";
+import { Popover } from '../popover/popover';
+
+const styles = {
+	schedules_list: {
+		margin: "0px 8px 4px",
+		maxHeight: "268px",
+		overflow: "auto",
+		border: theme.border_thin,
+
+		// borderBottom: theme.border_thin,
+	},
+	shedules_list_css: `
+		.schedules-list >:nth-child(even) {
+			background-color: #dbdbdb;
+		
+		}
+	`
+}
 
 export const InfoPane = function({ device, Icon, Settings, status, limited }) {
 	const [current_status, set_current_status] = useState(device.attributes.enabled.value);
@@ -55,96 +77,163 @@ export const InfoPane = function({ device, Icon, Settings, status, limited }) {
 	</>);
 }
 
-export const ScheduleTimeSelector = function({ schedule_data, on_update_schedule }) {
+/**
+ * Schedules
+ * 
+ * Example arguments:
+ * 
+ * AttributeRenderer: function(schedule) {
+ *		switch (schedule.command.attribute_name) {
+ *			case "target_temperature": 
+ *				return (<Element>{schedule.command.value}</Element>)
+ *			case "other_operating_param":
+ *				...
+ * }
+ * 
+ * AttributeSelector: function(device, on_select) {
+ * 		return (<Element 
+ * 			onChange={(e) => {
+ *		 		on_select({
+ *					"attribute-id": device.attributes.<attribute-name>.id,
+ *					"attribute-value": e.target.value
+ *		 		});
+ *			}
+ * 		/>)
+ *	}
+ */
+export const Schedules = function({ device, AttributeRenderer, AttributeSelector }) {
 	const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
+	const blank_schedule = {
+		command: {},
+		time: {},
+		recurring: true,
+		pause: 0
+	};
+	const schedules = [];
 	const [selected_days, set_selected_days] = useState(days.map(() => false));
-
-	function days_to_string(selected_days) {
-		return days.filter((_, i) => selected_days[i]).map(day => day.toLowerCase()).join(",");
-	}
+	const [new_schedule, set_new_schedule] = useState(blank_schedule);
+	const [popover_open, set_popover_open] = useState(false);
 
 	function handle_day_change(day_index, value) {
+		function days_to_string(selected_days) {
+			return days.filter((_, i) => selected_days[i]).map(day => day.toLowerCase()).join(",");
+		}
+
 		const new_days = selected_days.slice(); 
 		new_days[day_index] = value;
 
-		const new_schedule_time = {...schedule_data.time};
+		const new_schedule_time = {...new_schedule.time};
 		new_schedule_time.days = days_to_string(new_days);
-		on_update_schedule({time: new_schedule_time});
-
+		set_new_schedule((prev) => ({...prev, time: new_schedule_time}));
  		set_selected_days(new_days);
 	}
 
-	return(<>
-		<input type={"time"} onChange={(e) => {
-			const new_schedule_time = {...schedule_data.time};
-			const [hour, minute] = e.target.value.split(":");
-			new_schedule_time.hour = hour;
-			new_schedule_time.minute = minute;
-			on_update_schedule({ time: new_schedule_time});
-		}}/>
-		{days.map((day, i) => (
-			<div key={day}>
-				<input type={"checkbox"} id={day} onChange={(e) => handle_day_change(i, e.target.checked)}/>
-				<label>{day}</label>
+	for (const schedule of device.schedules) {
+		const days = schedule.time.days.split(",");
+
+		schedules.push(
+			<div className="flex-row"
+				key={schedule.id}
+				style={{
+					padding: "6px 8px",
+				}}
+			>
+				<div>
+					<AttributeRenderer schedule={schedule}/>
+					<p style={{ margin: "2px"}}>
+						{`@ ${schedule.time.hour}:${schedule.time.minute} `}
+						{`${schedule.recurring ?
+							"every: " + days.map((day) => capitalize(day)).join(", ") :
+							"once this " + capitalize(days[0])}`}
+					</p>
+				</div>
+				<div className="flex-row" style={{
+					flex: 1,
+					justifyContent: "flex-end",
+				}}>
+					<RemoveIcon
+						sx={{color:"#771c13", border: "1px solid #771c13", borderRadius: "4px", backgroundColor: theme.light.card.backgroundColor }}
+						onClick={() => remove_schedule(device, schedule.id)}
+					/>
+					</div>
 			</div>
-		))}
+		)
+	}
+
+	return (
 		<div>
-			<input type={"checkbox"} id={"Recurring"} onChange={(e) => on_update_schedule({...schedule_data, recurring: !e.target.checked})}/>
-			<label>One-time</label>
+			<hr/>
+			<div className="flex-row" style={{
+				height: "40px",
+				justifyContent: "space-between"
+			}}>
+				<div style={{ flex: 1 }}/>
+				<h4 style={{
+					display:"flex",
+					justifyContent:"center",
+				}}>Schedules</h4>
+				<div className="flex-row" style={{
+					flex: 1,
+					justifyContent: "flex-end",
+				}}>
+					<Popover is_open={popover_open} set_is_open={set_popover_open}
+						reference_element={
+							<AddIcon 
+								sx={{ border: "1px solid black", borderRadius: "4px", marginRight: "16px" }}
+							/>
+						}
+						style={{ 
+							...theme.light.card,
+							padding: "8px 16px",
+						}}
+					>
+						<AttributeSelector
+							device={device}
+							on_select ={(new_command) => {
+								set_new_schedule((prev) => ({...prev, command: new_command }))
+							}
+						}/>
+							<input type={"time"} 
+								value={new_schedule.time.hour && new_schedule.time.minute ?
+									`${new_schedule.time.hour}:${new_schedule.time.minute}` :
+									""
+								}
+								onChange={(e) => {
+									const new_schedule_time = {...new_schedule.time};
+									const [hour, minute] = e.target.value.split(":");
+									new_schedule_time.hour = hour;
+									new_schedule_time.minute = minute;
+									set_new_schedule((prev)=> ({...prev, time: new_schedule_time}));
+							}}/>
+							{days.map((day, i) => (
+								<div key={day}>
+									<input type={"checkbox"} id={day} 
+										checked={selected_days[i]}
+										onChange={(e) => handle_day_change(i, e.target.checked)}/>
+									<label>{day}</label>
+								</div>
+							))}
+							<div>
+								<input type={"checkbox"} id={"Recurring"} onChange={(e) => set_new_schedule((prev) => ({...prev, recurring: !e.target.checked}))}/>
+								<label>One-time</label>
+							</div>
+						<button
+							onClick={() => {
+								add_schedule(device, new_schedule);
+								set_popover_open(false);
+								set_new_schedule(blank_schedule);
+								set_selected_days(days.map(() => false));
+							}}
+						>
+							Add
+						</button>
+					</Popover>
+				</div>
+			</div>
+			<div className="schedules-list" style={styles.schedules_list}>
+				{schedules}
+			</div>
+			<style>{styles.shedules_list_css}</style>
 		</div>
-	</>);
+	)
 }
-
-
-// SCHEDULES:
-
-// example input: schedule_renderer(schedule) {
-// 	switch (schedule.command) {}
-// 		case "target_temperature":
-// 			<p> { schedule.command.value } </p>
-// 		case "other_operating_param":
-// 			...
-// 	}
-// }
-
-// example input: schedule_adder(generate_command) {
-// 	selection: useState one of ["target_temperature", "other_operating_command"]
-// input type=select
-// 	switch (selection) {
-// 		case "target_temperature":
-// 			<TargetTemperatureSelector>
-// 				onChange: generate_command(attribute_id, attr value)
-// 			</TargetTemperatureSelector>
-// 		case "other_operating_param":
-// 			...
-// 	}
-// }
-
-// const Schedules = function({device, schedule_renderer, schedule_adder }) {
-// 	const [new_schedule_data, set_new_schedule_data] = useState({
-// 		command: {},
-// 		time: {},
-// 		recurring: true,
-// 		pause: 0
-// 	});
-
-// 	existing schedules
-// 	for (sched of device.schedules)
-// 		<container>
-// 		<days sched.time.days /> 
-// 		<time sched.time hour:minute />
-// 			render_schedule_command_data();
-// 		</container>
-// 	else <div>None</div>
-
-//	<add_new_button display_adder_container/>
-// 	<continer>
-// 		schedule_adder((attr_id, attr_name) => 
-// 			set_new_schedule_data((prev) => prev.command = {
-// 				"id":
-// 				"val"
-// 			})
-// 	<TimeSelector>
-// 	</continer>
-
-// }

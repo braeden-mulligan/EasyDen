@@ -31,6 +31,7 @@ def build_command(command_data, integer_register_values = [], float_register_val
 
 	integer_register_values.append(device_defs.attribute_id("GENERIC_ATTR_ENABLE")),
 	integer_register_values.append(device_defs.attribute_id("GENERIC_ATTR_RESET_CONFIGS"))
+	integer_register_values.append(device_defs.attribute_id("GENERIC_ATTR_BLINK"))
 
 	if attr_id in float_register_values:
 		value = float(command_data["attribute-value"])

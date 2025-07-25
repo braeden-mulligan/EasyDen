@@ -5,4 +5,10 @@ export const ENTITY_TYPE_MAP = {
 }
 export const DEVICE_POLL_PERIOD_MS = 30000;
 export const SERVER_ADDR = location.hostname;
-export const ENVIRONMENT = (SERVER_ADDR == "192.168.1.69") ? "production" : "development";
+
+export const COMMON_COMMANDS = {
+	Blink: {
+		"attribute-id": 0x0F,
+		"attribute-value": 0
+	}
+}

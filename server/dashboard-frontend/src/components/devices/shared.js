@@ -5,10 +5,10 @@ import AddIcon from '@mui/icons-material/Add';
 import RemoveIcon from '@mui/icons-material/Remove';
 import { ToggleSwitch } from "../toggle-switch/toggle-switch";
 import { add_schedule, remove_schedule, send_command } from "../../api";
-import { add_notification } from "../../store";
 import { capitalize } from "../../utils";
 import { theme } from "../../styles/theme";
 import { Popover } from '../popover/popover';
+import { COMMON_COMMANDS } from "../../defines";
 
 const styles = {
 	schedules_list: {
@@ -16,8 +16,6 @@ const styles = {
 		maxHeight: "268px",
 		overflow: "auto",
 		border: theme.border_thin,
-
-		// borderBottom: theme.border_thin,
 	},
 	shedules_list_css: `
 		.schedules-list >:nth-child(even) {
@@ -29,6 +27,7 @@ const styles = {
 
 export const InfoPane = function({ device, Icon, Settings, status, limited }) {
 	const [current_status, set_current_status] = useState(device.attributes.enabled.value);
+	const [settings_popover_open, set_settings_popover_open] = useState(false);
 
 	const toggle_status = async function(value) {
 		const response = await send_command(device, {
@@ -41,6 +40,17 @@ export const InfoPane = function({ device, Icon, Settings, status, limited }) {
 		}
 	}
 
+	const SharedSettings = function() {
+		return (
+			<>
+				<p>{`Device ID: ${device.id}`}</p>
+				<button onClick={() => send_command(device, COMMON_COMMANDS.Blink)}>
+					Click to Identify
+				</button>
+			</>
+		);
+	}
+
 	return (<>
 		<div className="flex-row" style={{
 			height: "48px",
@@ -49,7 +59,26 @@ export const InfoPane = function({ device, Icon, Settings, status, limited }) {
 		}}>
 			{<Icon fontSize="large"/> || <DeviceUnknownIcon fontSize="large" />}
 			<p>{device.name}</p>
-			<SettingsIcon fontSize="large" onClick={() => add_notification("Device ID:" + device.id) /*<Settings />*/ }/>
+			<Popover is_open={settings_popover_open} set_is_open={set_settings_popover_open}
+				reference_element={
+					<SettingsIcon fontSize="large"
+						style={{
+							marginRight: "4px",
+							marginTop: "8px",
+						}}
+					 />
+				}
+				style={{ 
+					...theme.light.card,
+					padding: "8px 16px",
+					margin: "4px",
+				}}
+			>
+				<div>
+					<SharedSettings />
+					{Settings && <Settings /> }
+				</div>
+			</Popover>
 		</div>
 		<hr/>
 		<div className="flex-row" style={{

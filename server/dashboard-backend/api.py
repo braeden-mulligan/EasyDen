@@ -6,6 +6,7 @@ from .controllers import poweroutlet
 from .controllers import thermostat
 from .controllers import schedules
 from .server_interconnect import interconnect_transact
+from . import server_handler
 
 def handle_query(request):
 	"""
@@ -51,13 +52,14 @@ def handle_query(request):
 		
 	{
 		entity: "server",
-		directive: "config-get" | "config-set",
+		directive: "fetch | config-get" | "config-set",
 		parameters: {
 			device-id: string
 			name: string
 			log-level: string
 			tx-queue-retention: int
 			device-keepalive: int
+			service: "weather" | "market"
 		}
 	}
 	"""
@@ -81,7 +83,7 @@ def handle_query(request):
 			case "schedule":
 				return schedules.handle_request(request)
 			case "server":
-				return utils.error_response(defines.E_UNIMPLEMENTED)
+				return server_handler.handle_request(request)
 			case _:
 				return utils.error_response(defines.E_INVALID_REQUEST, "Unknown entity specified.")
 

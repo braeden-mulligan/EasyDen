@@ -18,13 +18,6 @@ const SocketSelector = function({ device, on_select, initial_state, disabled }) 
 		});
 	}
 
-	useEffect(() => {
-		on_select({
-			"attribute-id": device.attributes.socket_states.id,
-			"attribute-value": device.attributes.socket_states.value.map((val) => null)
-		});
-	}, []);
-
 	return (
 		<div className="flex-row" style={{ justifyContent: "space-evenly", gap: "16px", padding: "0 16px"}}>
 			{target_states.map((val, i) => (

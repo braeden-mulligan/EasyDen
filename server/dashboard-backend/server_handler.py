@@ -1,5 +1,5 @@
 from common import defines, utils
-from .services import weather
+from .services import weather, market
 
 def handle_request(request):
 	directive = request.get("directive")
@@ -9,9 +9,9 @@ def handle_request(request):
 		case "fetch":
 			if "weather" in request_params.get("service", ""):
 				return weather.fetch(request_params.get("latitude"), request_params.get("longitude"))
-			elif "market" in request_params.get("services", ""):
-				return utils.error_response(defines.E_UNIMPLEMENTED)
-
+			elif "market" in request_params.get("service", ""):
+				return market.fetch()
+	
 			return utils.error_response(defines.E_INVALID_REQUEST, "Invalid service specified in fetch directive.")
 
 		case "config-get":

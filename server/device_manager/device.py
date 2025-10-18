@@ -15,7 +15,7 @@ def parse_packet(packet):
 		return None
 
 	if len(words) != 4:
-		log.warning("Unexpected packed length: <" + packet + ">", exc_info = True)
+		log.warning("Unexpected packet length: <" + packet + ">", exc_info = True)
 		return None
 
 	return words

@@ -1,9 +1,10 @@
-import sys
+import sys, time
 sys.path.append("..")
 from common import server_config as config
 from common import defines
 from common import device_protocol_helpers
 from common.log_handler import logger as log, init_log_file
+from common.mailer import send_email
 
 from device_manager.device import SmartHome_Device
 from device_manager.jobs import Nexus_Jobs
@@ -32,7 +33,24 @@ def listener_init(dashboard = False):
 	soc = socket.socket(addr_fam, socket.SOCK_STREAM)
 	soc.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 	soc.setblocking(False)
-	soc.bind(addr)
+
+	bind_attempts = 0
+	bind_attempt_limit = 3
+
+	while bind_attempts < bind_attempt_limit:
+		bind_attempts += 1
+
+		try:
+			soc.bind(addr)
+			break
+		except OSError as e:
+			if e.errno == 98 and bind_attempts < bind_attempt_limit:
+				log.error(repr(e))
+			else:
+				raise
+
+			time.sleep(30)
+
 	soc.listen(max_conn)
 	return soc
 
@@ -174,4 +192,5 @@ def run():
 		raise
 	except:
 		log.critical("Caught unhandled exception; device manager has crashed!", exc_info = True)
+		send_email("Device manager has crashed! Check logs for details.", subject="EasyDen Critical Error")
 		exit(1)

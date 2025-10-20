@@ -1,8 +1,12 @@
 import subprocess, json, os
-from common.utils import error_response
+from common.utils import error_response, load_json_file
 from common.defines import E_REQUEST_FAILED
 
-OPEN_WEATHER_API_KEY = os.getenv("OPEN_WEATHER_API_KEY")
+API_KEYS_PATH = os.path.dirname(os.path.realpath(__file__)) + "/../../../secrets.json"
+
+api_keys = load_json_file(API_KEYS_PATH).get("api_keys", {})
+
+OPEN_WEATHER_API_KEY = api_keys.get("open_weather")
 DEFAULT_LAT = 49.24375
 DEFAULT_LON = -122.85050
 

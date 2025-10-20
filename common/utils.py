@@ -1,6 +1,5 @@
-import struct
+import struct, os, json
 from . import defines
-
 
 def int32_to_float(value):
 	return struct.unpack("=f", struct.pack("=I", value))[0]
@@ -35,6 +34,13 @@ def bitmask_to_list(value, item_count):
 			value_list.append(0)
 
 	return value_list
+
+def	load_json_file(path):
+	if not os.path.exists(path):
+		raise FileNotFoundError(f"File not found: {path}")
+
+	with open(path,	"r", encoding = "utf-8") as f:
+		return json.load(f)
 
 def error_response(code = None, details = None, exception = None):
 	response = {

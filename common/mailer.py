@@ -1,17 +1,11 @@
 #!/usr/bin/env python3
 
-import json, os, mimetypes,	smtplib
+import os, mimetypes, smtplib
 from email.message import EmailMessage
 from typing	import Optional, List
+from . import utils 
 
-CREDENTIALS	= os.path.dirname(os.path.realpath(__file__)) + "/.mailer.credentials"
-
-def	load_credentials(path =	CREDENTIALS):
-	if not os.path.exists(path):
-		raise FileNotFoundError(f"Credentials file not found: {path}")
-
-	with open(path,	"r", encoding = "utf-8") as f:
-		return json.load(f)
+CREDENTIALS_PATH = os.path.dirname(os.path.realpath(__file__)) + "/../secrets.json"
 
 def	create_email_message(
 	sender:	str,
@@ -53,7 +47,7 @@ def	send_email(
 ):
 	smtp_host = "smtp.gmail.com"
 	smtp_port = 587
-	creds = load_credentials()
+	creds = utils.load_json_file(CREDENTIALS_PATH).get("mailer_credentials", {})
 	sender_email = creds.get("email")
 	app_password = creds.get("app_password")
 

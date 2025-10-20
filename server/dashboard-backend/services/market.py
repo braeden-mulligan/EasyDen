@@ -1,9 +1,13 @@
 import subprocess, json, os
-from common.utils import error_response
+from common.utils import error_response, load_json_file
 from common.defines import E_REQUEST_FAILED
 
-COINGECKO_API_KEY = os.getenv("COINGECKO_API_KEY")
-TIINGO_API_KEY = os.getenv("TIINGO_API_KEY")
+API_KEYS_PATH = os.path.dirname(os.path.realpath(__file__)) + "/../../../secrets.json"
+
+api_keys = load_json_file(API_KEYS_PATH).get("api_keys", {})
+
+COINGECKO_API_KEY = api_keys.get("coingecko")
+TIINGO_API_KEY = api_keys.get("tiingo")
 
 def fetch():
 	if not COINGECKO_API_KEY or not TIINGO_API_KEY:

@@ -8,7 +8,7 @@ export const default_error_handler = function (error) {
 
 export const request = async function(data = {}, error_handler = null) {
 	return fetch(
-		"http://" + SERVER_ADDR, 
+		(location.protocol || "https:") + "//" + SERVER_ADDR, 
 		{
 			method: "POST",
 			headers: {

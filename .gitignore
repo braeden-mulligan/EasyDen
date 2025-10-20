@@ -8,6 +8,7 @@ status_files/
 *.log
 *.txt
 *.credentials
+secrets.json
 
 # Byte-compiled / optimized / DLL files
 __pycache__/

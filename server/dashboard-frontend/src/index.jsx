@@ -1,6 +1,7 @@
 import ReactDOM from 'react-dom/client';
 import { BrowserRouter, Routes, Route } from "react-router"
 import { isMobile, useMobileOrientation } from "react-device-detect";
+import { useGlobalStore } from './store';
 
 import { NavbarTop, NavbarSide } from "./layout/navigation";
 import { NotificationSnackbar } from "./layout/notification";
@@ -19,6 +20,8 @@ function AppMain() {
 	const { isPortrait, isLandscape } = useMobileOrientation();
 	const mobile_portrait = isMobile && isPortrait;
 	const mobile_landscape = isMobile && isLandscape;
+
+	const user = useGlobalStore((state) => state.user);
 
 	return (
 		<BrowserRouter>

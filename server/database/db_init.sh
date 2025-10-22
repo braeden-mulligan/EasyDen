@@ -1,7 +1,14 @@
 #!/bin/sh
 
 sqlite3 easyden.db << EOF
-CREATE TABLE if NOT EXISTS devices(
+CREATE TABLE if NOT EXISTS users (
+	id INTEGER PRIMARY KEY,
+	username TEXT UNIQUE NOT NULL,
+	email TEXT,
+	password_hash TEXT NOT NULL
+);
+
+CREATE TABLE if NOT EXISTS devices (
 	id INTEGER PRIMARY KEY,
 	type INTEGER,
 	name TEXT

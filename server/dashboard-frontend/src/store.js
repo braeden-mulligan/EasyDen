@@ -2,6 +2,7 @@ import { create } from 'zustand'
 import { equal } from './utils'
 
 export const useGlobalStore = create((set) => ({
+	user: null,
 	devices: [],
 	notifications: [],
 	clear_notifications: () => set((state) => ({

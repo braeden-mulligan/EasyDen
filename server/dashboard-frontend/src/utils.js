@@ -29,3 +29,13 @@ export function capitalize(input) {
 
 	throw new TypeError("Input must be a string or an array of strings");
 }
+
+export const get_cookie = function(name) {
+	const cookies = document.cookie.split("; ");
+	const cookie = cookies.find(cookie => cookie.startsWith(name + "="))
+	if (cookie) {
+		return (cookie.split("=")[1]);
+	}
+
+	return null;
+}

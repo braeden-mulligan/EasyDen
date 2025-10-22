@@ -19,7 +19,7 @@ const SetpointSelector = function({ device, on_select }) {
 	return(
 		<div>
 			<p style={{ padding: "0", margin: "0" }}>Select set-point</p>
-			<input type="range" min="10" max="30" step="0.25" 
+			<input type="range" min="10" max="25" step="0.25" 
 				style={{ writingMode: "vertical-lr", direction: "rtl"}} 
 				value={target_temperature}
 				onChange={(e) => {

@@ -15,6 +15,18 @@ def db_connection(operation):
 	return inner
 
 @db_connection
+def fetch_user(username, db = None):
+	row = db.execute("select * from users where username = ?", (username,)).fetchone()
+	print("ROW:", row)
+	
+	return {
+		"id": row[0],
+		"username": row[1],
+		"email": row[2],
+		"password_hash": row[3]
+	} if row else None
+
+@db_connection
 def load_devices(entry_processor, db = None):
 	rows = db.execute("select * from devices").fetchall()
 	for row in rows:

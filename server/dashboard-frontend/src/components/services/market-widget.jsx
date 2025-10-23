@@ -87,8 +87,6 @@ export const MarketWidget = function() {
 		});
 	}, []);
 
-	console.log("Current market data:", current_data);
-
 	return (!current_data ?
 		(<div className="flex-column" style={{ ...styles.summaries_container, textAlign: "center" }}>
 			<CircularSpinner size={"40px"} />

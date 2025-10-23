@@ -31,11 +31,11 @@ const styles = {
 	`
 };
 
-export const PageOverlaySpinner = function() {
+export const PageBlocker = function({ spinner }) {
 	return (
 		<>
 			<div style={styles.loading_overlay}>
-				<div style={styles.spinner}></div>
+				{spinner && <div style={styles.spinner}></div> }
 			</div>
 			<style>{styles.css}</style>
 		</>

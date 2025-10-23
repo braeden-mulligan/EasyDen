@@ -1,5 +1,8 @@
 import { useState } from "react";
-import { PageOverlaySpinner } from "../components/loading-spinner/page-overlay-spinner";
+import { PageBlocker } from "../components/loading-spinner/page-overlay-spinner";
+import { request } from "../api";
+import { add_notification } from "../store";
+import { store_jwt_expiry } from "../utils";
 
 const styles = {
 	login_container: {
@@ -94,15 +97,34 @@ export const LoginPage = function() {
 		e.preventDefault();
 		set_loading(true);
 
-		// Simulate a network request
-		await new Promise((resolve) => setTimeout(resolve, 2000));
+		let login_success = false;
 
-		set_loading(false);
+		try {
+			const login_result = await request({
+				action: "login",
+				username: username,
+				password: password
+			}, null, "/auth");
+
+			if (login_result?.result == "success") {
+				store_jwt_expiry(login_result.tokens.access, login_result.tokens.refresh);
+				login_success = true;
+			} else {
+				login_result?.error && add_notification(`Login failed: ${login_result.error.details}`);
+			}
+		} catch (error) {
+			add_notification(`Unhandled login error: ${error.message}`);
+			console.error("Login error:", error);
+		} finally {
+			set_loading(false)
+		}
+
+		if (login_success) window.location.reload();
 	};
 
 return (
 	<div style={styles.login_container}>
-		{loading && <PageOverlaySpinner />}
+		{loading && <PageBlocker spinner />}
 		<div style={{ ...styles.login_box, ...(loading && styles.login_box_disabled) }}>
 			<h2 style={styles.title}>Log In</h2>
 			<form style={styles.form} onSubmit={handle_submit}>

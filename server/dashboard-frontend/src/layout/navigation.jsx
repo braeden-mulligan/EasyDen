@@ -4,6 +4,7 @@ import { isMobile, useMobileOrientation } from "react-device-detect";
 import MenuIcon from '@mui/icons-material/Menu';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import { theme } from "../styles/theme";
+import { logout } from "../utils";
 
 const styles = {
 	managed_side_bar_container: {
@@ -91,10 +92,20 @@ export const NavbarSide = function({ managed, close_sidebar }) {
 						</div>
 					</NavLink>
 				))}
-				{!managed && <div style={{
-					...styles.nav_item_container, 
-					height: "100%"}}/>
-				}
+				<div style={{
+					...styles.nav_item_container,
+					...(!managed && { height: "100%" }),
+					...(managed && { borderRight: `1px solid ${theme.light.gutter_color}`})
+				}}/>
+				{/* TODO: Find less lazy solution for this*/}
+				<NavLink onClick={logout} >
+					<div style={{
+						...styles.nav_item_container, 
+						...(managed && { borderRight: `1px solid ${theme.light.gutter_color}` })
+						}}>
+						{"Logout"}
+					</div>
+				</NavLink>
 				<style>{styles.nav_item_css}</style>
 			</nav>
 		)

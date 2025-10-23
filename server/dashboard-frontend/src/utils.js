@@ -1,3 +1,5 @@
+import { jwtDecode } from "jwt-decode";
+
 export const equal = function(obj_1, obj_2) {
 	function is_object(obj) {
   		return obj != null && typeof obj === 'object';
@@ -28,4 +30,41 @@ export function capitalize(input) {
     } 
 
 	throw new TypeError("Input must be a string or an array of strings");
+}
+
+export const get_cookie = function(name) {
+	const cookies = document.cookie.split("; ");
+	const cookie = cookies.find(cookie => cookie.startsWith(name + "="))
+
+	if (cookie) {
+		return (cookie.split("=")[1]);
+	}
+
+	return null;
+}
+
+export const set_cookie = function(name, value, days = 365) {
+	let expires = "";
+	if (days) {
+		const date = new Date();
+		date.setTime(date.getTime() + (days * 24 * 60 * 60 * 1000));
+		expires = "; expires=" + date.toUTCString();
+	}
+	document.cookie = name + "=" + value + expires + "; path=/";
+}
+
+export const store_jwt_expiry = function(access_token, refresh_token = null) {
+	const access_expiry = jwtDecode(access_token).exp * 1000; 
+	set_cookie("access_token_expiry", access_expiry.toString());
+
+	if (refresh_token) {
+		const refresh_expiry = jwtDecode(refresh_token).exp * 1000;
+		set_cookie("refresh_token_expiry", refresh_expiry.toString());
+	}
+}
+
+export const logout = function() {
+	set_cookie("access_token_expiry", "0");
+	set_cookie("refresh_token_expiry", "0");
+	window.location.reload();
 }

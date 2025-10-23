@@ -12,3 +12,7 @@ export const COMMON_COMMANDS = {
 		"attribute-value": 0
 	}
 }
+
+export const z_indices = {
+	overlay: 2000,
+}

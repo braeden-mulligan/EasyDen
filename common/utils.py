@@ -35,11 +35,14 @@ def bitmask_to_list(value, item_count):
 
 	return value_list
 
-def	load_json_file(path):
-	if not os.path.exists(path):
-		raise FileNotFoundError(f"File not found: {path}")
+def	load_json_file(filename):
+	files_location = os.path.dirname(os.path.realpath(__file__)) + "/../files/json"
+	file_path = files_location + "/" + filename
 
-	with open(path,	"r", encoding = "utf-8") as f:
+	if not os.path.exists(file_path):
+		raise FileNotFoundError(f"File not found: {file_path}")
+
+	with open(file_path,	"r", encoding = "utf-8") as f:
 		return json.load(f)
 
 def error_response(code = None, details = None, exception = None):

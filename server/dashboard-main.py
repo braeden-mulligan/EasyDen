@@ -28,4 +28,4 @@ def data_conduit():
 	return Response(json.dumps(data_api.handle_query(request.json)), mimetype = "application/json")
 
 if __name__ == "__main__":
-	dashboard_app.run(host="0.0.0.0", port=443)
+	dashboard_app.run(host="0.0.0.0", port=443, ssl_context="adhoc")

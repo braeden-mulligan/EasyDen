@@ -5,8 +5,6 @@ from email.message import EmailMessage
 from typing	import Optional, List
 from . import utils 
 
-CREDENTIALS_PATH = os.path.dirname(os.path.realpath(__file__)) + "/../secrets.json"
-
 def	create_email_message(
 	sender:	str,
 	recipients:	List[str],
@@ -47,7 +45,7 @@ def	send_email(
 ):
 	smtp_host = "smtp.gmail.com"
 	smtp_port = 587
-	creds = utils.load_json_file(CREDENTIALS_PATH).get("mailer_credentials", {})
+	creds = utils.load_json_file("secrets.json").get("mailer_credentials", {})
 	sender_email = creds.get("email")
 	app_password = creds.get("app_password")
 

@@ -7,8 +7,6 @@ from common.utils import load_json_file, error_response
 from common.defines import E_INVALID_REQUEST
 from common.server_config import JWT_ACCESS_EXPIRY, JWT_REFRESH_EXPIRY
 
-SECRETS_PATH = os.path.dirname(os.path.realpath(__file__)) + "/../../secrets.json"
-
 bcrypt = None
 jwt = None
 
@@ -19,7 +17,7 @@ def init_auth(app):
 	bcrypt = Bcrypt(app)
 	jwt = JWTManager(app)
 
-	secrets_json = load_json_file(SECRETS_PATH).get("user_auth", {})
+	secrets_json = load_json_file("secrets.json").get("user_auth", {})
 
 	if not secrets_json.get("secret_key") or not secrets_json.get("jwt_secret_key"):
 		raise ValueError("secret_key and jwt_secret_key not found")

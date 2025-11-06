@@ -1,6 +1,10 @@
 #!/bin/bash
 
-cd /home/braeden/EasyDen
+if [[ $1 == dev ]]; then 
+	cd /home/braeden/Projects/EasyDen
+else
+	cd /home/braeden/EasyDen
+fi
 
 cd voice-command
 # python3 speech_recognition.py &

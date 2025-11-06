@@ -327,9 +327,10 @@ class SmartHome_Device:
 				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_SENSOR_RECORDED_MIN_" + str(i)))
 
 		else:
-			return self.fully_initialized
+			return True
 
 		self.fully_initialized = True
+
 		for reg in necessary_attributes:
 			attribute = self.attributes.get(reg, None)
 			if attribute is None or attribute["updated_at"] < attribute["queried_at"]:

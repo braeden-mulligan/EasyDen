@@ -24,6 +24,6 @@ def parse_attr_packet(message: str):
 	return AttrPacket(seq = seq, cmd = cmd, attr = attr, val = val)
 
 
-def build_attr_packet(p: AttrPacket):
+def format_attr_packet(p: AttrPacket):
 	return f"{p.seq:04X},{p.cmd:02X},{p.attr:02X},{p.val:08X}"
 

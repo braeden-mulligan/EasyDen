@@ -4,7 +4,7 @@ file_location = os.path.dirname(os.path.realpath(__file__))
 root_path = file_location + "/../../.."
 sys.path.append(root_path)
 
-from .protocol import AttrPacket, parse_attr_packet, build_attr_packet
+from .protocol import AttrPacket, parse_attr_packet, format_attr_packet
 from common import device_definitions as defs
 from common.utils import load_json_file
 
@@ -14,21 +14,25 @@ class Messaging_Framework:
 	def __init__(self, 
 	  server_message_get_handler = lambda *args: 0, 
 	  server_message_set_handler = lambda *args: 0, 
+	  app_jobs = lambda: None,
 	  logger = None,
 	  reconnect_delay = 30,
-	  poll_timeout = 30000
+	  poll_timeout = 30000,
+	  max_app_interval = 1
 	):
 		self.socket = None
 		self.connected = False
 
 		self._message_get_handler = server_message_get_handler
 		self._message_set_handler = server_message_set_handler
+		self._app_jobs = app_jobs
 
 		self.poller = select.poll()
 
 		self.logger = logger
 		self.reconnect_delay = reconnect_delay
 		self.poll_timeout = poll_timeout
+		self.max_app_interval = max_app_interval
 		self.metadata = load_json_file("device_metadata.json")
 		self.config = load_json_file("config.json")
 	
@@ -121,14 +125,16 @@ class Messaging_Framework:
 			self.logger and self.logger.info("Unknown message received: " + packet)
 			return ""
 
-		return build_attr_packet(response)
+		return format_attr_packet(response)
 
 	def _main_loop(self):
+		self._app_jobs()
+
 		if not self.connected and not self._establish_connection():
-			time.sleep(self.reconnect_delay)
+			time.sleep(min(self.reconnect_delay, self.max_app_interval))
 			return
 
-		poll_result = self.poller.poll(self.poll_timeout)
+		poll_result = self.poller.poll(min(self.poll_timeout, self.max_app_interval * 1000))
 
 		socket_problem = select.POLLNVAL | select.POLLERR | select.POLLHUP
 

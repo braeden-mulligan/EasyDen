@@ -167,6 +167,11 @@ class SmartHome_Device:
 			try:
 				# This should always return bytes because we use i/o poll mechanism.
 				msg = self.soc_connection.recv(32).decode()
+
+				# We receive an empty message when device shuts down socket.
+				if not msg and self.type == defs.device_type_id("DEVICE_TYPE_CAMERA"):
+					return 0
+
 			except Exception as e:
 				log.warning("Socket recv failed.", exc_info = True)
 				return -1

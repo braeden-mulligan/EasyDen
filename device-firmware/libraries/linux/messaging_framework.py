@@ -158,6 +158,7 @@ class Messaging_Framework:
 		except KeyboardInterrupt:
 			self._close_connection()
 			self.logger and self.logger.info("Messaging framework stopped by user.")
+			raise
 		except:
 			self.logger and self.logger.critical("Messaging framework crashed!", exc_info = True)
 			# if emailer:

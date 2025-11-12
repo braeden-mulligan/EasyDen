@@ -1,8 +1,6 @@
 from . import device_definitions as defs
 from . import utils
 
-import struct
-
 _get = defs.Device_Protocol.CMD_GET
 _set = defs.Device_Protocol.CMD_SET
 _attr_id = defs.attribute_id

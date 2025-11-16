@@ -1,5 +1,5 @@
 from common import defines, utils
-from .services import weather, market
+from ..services import weather, market
 
 def handle_request(request):
 	directive = request.get("directive")

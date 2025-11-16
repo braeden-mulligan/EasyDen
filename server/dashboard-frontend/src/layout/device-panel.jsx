@@ -4,6 +4,7 @@ import { ENTITY_TYPE_MAP, DEVICE_POLL_PERIOD_MS } from "../defines";
 import { fetch_devices } from "../api";
 import { Poweroutlet } from "../components/devices/poweroutlet";
 import { Thermostat } from "../components/devices/thermostat";
+import { Camera } from "../components/devices/camera";
 import { theme } from "../styles/theme";
 
 const styles = {
@@ -36,6 +37,8 @@ const DeviceCard = function({ device, limited }) {
 				return <Thermostat device={device} limited={limited}/>
 			case "poweroutlet":
 				return <Poweroutlet device={device} limited={limited}/>
+			case "camera":
+				return <Camera device={device} limited={limited}/>
 			default:
 				return (<>
 					<p>UNKNOWN DEVICE</p>

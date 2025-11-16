@@ -3,8 +3,8 @@ import common.device_protocol_helpers as device_protocol
 from common.defines import *
 from common.utils import error_response
 from common import device_definitions as device_defs
-from ..device_helpers import *
 from . import base_device as base
+from .base_device import repack_int_attribute, build_command, prune_device_data, repack_schedule
 
 def poweroutlet_processor(poweroutlets):
 	valid_devices = []

@@ -9,7 +9,7 @@ def store_settings(new_settings):
 	all_settings = load_json_file("settings.json")
 	all_settings.update(new_settings)
 
-	settings_file = base_path + "/../../files/json/settings.json"
+	settings_file = base_path + "/../../../files/json/settings.json"
 
 	with open(settings_file, 'w') as file:
 		file.write(json.dumps(all_settings, indent = '\t'))

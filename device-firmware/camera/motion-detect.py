@@ -75,6 +75,8 @@ class Motion_Detector:
 		self.picam2.start_encoder(self.encoder)
 		self.picam2.start()
 		time.sleep(1)
+		self._capture_frame()
+		time.sleep(1)
 	
 		previous_frame = None
 		recording_end_time = datetime.datetime.now()

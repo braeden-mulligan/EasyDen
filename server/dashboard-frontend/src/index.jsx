@@ -11,6 +11,7 @@ import { DebugPage } from "./pages/debug";
 import { OverviewPage } from "./pages/overview";
 import { ThermostatPage } from "./pages/thermostat";
 import { PowerOutletPage } from "./pages/poweroutlet";
+import { CameraPage } from './pages/camera';
 import { NotFoundPage } from "./pages/not-found";
 import { LoginPage } from './pages/login';
 
@@ -50,6 +51,7 @@ function AppMain() {
 						<Route path="/" element={<OverviewPage />} />
 						<Route path="thermostat" element={<ThermostatPage />} />
 						<Route path="poweroutlet" element={<PowerOutletPage/>} />
+						<Route path="camera" element={<CameraPage/>} />
 						<Route path="debug" element={<DebugPage />} />
 						<Route path="*" element={<NotFoundPage />} />
 					</Routes>

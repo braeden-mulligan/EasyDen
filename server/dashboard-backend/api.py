@@ -2,11 +2,12 @@ import sys
 sys.path.append("..")
 from common import defines, utils
 from common.log_handler import logger as log
-from .controllers import poweroutlet
-from .controllers import thermostat
-from .controllers import schedules
+from .entities import poweroutlet
+from .entities import thermostat
+from .entities import camera
+from .entities import schedules
+from .entities import server
 from .server_interconnect import interconnect_transact
-from . import server_handler
 
 def handle_query(request):
 	"""
@@ -80,10 +81,12 @@ def handle_query(request):
 				return poweroutlet.handle_request(request)
 			case "thermostat":
 				return thermostat.handle_request(request)
+			case "camera":
+				return camera.handle_request(request)
 			case "schedule":
 				return schedules.handle_request(request)
 			case "server":
-				return server_handler.handle_request(request)
+				return server.handle_request(request)
 			case _:
 				return utils.error_response(defines.E_INVALID_REQUEST, "Unknown entity specified.")
 

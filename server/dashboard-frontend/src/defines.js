@@ -1,7 +1,8 @@
 export const ENTITY_TYPE_MAP = {
 	6: "irrigation",
 	7: "poweroutlet",
-	8: "thermostat"
+	8: "thermostat",
+	9: "camera"
 }
 export const DEVICE_POLL_PERIOD_MS = 30000;
 export const SERVER_ADDR = location.hostname;

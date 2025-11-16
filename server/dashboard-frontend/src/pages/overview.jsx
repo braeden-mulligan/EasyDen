@@ -6,6 +6,6 @@ export const OverviewPage = function() {
 	return (<>
 		<WeatherWidget />
 		<MarketWidget />
-		<DevicePanel entity_types={["thermostat", "poweroutlet"]} limited={true}/>
+		<DevicePanel entity_types={["thermostat", "poweroutlet", "camera"]} limited={true}/>
 	</>)
 }

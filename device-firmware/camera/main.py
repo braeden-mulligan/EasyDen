@@ -121,13 +121,15 @@ class Camera_Manager:
 
 		store_settings(self.settings)
 
-		return self.camera_state
+		return int(self.settings["motion_detection"]["enabled"])
 
 	def handle_server_message_get(self, attr_id):
-		if attr_id == defs.attribute_id("CAMERA_ATTR_CAMERA_STATE"):
+		if attr_id == defs.attribute_id("GENERIC_ATTR_ENABLED"):
+			pass
+		elif attr_id == defs.attribute_id("CAMERA_ATTR_CAMERA_STATE"):
 			return self.camera_state
 		elif attr_id == defs.attribute_id("CAMERA_ATTR_MOTION_DETECT_ENABLED"):
-			return int(self.settings["motion_detect"]["enabled"])
+			return int(self.settings["motion_detection"]["enabled"])
 
 		return 0
 

@@ -59,6 +59,9 @@ def socket_close(soc, poll_obj):
 		poll_obj.unregister(soc)
 		soc.shutdown(socket.SHUT_RDWR)
 		soc.close()
+	except OSError as e:
+		if e.errno == 107:
+			log.info("Exception trying to close socket.", exc_info = True)
 	except:
 		log.warning("Exception trying to close socket.", exc_info = True)
 	return True

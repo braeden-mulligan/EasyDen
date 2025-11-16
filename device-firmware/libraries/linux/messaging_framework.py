@@ -31,6 +31,7 @@ class Messaging_Framework:
 
 		self.logger = logger
 		self.reconnect_delay = reconnect_delay
+		self.reconnect_countdown = 0
 		self.poll_timeout = poll_timeout
 		self.max_app_interval = max_app_interval
 		self.metadata = load_json_file("device_metadata.json")
@@ -51,9 +52,11 @@ class Messaging_Framework:
 			self.logger and self.logger.info("Connection attempt failed.", exc_info = True)
 			return False
 	
-	def _close_connection(self):
+	def _close_connection(self, reconnect_available_immediately = False):
 		try:
 			self.connected = False
+			if not reconnect_available_immediately:
+				self.reconnect_countdown = self.reconnect_delay
 			self.poller.unregister(self.socket.fileno())
 			self.socket.shutdown(socket.SHUT_RDWR)
 			self.socket.close()
@@ -99,16 +102,16 @@ class Messaging_Framework:
 
 		message = parse_attr_packet(packet)
 
+		if not message:
+			self.logger and self.logger.info("Failed to parse packet.")
+			return ""
+
 		response = AttrPacket(
 			seq = message.seq,
 			cmd = defs.Device_Protocol.CMD_RSP,
 			attr = message.attr,
 			val = 0 
 		)
-
-		if not response:
-			self.logger and self.logger.info("Failed to parse packet.")
-			return ""
 
 		if (message.cmd == defs.Device_Protocol.CMD_GET):
 			response.val = self._message_get_handler(message.attr)
@@ -130,8 +133,13 @@ class Messaging_Framework:
 	def _main_loop(self):
 		self._app_jobs()
 
-		if not self.connected and not self._establish_connection():
+		if not self.connected: 
+			self.reconnect_countdown -= self.max_app_interval
+		if self.reconnect_countdown > 0:
 			time.sleep(min(self.reconnect_delay, self.max_app_interval))
+			return
+		if not self.connected and not self._establish_connection():
+			self.reconnect_countdown = self.reconnect_delay
 			return
 
 		poll_result = self.poller.poll(min(self.poll_timeout, self.max_app_interval * 1000))

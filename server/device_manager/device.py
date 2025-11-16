@@ -169,6 +169,7 @@ class SmartHome_Device:
 				msg = self.soc_connection.recv(32).decode()
 
 				# We receive an empty message when device shuts down socket.
+				# TODO: maybe figure out better way to handle this
 				if not msg and self.type == defs.device_type_id("DEVICE_TYPE_CAMERA"):
 					return 0
 
@@ -330,6 +331,10 @@ class SmartHome_Device:
 				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_SENSOR_RAW_MIN_" + str(i)))
 				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_SENSOR_RECORDED_MAX_" + str(i)))
 				necessary_attributes.append(defs.attribute_id("IRRIGATION_ATTR_SENSOR_RECORDED_MIN_" + str(i)))
+
+		elif self.type == defs.device_type_id("DEVICE_TYPE_CAMERA"):
+			necessary_attributes.append(defs.attribute_id("CAMERA_ATTR_CAMERA_STATE"))
+			necessary_attributes.append(defs.attribute_id("CAMERA_ATTR_MOTION_DETECT_ENABLED"))
 
 		else:
 			return True

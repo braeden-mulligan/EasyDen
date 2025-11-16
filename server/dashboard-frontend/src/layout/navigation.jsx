@@ -57,6 +57,7 @@ const path_name_map = {
 	"/": "Overview",
 	"/thermostat": "Thermostats",
 	"/poweroutlet": "Power Outlets",
+	"/camera": "Video Cameras",
 	"/debug": "Debug",
 }
 
@@ -72,7 +73,7 @@ export const HomeLink = function({ style }) {
 }
 
 export const NavbarSide = function({ managed, close_sidebar }) {
-	const nav_items = ["/", "/thermostat", "/poweroutlet"];
+	const nav_items = ["/", "/thermostat", "/poweroutlet", "/camera"];
 
 	const location = useLocation();
 	const { isLandscape } = useMobileOrientation();

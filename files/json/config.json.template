@@ -1,0 +1,30 @@
+{
+	"environment": "development" | "production",
+	"debug": boolean,
+	"server_address": {
+		"production": string,
+		"development": string,
+		"device_connection_port": integer,
+		"video_stream_port": integer
+	},
+	"paths": {
+		"root": string,
+		"device_manager_interconnect": string,
+		"streaming_interconnect": string,
+		"database": string,
+		"device_definitions": string,
+		"video_recordings": string,
+	},
+	"socket_connection":{
+		"device_keepalive": integer,
+		"dashboard_count_max": integer,
+		"max_tx_retries": integer,
+		"poll_timeout": integer,
+		"tx_timeout": float,
+		"tx_queue_retention_time": integer
+	},
+	"auth": {
+		"jwt_access_expiry": integer,
+		"jwt_refresh_expiry": integer
+	}
+}

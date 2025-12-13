@@ -14,6 +14,7 @@ RECORDINGS_FILE_LOCATION = os.path.realpath(file_location + "/../..") + "/files/
 if not os.path.exists(RECORDINGS_FILE_LOCATION):
 	os.makedirs(RECORDINGS_FILE_LOCATION)
 
+# TODO: use a better algorithm for detection
 def _calculate_image_diff(frame1, frame2):
 	image1 = Image.fromarray(frame1)
 	image2 = Image.fromarray(frame2)
@@ -32,10 +33,6 @@ class Motion_Detector:
 		self.settings = settings
 		self.queue_inbound = queue_inbound
 		self.queue_outbound = queue_oubound
-
-		self.picam2.configure(config)
-		self.picam2.set_controls({"FrameRate": self.FRAMERATE})  
-		self.encoder.output = CircularOutput()
 
 		self.recording = False
 		self.last_recording_start_time = datetime.datetime.now()
@@ -62,6 +59,7 @@ class Motion_Detector:
 			self.last_recording_filepath.split(".")[0] + ".mp4"
 		])
 		os.remove(self.last_recording_filepath)
+		# TODO: Transfer file to server
 		self.recording = False
 	
 	def shutdown(self):
@@ -72,6 +70,10 @@ class Motion_Detector:
 		self.picam2.stop_encoder(self.encoder)
 
 	def run(self):
+		self.picam2.configure(self.config)
+		self.picam2.set_controls({"FrameRate": self.FRAMERATE})  
+		self.encoder.output = CircularOutput()
+
 		self.picam2.start_encoder(self.encoder)
 		self.picam2.start()
 		time.sleep(1)

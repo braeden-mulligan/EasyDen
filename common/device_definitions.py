@@ -1,4 +1,4 @@
-from . import defines
+from . import utils 
 
 import re
 
@@ -13,8 +13,8 @@ class Device_Protocol:
 IRRIGATION_MAX_SENSOR_COUNT = 3
 
 def read_device_defs():
-	device_defs = defines.DEVICE_DEFINITIONS_PATH
-	defs_file = open(device_defs, "r")
+	defs_filepath = utils.get_abs_path("device_definitions")
+	defs_file = open(defs_filepath, "r")
 	contents = defs_file.read()
 	defs_file.close()
 	contents = re.sub("//.*?\n|/\*.*?\*/", "", contents, flags=re.S)

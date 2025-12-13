@@ -5,6 +5,7 @@ from pathlib import Path
 import importlib, json
 auth_module = importlib.import_module("dashboard-backend.auth")
 data_api = importlib.import_module("dashboard-backend.api")
+stream_module = importlib.import_module("dashboard-backend.stream")
 
 REACT_APP_PATH = str(Path(__file__).parent) + "/dashboard-frontend/build"
 
@@ -27,5 +28,15 @@ def auth():
 def data_conduit():
 	return Response(json.dumps(data_api.handle_query(request.json)), mimetype = "application/json")
 
+@dashboard_app.route("/stream/mjpeg")
+@auth_module.jwt_required()
+def stream_mjpeg():
+	return stream_module.stream_mjpeg()
+
+@dashboard_app.route("/stream/status")
+@auth_module.jwt_required()
+def stream_status():
+    return stream_module.status()
+
 if __name__ == "__main__":
-	dashboard_app.run(host="0.0.0.0", port=443, ssl_context="adhoc")
+	dashboard_app.run(host="0.0.0.0", port=443, ssl_context="adhoc", threaded=True)

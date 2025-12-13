@@ -1,4 +1,5 @@
 import logging, os
+from . import utils
 
 logger = logging.getLogger(__name__)
 
@@ -17,7 +18,7 @@ log_file_handler = None
 def init_log_file(file_name):
 	global log_file_handler
 
-	log_dir = os.path.dirname(__file__) + "/../logs"
+	log_dir = utils.get_abs_path("log_file_directory")
 
 	if not os.path.exists(log_dir):
 		os.makedirs(log_dir)

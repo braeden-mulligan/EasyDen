@@ -31,7 +31,7 @@ The server hosts a web application for user interaction and a device management 
 The device manager is responsible for a number of tasks including keeping track of device states, firing scheduled events, and translating/routing messages between the web app and devices.
 
 A device must simply be able to make a TCP connection to the server and implement a custom messaging protocol used by the system.
-All current [device implementations](#devices) are built on an ATMega328p for application logic and coupled with an esp8266 for WiFi capability. Although any hardware setup capable of the aforementioned requirements can be used.
+Most [device implementations](#devices) are built on an ATMega328p for application logic and coupled with an esp8266 for WiFi capability.
 
 #### Device messaging protocol
 The device messaging protocol requires devices to respond to two main types of messages, "get" and "set", to interact with attributes of a device, similar to read/write of Bluetooth Low Energy or I<sup>2</sup>C. All messages are transmitted as a single packet with a 4-tuple of numbers, and exchanges are always initiated by the server. An exchange will consist of the server sending one message (either a get or set, with the exception of a special request during initial handshake/device discovery) and receiving a corresponding response.
@@ -53,10 +53,16 @@ The plug sockets of each unit can be toggled on or off individually (or in group
 
 ### Irrigation
 
-**Note: Features in development.**
+**Note: In development.**
 
 This device is intended for monitoring soil moisture of multiple potted plants and automatically watering each when necessary.
 There is a significant amount of ad hoc plumbing to be set up based on application needs; requiring a water reservoir, pump, valves, and appropriate routing of pipes. The pump and valves are controlled via relay which affords flexibility in plumbing hardware choices. The current implementation allows for configurations of up to three separate plant pots. The system can be set to simply monitor soil moisture, but application logic does provide autonomous operation capability.
+
+### Video Camera
+
+**Note: Prototype stage.**
+
+A basic Raspberry Pi-powered video camera with motion detection and video streaming functionality. Upon motion detection (or optionally active streaming) video data will begin recording. The camera can also be configured to send notifications upon events such as motion detection.
 
 
 
@@ -64,7 +70,8 @@ There is a significant amount of ad hoc plumbing to be set up based on applicati
 
 In no particular order:
 
-- Automated window blinds
-- Data collection, visualization, insights
-- Motion-detection security camera
+- Automated window blinds/curtains
+- Data visualization 
+- Motion-detection video camera
+- Front door intercom
 

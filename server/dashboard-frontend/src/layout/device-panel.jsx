@@ -30,7 +30,7 @@ const styles = {
 	},
 }
 
-const DeviceCard = function({ device, limited }) {
+const DeviceCard = function({ device, limited, kwargs }) {
 	const select_device_component = function() {
 		switch (ENTITY_TYPE_MAP[device.type]) {
 			case "thermostat":
@@ -38,7 +38,7 @@ const DeviceCard = function({ device, limited }) {
 			case "poweroutlet":
 				return <Poweroutlet device={device} limited={limited}/>
 			case "camera":
-				return <Camera device={device} limited={limited}/>
+				return <Camera device={device} limited={limited} kwargs={kwargs}/>
 			default:
 				return (<>
 					<p>UNKNOWN DEVICE</p>
@@ -55,7 +55,7 @@ const DeviceCard = function({ device, limited }) {
 	</>)
 }
 
-export const DevicePanel = function({ entity_types, limited}) {
+export const DevicePanel = function({ entity_types, limited, kwargs }) {
 	if (typeof entity_types === "string") entity_types = [entity_types];
 
 	const devices = useGlobalStore((state) => state.devices)
@@ -77,7 +77,7 @@ export const DevicePanel = function({ entity_types, limited}) {
 
 	return (
 		<div style={styles.panel_container}>
-			{devices.map((device) =><DeviceCard key={device.id} device={device} limited={limited}/>)}
+			{devices.map((device) =><DeviceCard key={device.id} device={device} limited={limited} kwargs={kwargs}/>)}
 		</div>
 	)
 }

@@ -20,7 +20,8 @@ FLOAT_ATTRIBUTE_VALUES = [
 
 INTEGER_ATTRIBUTE_VALUES = [
 	device_defs.attribute_id("CAMERA_ATTR_CAMERA_STATE"),
-	device_defs.attribute_id("CAMERA_ATTR_MOTION_DETECT_ENABLED")
+	device_defs.attribute_id("CAMERA_ATTR_MOTION_DETECT_ENABLED"),
+	device_defs.attribute_id("CAMERA_ATTR_VIDEO_STREAM")
 ]
 
 def camera_processor(cameras):
@@ -33,6 +34,7 @@ def camera_processor(cameras):
 		translated_attributes["enabled"] = repack_int_attribute("GENERIC_ATTR_ENABLE", device["attributes"])
 		translated_attributes["status"] = repack_int_attribute("CAMERA_ATTR_CAMERA_STATE", device["attributes"])
 		translated_attributes["motion_detect_enabled"] = repack_int_attribute("CAMERA_ATTR_MOTION_DETECT_ENABLED", device["attributes"])
+		translated_attributes["video_stream"] = repack_int_attribute("CAMERA_ATTR_VIDEO_STREAM", device["attributes"])
 
 		prune_device_data(device)
 		device["attributes"] = translated_attributes

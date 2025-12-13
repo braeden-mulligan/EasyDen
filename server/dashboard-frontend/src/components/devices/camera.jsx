@@ -12,8 +12,9 @@ const CAMERA_STATUS = {
 	8: "Motion detect shutting down"
 }
 
-export const Camera = function({ device, limited }) {
-	const [toggle_disabled, set_toggle_disabled] = useState(false);
+export const Camera = function({ device, limited, kwargs }) {
+	const [toggle_disabled, set_toggle_disabled] = useState(true);
+	const [streaming, set_streaming] = useState(false);
 
 	const toggle_motion_detection = function() {
 		set_toggle_disabled(true)
@@ -30,9 +31,20 @@ export const Camera = function({ device, limited }) {
 		<div className="flex-row" style={{ justifyContent: "space-between", padding: "16px"}}>
 			<p>{status}</p>
 			<ToggleSwitch  value={device.attributes.motion_detect_enabled.value} onChange={toggle_motion_detection} disabled={toggle_disabled}/>
+			<button disabled={limited} onClick={() => {
+				send_command(device, {
+					"attribute-id": device.attributes.video_stream.id,
+					"attribute-value": streaming ? 0 : 1
+				})
+				kwargs.set_connected(!streaming);
+				set_streaming(!streaming);
+			}} >
+				{streaming ? "Stop Stream" : "Start Stream"}
+			</button>
 		</div>
 		{/* {!limited && <Schedules device={device} AttributeRenderer={} AttributeSelector={}/>} */}
 	</>)
 }
+
 
 

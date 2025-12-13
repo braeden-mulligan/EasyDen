@@ -51,7 +51,7 @@ class SmartHome_Device:
 
 	def __init__(self, socket_connection = None):
 		# Attributes returned on device query.
-		self.type = 0
+		self.type = defs.device_type_id("DEVICE_TYPE_NULL")
 		self.id = 0
 		self.attributes = {} #(reg, {value, queried_at, updated_at})
 		self.name = "Default Name"
@@ -168,7 +168,7 @@ class SmartHome_Device:
 				# This should always return bytes because we use i/o poll mechanism.
 				msg = self.soc_connection.recv(32).decode()
 
-				# We receive an empty message when device shuts down socket.
+				# We receive an empty message when camera device shuts down socket.
 				# TODO: maybe figure out better way to handle this
 				if not msg and self.type == defs.device_type_id("DEVICE_TYPE_CAMERA"):
 					return 0
@@ -335,6 +335,7 @@ class SmartHome_Device:
 		elif self.type == defs.device_type_id("DEVICE_TYPE_CAMERA"):
 			necessary_attributes.append(defs.attribute_id("CAMERA_ATTR_CAMERA_STATE"))
 			necessary_attributes.append(defs.attribute_id("CAMERA_ATTR_MOTION_DETECT_ENABLED"))
+			necessary_attributes.append(defs.attribute_id("CAMERA_ATTR_VIDEO_STREAM"))
 
 		else:
 			return True

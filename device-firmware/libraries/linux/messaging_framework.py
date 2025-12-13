@@ -87,6 +87,7 @@ class Messaging_Framework:
 		if self.connected:
 			try:
 				self.socket.send(message.encode())
+				print("SENT:", message)
 				return True 
 
 			except Exception as e:
@@ -96,6 +97,8 @@ class Messaging_Framework:
 		return None
 	
 	def _process_server_message(self, packet):
+		print("Processing server message:", packet)
+
 		if not packet:
 			self.logger and self.logger.info("No packet to process.")
 			return ""
@@ -152,7 +155,9 @@ class Messaging_Framework:
 				return
 			elif event & select.POLLIN:
 				message = self._socket_recv()
+				print("POLLIN received, message:", message)
 				if not message:
+					print("POLLIN but no message")
 					return
 
 				response = self._process_server_message(message)

@@ -1,12 +1,12 @@
 import sys
 sys.path.append("..")
-from common import defines 
+from common import utils
 
 import json, sqlite3
 
 def db_connection(operation):
 	def inner(*args, **kwargs):
-		conn = sqlite3.connect(defines.DATABASE_PATH)
+		conn = sqlite3.connect(utils.get_abs_path("database"))
 		cursor = conn.cursor()
 		result = operation(*args, **kwargs, db = cursor)
 		conn.commit()

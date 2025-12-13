@@ -43,6 +43,9 @@ def	send_email(
 	recipients: List[str] = ["braeden.mulligan@gmail.com"],
 	subject: str = "EasyDen Notification",
 ):
+	if not utils.load_json_file("settings.json").get("notifications_enabled", False):
+		return
+
 	smtp_host = "smtp.gmail.com"
 	smtp_port = 587
 	creds = utils.load_json_file("secrets.json").get("mailer_credentials", {})

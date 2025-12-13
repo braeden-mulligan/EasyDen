@@ -17,6 +17,10 @@ def init_auth(app):
 	bcrypt = Bcrypt(app)
 	jwt = JWTManager(app)
 
+	pw = bcrypt.generate_password_hash("mulligan")
+	print(pw)
+	print(pw.decode("utf-8"))
+
 	secrets_json = load_json_file("secrets.json").get("user_auth", {})
 
 	if not secrets_json.get("secret_key") or not secrets_json.get("jwt_secret_key"):

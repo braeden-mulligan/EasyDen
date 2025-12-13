@@ -4,14 +4,14 @@ sys.path.append("..")
 from common.defines import *
 from common.log_handler import logger as log
 from common import device_definitions as defs
-from common.utils import error_response
+from common.utils import error_response, get_abs_path
 
 import json, socket
 
 def interconnect_transact(request_data, timeout = 1.0):
 	soc = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 	try:
-		soc.connect(SERVER_INTERCONNECT_PATH)
+		soc.connect(get_abs_path("device_manager_interconnect"))
 	except ConnectionRefusedError:
 		log.debug("Connection refused:", exc_info = True )
 		return error_response(E_SERVER_INTERCONNECT, "Device manager socket connection refused. Is the device manager running?")

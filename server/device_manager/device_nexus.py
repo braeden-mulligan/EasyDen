@@ -1,7 +1,7 @@
 import sys, time
 sys.path.append("..")
 from common import server_config as config
-from common import defines
+from common import utils 
 from common import device_protocol_helpers
 from common.log_handler import logger as log, init_log_file
 from common.mailer import send_email
@@ -24,10 +24,10 @@ def listener_init(dashboard = False):
 	addr = ("0.0.0.0", config.SERVER_PORT)
 	max_conn = config.DEVICE_MAX_CONN
 	if dashboard:
-		if os.path.exists(defines.SERVER_INTERCONNECT_PATH):
-			os.remove(defines.SERVER_INTERCONNECT_PATH)
+		if os.path.exists(utils.get_abs_path("device_manager_interconnect")):
+			os.remove(utils.get_abs_path("device_manager_interconnect"))
 		addr_fam = socket.AF_UNIX
-		addr = defines.SERVER_INTERCONNECT_PATH
+		addr = utils.get_abs_path("device_manager_interconnect")
 		max_conn = config.DASHBOARD_MAX_CONN
 
 	soc = socket.socket(addr_fam, socket.SOCK_STREAM)

@@ -45,6 +45,15 @@ def	load_json_file(filename):
 	with open(file_path, "r") as f:
 		return json.load(f)
 
+def get_abs_path(path_label):
+	system_config = load_json_file("config.json")
+
+	if system_config["paths"][path_label].startswith("!"):
+		return system_config["paths"][path_label][1:]
+
+	return system_config["paths"]["root"] + system_config["paths"][path_label]
+
+
 def error_response(code = None, details = None, exception = None):
 	response = {
 		"error": {

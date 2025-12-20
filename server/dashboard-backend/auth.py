@@ -7,13 +7,16 @@ from common.utils import load_json_file, error_response
 from common.defines import E_INVALID_REQUEST
 from common.server_config import JWT_ACCESS_EXPIRY, JWT_REFRESH_EXPIRY
 
+log = None
 bcrypt = None
 jwt = None
 
-def init_auth(app):
+def init_auth(app, logger):
+	global log
 	global bcrypt
 	global jwt
 
+	log = logger
 	bcrypt = Bcrypt(app)
 	jwt = JWTManager(app)
 
@@ -32,13 +35,14 @@ def init_auth(app):
 	app.config["JWT_COOKIE_SECURE"] = True
 	app.config["JWT_COOKIE_SAMESITE"] = "Lax"
 
-def login(username, password):
+def login(username, password, source_address):
 	if not username or not password:
 		return Response(json.dumps(error_response(E_INVALID_REQUEST, "Missing username or password.")), mimetype = "application/json")
 
 	user = fetch_user(username)
 
 	if not user or not bcrypt.check_password_hash(user["password_hash"], password):
+		log.warning("Failed login attempt with username {} from address {}".format(username, source_address))
 		return Response(json.dumps(error_response(E_INVALID_REQUEST, "Username and password mismatch.")), mimetype = "application/json")
 
 	access_token = create_access_token(identity = user["username"])
@@ -78,11 +82,13 @@ def token_refresh():
 
 	return response
 
-def handle_query(data):
+def handle_query(request):
+	data = request.json
 	action = data.get("action")
+	source_address = request.remote_addr	
 
 	if action == "login":
-		return login(data.get("username"), data.get("password"))
+		return login(data.get("username"), data.get("password"), source_address)
 
 	if action == "refresh":
 		return token_refresh()

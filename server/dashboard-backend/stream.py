@@ -136,7 +136,6 @@ def	stream_mjpeg():
 		generate(),
 		mimetype="multipart/x-mixed-replace; boundary=frame",
 		headers={
-			"Access-Control-Allow-Origin": "*",
 			"Cache-Control": "no-cache,	no-store, must-revalidate",
 			"Pragma": "no-cache",
 			"Expires": "0",

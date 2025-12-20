@@ -33,17 +33,17 @@ def load_devices(entry_processor, db = None):
 
 @db_connection
 def add_device(device, db = None):
-	query = "insert into devices(id, type, name) values({}, {}, \"{}\")".format(device.id, device.type, device.name)
+	query = "insert into devices(id, type, name) values(?, ?, ?)"
 	try:
-		db.execute(query)
+		db.execute(query, (device.id, device.type, device.name))
 	except sqlite3.IntegrityError:
 		pass
 
 #TODO
 @db_connection
 def update_device_name(device, db = None):
-	query = "update devices set name = \"{}\" where id = {}".format(device.name, device.id)
-	db.execute(query)
+	query = "update devices set name = ? where id = ?"
+	db.execute(query, (device.name, device.id))
 	return 
 
 @db_connection
@@ -57,13 +57,13 @@ def update_schedule(id, data, db = None):
 
 @db_connection
 def remove_schedule(id, db = None):
-	db.execute("delete from schedules where id={}".format(id))
+	db.execute("delete from schedules where id=?", (id,))
 
 @db_connection
 def add_schedule(schedule, db = None):
 	schedule_data = schedule.get_data()
-	query = "insert into schedules(data, device_id) values(?, {})".format(schedule.device.id)
-	db.execute(query, (json.dumps(schedule_data),))
+	query = "insert into schedules(data, device_id) values(?, ?)"
+	db.execute(query, (json.dumps(schedule_data), schedule.device.id))
 	return db.lastrowid
 
 @db_connection

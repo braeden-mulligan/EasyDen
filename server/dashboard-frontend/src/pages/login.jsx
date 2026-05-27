@@ -107,7 +107,7 @@ export const LoginPage = function() {
 			}, null, "/auth");
 
 			if (login_result?.result == "success") {
-				store_jwt_expiry(login_result.tokens.access, login_result.tokens.refresh);
+				store_jwt_expiry(login_result.access_token_expiry, login_result.refresh_token_expiry);
 				login_success = true;
 			} else {
 				login_result?.error && add_notification(`Login failed: ${login_result.error.details}`);

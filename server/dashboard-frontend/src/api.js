@@ -41,7 +41,7 @@ export const request = async function(data = {}, error_handler = null, endpoint 
 
 		if (refresh.status == 200) {
 			const refresh_data = await refresh.json();
-			store_jwt_expiry(refresh_data.tokens.access);
+			store_jwt_expiry(refresh_data.access_token_expiry);
 			retry_response = await request(data, error_handler, endpoint);
 
 		} else {

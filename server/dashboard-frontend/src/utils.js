@@ -1,4 +1,3 @@
-import { jwtDecode } from "jwt-decode";
 
 export const equal = function(obj_1, obj_2) {
 	function is_object(obj) {
@@ -53,13 +52,11 @@ export const set_cookie = function(name, value, days = 365) {
 	document.cookie = name + "=" + value + expires + "; path=/";
 }
 
-export const store_jwt_expiry = function(access_token, refresh_token = null) {
-	const access_expiry = jwtDecode(access_token).exp * 1000; 
-	set_cookie("access_token_expiry", access_expiry.toString());
+export const store_jwt_expiry = function(access_token_expiry, refresh_token_expiry = null) {
+	set_cookie("access_token_expiry", access_token_expiry.toString());
 
-	if (refresh_token) {
-		const refresh_expiry = jwtDecode(refresh_token).exp * 1000;
-		set_cookie("refresh_token_expiry", refresh_expiry.toString());
+	if (refresh_token_expiry !== null) {
+		set_cookie("refresh_token_expiry", refresh_token_expiry.toString());
 	}
 }
 

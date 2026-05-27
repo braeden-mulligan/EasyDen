@@ -1,7 +1,7 @@
 import os, json
 from flask import Response 
 from flask_bcrypt import Bcrypt
-from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, jwt_required, set_access_cookies, set_refresh_cookies, get_jwt_identity, unset_jwt_cookies
+from flask_jwt_extended import JWTManager, create_access_token, create_refresh_token, decode_token, jwt_required, set_access_cookies, set_refresh_cookies, get_jwt_identity
 from database.operations import fetch_user
 from common.utils import load_json_file, error_response
 from common.defines import E_INVALID_REQUEST
@@ -55,10 +55,8 @@ def login(username, password, source_address):
 			"username": user["username"],
 			"email": user["email"]
 		},
-		"tokens": {
-			"access": access_token,
-			"refresh": refresh_token
-		}
+		"access_token_expiry": decode_token(access_token)["exp"] * 1000,
+		"refresh_token_expiry": decode_token(refresh_token)["exp"] * 1000
 	}), mimetype = "application/json")
 
 	set_access_cookies(response, access_token)
@@ -73,9 +71,7 @@ def token_refresh():
 
 	response = Response(json.dumps({
 		"result": "success",
-		"tokens": {
-			"access": access_token
-		}
+		"access_token_expiry": decode_token(access_token)["exp"] * 1000
 	}), mimetype = "application/json")
 
 	set_access_cookies(response, access_token)

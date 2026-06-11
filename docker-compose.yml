@@ -1,0 +1,71 @@
+services:
+  db-init:
+    image: alpine:3.19
+    volumes:
+      - ./server/database/:/app/server/database/
+    working_dir: /app/server/database
+    command: sh -c "apk add --no-cache sqlite su-exec && su-exec ${HOST_UID}:${HOST_GID} sh ./db_init.sh"
+
+  backend:
+    build:
+      context: .
+      dockerfile: server/dashboard-backend/Dockerfile
+    volumes:
+      - ./server/database/:/app/server/database/
+      - /tmp:/tmp
+      - ./files/json/secrets.json:/app/files/json/secrets.json:ro
+      - ./files/logs/:/app/files/logs/
+      - ./files/video_recordings:/app/files/video-recordings
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+      device-manager:
+        condition: service_started
+    restart: on-failure:3
+
+  device-manager:
+    build:
+      context: .
+      dockerfile: server/device_manager/Dockerfile
+    ports:
+      - "1338:1338"
+      - "8888:8888"
+    volumes:
+      - ./server/database/:/app/server/database/
+      - /tmp:/tmp
+      - ./files/json/secrets.json:/app/files/json/secrets.json:ro
+      - ./files/logs/:/app/files/logs/
+      - ./files/video_recordings:/app/files/video-recordings
+    depends_on:
+      db-init:
+        condition: service_completed_successfully
+    restart: on-failure:3
+
+  nginx:
+    image: nginx:alpine
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - ./files/nginx/nginx.conf:/etc/nginx/nginx.conf:ro
+      - ./files/nginx/certs/:/etc/nginx/certs/:ro
+    depends_on:
+      - backend
+    restart: on-failure:3
+
+  # voice-command:
+  #   build:
+  #     context: .
+  #     dockerfile: voice-command/Dockerfile
+  #   profiles:
+  #     - voice
+  #   volumes:
+  #     - ./files/json/secrets.json:/app/files/json/secrets.json:ro
+  #     - easyden_logs:/app/files/logs
+  #   devices:
+  #     - /dev/snd:/dev/snd
+  #   group_add:
+  #     - audio
+  #   environment:
+  #     - EASYDEN_SERVER=backend:8000
+  #   restart: unless-stopped

@@ -34,7 +34,10 @@ class Messaging_Framework:
 		self.reconnect_countdown = 0
 		self.poll_timeout = poll_timeout
 		self.max_app_interval = max_app_interval
+
+		#TODO: wtf was this, needs to be changed
 		self.metadata = load_json_file("device_metadata.json")
+
 		self.config = load_json_file("config.json")
 	
 	def _establish_connection(self):

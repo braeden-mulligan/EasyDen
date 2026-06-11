@@ -74,5 +74,11 @@ secret_script.sh
 tools/
 build/
 log/
+.env
 
 .vscode/
+
+# TLS certificates
+files/nginx/certs/*.pem
+files/nginx/certs/*.crt
+files/nginx/certs/*.key
